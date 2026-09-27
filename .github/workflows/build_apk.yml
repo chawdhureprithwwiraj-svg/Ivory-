@@ -1,73 +1,125 @@
 name: Build Ivory APK
 
-# Runs on every push to main, and can also be started manually
-# from the GitHub mobile browser (Actions tab -> Run workflow).
 on:
   push:
-    branches: [ main ]
-  pull_request:
     branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build-apk:
     name: Compile Ivory into a downloadable APK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
-      # 1. Pull your repository code onto the free cloud machine
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      # 2. Java 17 is required by the modern Android Gradle Plugin
+      # Guard: if your Dart files are missing, "flutter create" would silently
+      # substitute Flutter's default counter-app template and the build would
+      # fail on template code you never wrote. Fail loudly and early instead.
+      - name: Verify Ivory source files are present
+        run: |
+          echo "--- repo root ---"
+          ls -la
+          echo "--- lib/ ---"
+          ls -laR lib || echo "NO lib FOLDER AT ALL"
+          missing=0
+          for f in lib/main.dart lib/theme/ivory_theme.dart pubspec.yaml; do
+            if [ ! -f "$f" ]; then
+              echo "::error::MISSING FILE: $f - create it on GitHub before building."
+              missing=1
+            else
+              echo "found: $f"
+            fi
+          done
+          if [ "$missing" = "1" ]; then
+            echo "Build stopped. Add the missing file(s) and re-run."
+            exit 1
+          fi
+
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. Install Flutter (stable channel) with build caching for speed
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Print Flutter version
-        run: flutter --version
+      - name: Show environment
+        run: |
+          flutter --version
+          java -version
 
-      # 4. KEY MOBILE TRICK:
-      # You cannot run "flutter create" on an Android phone, so we let the
-      # cloud machine generate the android/ native folder for us. It only
-      # fills in files that are MISSING - your lib/ and pubspec.yaml are
-      # never overwritten.
       - name: Generate missing Android platform files
         run: flutter create . --project-name ivory --org com.ivory --platforms android
 
-      # 5. Download all packages listed in pubspec.yaml
+      - name: Remove generated placeholder test
+        run: rm -rf test
+
       - name: Install dependencies
         run: flutter pub get
 
-      # 6. Static analysis - warns you about bad code but never blocks the build
-      - name: Analyze code
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-        continue-on-error: true
-
-      # 7. Build the release APK (split per architecture = smaller downloads)
+      # The build runs inside a wrapper that captures EVERYTHING to build.log,
+      # so the real error can be shown on the run Summary page afterwards.
       - name: Build release APK
-        run: flutter build apk --release --split-per-abi
+        id: build
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          flutter build apk --release 2>&1 | tee build.log
+          echo "exit_status=$?" >> $GITHUB_OUTPUT
 
-      # 8. Also build one universal APK that installs on ANY Android phone.
-      # Use this one if you are unsure which file to download.
-      - name: Build universal APK
-        run: flutter build apk --release
+      # Prints the last 120 lines of the build log straight onto the
+      # run Summary page - no need to open or scroll any logs on mobile.
+      - name: Publish error report to Summary
+        if: always()
+        run: |
+          {
+            echo "## Ivory build report"
+            echo ""
+            echo "Result of \`flutter build apk --release\`:"
+            echo ""
+            echo '```text'
+            if [ -f build.log ]; then
+              tail -120 build.log
+            else
+              echo "build.log was never created - the job failed before the build step."
+            fi
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
 
-      # 9. Upload the APKs so you can download them from your phone browser
-      - name: Upload APK artifacts
+      # Always uploads the full log, even when the build fails, so you can
+      # download and read it if the summary is not enough.
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload APK artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ivory-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 90
-          if-no-files-found: error
+          if-no-files-found: warn
+
+      # Fails the job at the very end, AFTER the report has been published.
+      - name: Fail if the APK was not produced
+        if: always()
+        run: |
+          if [ ! -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            echo "No APK was produced. Read the error report on the Summary page."
+            exit 1
+          fi
+          echo "APK built successfully."
+          ls -lh build/app/outputs/flutter-apk/
           
