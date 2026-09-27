@@ -1,215 +1,221 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'theme/ivory_theme.dart';
 
-/// IVORY DESIGN SYSTEM
-/// "Every story leaves a mark"
-///
-/// STRICT COLOR POLICY: absolutely no black, dark gray or charcoal.
-/// The darkest tone allowed anywhere in this app is Deep Burgundy (#4A0E17).
-class IvoryColors {
-  IvoryColors._();
-
-  // Backgrounds - warm soft ivory / cream
-  static const Color ivory = Color(0xFFFAF5E9);
-  static const Color cream = Color(0xFFFFFDD0);
-
-  // Containers & cards - rich burgundy / deep royal plum
-  static const Color burgundy = Color(0xFF4A0E17);
-  static const Color plum = Color(0xFF5C1222);
-
-  // Primary highlights - warm metallic gold & butterscotch amber
-  static const Color gold = Color(0xFFD4AF37);
-  static const Color amber = Color(0xFFE3A857);
-
-  // Secondary accent - peach glow / sunset gold
-  static const Color peach = Color(0xFFFFB366);
-
-  // Semantic tones (kept inside the warm palette)
-  static const Color success = Color(0xFF6B8E4E);
-  static const Color warning = Color(0xFFE3A857);
-  static const Color danger = Color(0xFFA8323E);
-
-  /// Signature burgundy card gradient used across the storytelling feed.
-  static const LinearGradient cardGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: <Color>[plum, burgundy],
-  );
-
-  /// Warm ivory background wash.
-  static const LinearGradient pageGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: <Color>[cream, ivory],
-  );
-
-  /// Gold shimmer used on headers, borders and lock icons.
-  static const LinearGradient goldGradient = LinearGradient(
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-    colors: <Color>[amber, gold, peach],
-  );
+void main() {
+  runApp(const IvoryApp());
 }
 
-class IvoryTheme {
-  IvoryTheme._();
+class IvoryApp extends StatelessWidget {
+  const IvoryApp({super.key});
 
-  /// Soft warm shadow. Uses burgundy at low opacity instead of black,
-  /// so the strict no-black policy is respected even in elevation.
-  static List<BoxShadow> softShadow({double blur = 18, double y = 8}) {
-    return <BoxShadow>[
-      BoxShadow(
-        color: IvoryColors.burgundy.withValues(alpha: 0.18),
-        blurRadius: blur,
-        offset: Offset(0, y),
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Ivory',
+      debugShowCheckedModeBanner: false,
+      theme: IvoryTheme.light(),
+      home: const WelcomeScreen(),
+    );
+  }
+}
+
+/// Sprint 1 screen: proves the build pipeline works and locks in the
+/// Ivory visual identity (no black anywhere - burgundy is the darkest tone).
+class WelcomeScreen extends StatelessWidget {
+  const WelcomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: IvoryColors.pageGradient),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const _IvoryMonogram(),
+                  const SizedBox(height: 32),
+                  ShaderMask(
+                    shaderCallback: (Rect bounds) =>
+                        IvoryColors.goldGradient.createShader(bounds),
+                    child: const Text(
+                      'IVORY',
+                      style: TextStyle(
+                        fontSize: 46,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 10,
+                        color: Colors.white, // masked by the gold gradient
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Every story leaves a mark',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontStyle: FontStyle.italic,
+                      letterSpacing: 1.1,
+                      color: IvoryColors.burgundy.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  const SizedBox(height: 36),
+                  const _StatusCard(),
+                  const SizedBox(height: 28),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Build pipeline works. Ready for Sprint 2.',
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.menu_book),
+                    label: const Text('ENTER IVORY'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
+    );
+  }
+}
+
+/// The glowing ivory "I" monogram from the app icon, drawn in pure Flutter
+/// so no image asset is needed for the first build.
+class _IvoryMonogram extends StatelessWidget {
+  const _IvoryMonogram();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 148,
+      height: 148,
+      decoration: BoxDecoration(
+        gradient: IvoryColors.cardGradient,
+        borderRadius: BorderRadius.circular(42),
+        border: Border.all(
+          color: IvoryColors.gold.withValues(alpha: 0.7),
+          width: 2,
+        ),
+        boxShadow: IvoryTheme.softShadow(blur: 28, y: 12),
+      ),
+      child: Center(
+        child: Container(
+          width: 74,
+          height: 88,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: IvoryColors.cream,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: IvoryColors.peach.withValues(alpha: 0.55),
+                blurRadius: 30,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: const Text(
+            'I',
+            style: TextStyle(
+              fontSize: 56,
+              fontWeight: FontWeight.w700,
+              color: IvoryColors.burgundy,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Burgundy card with gold border - the reusable look for the whole feed.
+class _StatusCard extends StatelessWidget {
+  const _StatusCard();
+
+  @override
+  Widget build(BuildContext context) {
+    const List<_Milestone> milestones = <_Milestone>[
+      _Milestone('GitHub repository + auto APK builds', true),
+      _Milestone('Ivory design system locked in', true),
+      _Milestone('Supabase backend & authentication', false),
+      _Milestone('Community storytelling feed', false),
+      _Milestone('Premium tiers & UPI payments', false),
+      _Milestone('Agora live streaming & 1-on-1 calls', false),
+      _Milestone('Mobile admin dashboard', false),
     ];
-  }
 
-  static ThemeData light() {
-    final ColorScheme scheme = const ColorScheme.light().copyWith(
-      primary: IvoryColors.burgundy,
-      onPrimary: IvoryColors.ivory,
-      secondary: IvoryColors.gold,
-      onSecondary: IvoryColors.burgundy,
-      surface: IvoryColors.ivory,
-      onSurface: IvoryColors.burgundy,
-      error: IvoryColors.danger,
-      onError: IvoryColors.ivory,
-    );
-
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-      scaffoldBackgroundColor: IvoryColors.ivory,
-      canvasColor: IvoryColors.ivory,
-      shadowColor: IvoryColors.burgundy.withValues(alpha: 0.2),
-      splashColor: IvoryColors.peach.withValues(alpha: 0.18),
-      highlightColor: IvoryColors.amber.withValues(alpha: 0.12),
-      dividerTheme: DividerThemeData(
-        color: IvoryColors.gold.withValues(alpha: 0.35),
-        thickness: 1,
-        space: 24,
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: IvoryColors.burgundy,
-        foregroundColor: IvoryColors.gold,
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: TextStyle(
-          color: IvoryColors.gold,
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 3,
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: IvoryColors.cardGradient,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: IvoryColors.gold.withValues(alpha: 0.55),
+          width: 1.2,
         ),
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: IvoryColors.burgundy,
-          statusBarIconBrightness: Brightness.light,
-        ),
+        boxShadow: IvoryTheme.softShadow(),
       ),
-      cardTheme: CardThemeData(
-        color: IvoryColors.plum,
-        elevation: 0,
-        margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-          side: BorderSide(
-            color: IvoryColors.gold.withValues(alpha: 0.55),
-            width: 1.2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text(
+            'BUILD ROADMAP',
+            style: TextStyle(
+              color: IvoryColors.gold,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2.4,
+            ),
           ),
-        ),
-      ),
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(
-          color: IvoryColors.gold,
-          fontSize: 40,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 8,
-        ),
-        headlineMedium: TextStyle(
-          color: IvoryColors.burgundy,
-          fontSize: 24,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-        ),
-        titleMedium: TextStyle(
-          color: IvoryColors.burgundy,
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-        ),
-        bodyLarge: TextStyle(
-          color: IvoryColors.burgundy,
-          fontSize: 16,
-          height: 1.5,
-        ),
-        bodyMedium: TextStyle(
-          color: IvoryColors.burgundy,
-          fontSize: 14,
-          height: 1.5,
-        ),
-        labelLarge: TextStyle(
-          color: IvoryColors.burgundy,
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
-        ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: IvoryColors.amber,
-          foregroundColor: IvoryColors.burgundy,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+          const SizedBox(height: 16),
+          ...milestones.map(
+            (_Milestone m) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Icon(
+                    m.done
+                        ? Icons.check_circle
+                        : Icons.lock_outline,
+                    size: 19,
+                    color: m.done ? IvoryColors.amber : IvoryColors.peach,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      m.label,
+                      style: TextStyle(
+                        color: m.done
+                            ? IvoryColors.ivory
+                            : IvoryColors.ivory.withValues(alpha: 0.6),
+                        fontSize: 14.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-          ),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: IvoryColors.gold,
-          side: const BorderSide(color: IvoryColors.gold, width: 1.4),
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: IvoryColors.cream,
-        hintStyle: TextStyle(
-          color: IvoryColors.burgundy.withValues(alpha: 0.45),
-        ),
-        labelStyle: const TextStyle(color: IvoryColors.burgundy),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-            color: IvoryColors.gold.withValues(alpha: 0.6),
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: IvoryColors.gold, width: 1.8),
-        ),
-      ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: IvoryColors.burgundy,
-        selectedItemColor: IvoryColors.gold,
-        unselectedItemColor: IvoryColors.peach,
-        type: BottomNavigationBarType.fixed,
-        showUnselectedLabels: true,
-      ),
-      snackBarTheme: const SnackBarThemeData(
-        backgroundColor: IvoryColors.plum,
-        contentTextStyle: TextStyle(color: IvoryColors.ivory),
-        behavior: SnackBarBehavior.floating,
+        ],
       ),
     );
   }
+}
+
+class _Milestone {
+  const _Milestone(this.label, this.done);
+  final String label;
+  final bool done;
 }
