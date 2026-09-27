@@ -1,11 +1,7 @@
 name: Build Ivory APK
 
-# Runs on every push to main, and can also be started manually
-# from the GitHub mobile browser (Actions tab -> Run workflow).
 on:
   push:
-    branches: [ main ]
-  pull_request:
     branches: [ main ]
   workflow_dispatch:
 
@@ -15,59 +11,60 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Pull your repository code onto the free cloud machine
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Java 17 is required by the modern Android Gradle Plugin
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. Install Flutter (stable channel) with build caching for speed
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Print Flutter version
-        run: flutter --version
+      - name: Show environment
+        run: |
+          flutter --version
+          java -version
+          echo "--- files in repo ---"
+          ls -R . | head -50
 
-      # 4. KEY MOBILE TRICK:
-      # You cannot run "flutter create" on an Android phone, so we let the
-      # cloud machine generate the android/ native folder for us. It only
-      # fills in files that are MISSING - your lib/ and pubspec.yaml are
-      # never overwritten.
+      # Generates the native android/ folder in the cloud.
+      # Only fills in MISSING files - your lib/ code is never overwritten.
       - name: Generate missing Android platform files
         run: flutter create . --project-name ivory --org com.ivory --platforms android
 
-      # 5. Download all packages listed in pubspec.yaml
+      # flutter create also drops in a default test/widget_test.dart that
+      # references a class called MyApp, which does not exist in Ivory.
+      # Remove it so it can never break the build.
+      - name: Remove generated placeholder test
+        run: rm -rf test
+
       - name: Install dependencies
         run: flutter pub get
 
-      # 6. Static analysis - warns you about bad code but never blocks the build
-      - name: Analyze code
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-        continue-on-error: true
-
-      # 7. Build the release APK (split per architecture = smaller downloads)
+      # One universal APK. Installs on every Android phone.
       - name: Build release APK
-        run: flutter build apk --release --split-per-abi
-
-      # 8. Also build one universal APK that installs on ANY Android phone.
-      # Use this one if you are unsure which file to download.
-      - name: Build universal APK
         run: flutter build apk --release
 
-      # 9. Upload the APKs so you can download them from your phone browser
-      - name: Upload APK artifacts
+      # Only runs if the build above failed - prints the real reason.
+      - name: Show failure details
+        if: failure()
+        run: |
+          echo "=================== GRADLE DIAGNOSTICS ==================="
+          cd android && ./gradlew assembleRelease --stacktrace --no-daemon 2>&1 | tail -80 || true
+
+      - name: List built files
+        run: ls -lh build/app/outputs/flutter-apk/
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ivory-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 90
           if-no-files-found: error
-          
