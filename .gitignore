@@ -1,0 +1,27 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+*.iml
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Generated native folders (the GitHub Action rebuilds these every time)
+android/
+ios/
+web/
+linux/
+macos/
+windows/
+
+# Secrets - NEVER commit these
+.env
+*.keystore
+*.jks
+key.properties
+lib/core/secrets.dart
+
+# OS
+.DS_Store
