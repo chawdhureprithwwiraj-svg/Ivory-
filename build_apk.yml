@@ -14,6 +14,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      # Guard: if your Dart files are missing, "flutter create" would silently
+      # substitute Flutter's default counter-app template and the build would
+      # fail on template code you never wrote. Fail loudly and early instead.
+      - name: Verify Ivory source files are present
+        run: |
+          echo "--- repo root ---"
+          ls -la
+          echo "--- lib/ ---"
+          ls -laR lib || echo "NO lib FOLDER AT ALL"
+          missing=0
+          for f in lib/main.dart lib/theme/ivory_theme.dart pubspec.yaml; do
+            if [ ! -f "$f" ]; then
+              echo "::error::MISSING FILE: $f - create it on GitHub before building."
+              missing=1
+            else
+              echo "found: $f"
+            fi
+          done
+          if [ "$missing" = "1" ]; then
+            echo "Build stopped. Add the missing file(s) and re-run."
+            exit 1
+          fi
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
@@ -99,4 +122,3 @@ jobs:
           fi
           echo "APK built successfully."
           ls -lh build/app/outputs/flutter-apk/
-          
