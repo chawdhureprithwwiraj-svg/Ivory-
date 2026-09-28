@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
 import '../theme/ivory_theme.dart';
 
-/// Combined sign-in / sign-up screen in the Ivory palette.
+/// Sign in / create account, in the Ivory Golden Edition style.
+///
+/// The whole form sits inside an AutofillGroup and the fields carry
+/// proper autofill hints, so Android and Google Password Manager offer
+/// to save the password and fill it next time.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -20,8 +26,18 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isSignUp = false;
   bool _busy = false;
   bool _obscure = true;
+  bool _remember = true;
   String? _message;
   bool _messageIsError = true;
+
+  static const String _kRememberKey = 'ivory_remember_me';
+  static const String _kEmailKey = 'ivory_saved_email';
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreEmail();
+  }
 
   @override
   void dispose() {
@@ -29,6 +45,39 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
+  }
+
+  /// Brings back the email from last time, so the only thing left to do
+  /// is let the phone's password manager fill the password.
+  Future<void> _restoreEmail() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final bool remember = prefs.getBool(_kRememberKey) ?? true;
+      final String email = prefs.getString(_kEmailKey) ?? '';
+      if (!mounted) return;
+      setState(() {
+        _remember = remember;
+        if (remember && email.isNotEmpty && _emailCtrl.text.isEmpty) {
+          _emailCtrl.text = email;
+        }
+      });
+    } catch (_) {
+      // First run, or storage unavailable - nothing to restore.
+    }
+  }
+
+  Future<void> _rememberEmail() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kRememberKey, _remember);
+      if (_remember) {
+        await prefs.setString(_kEmailKey, _emailCtrl.text.trim());
+      } else {
+        await prefs.remove(_kEmailKey);
+      }
+    } catch (_) {
+      // Saving the email is a convenience, never a hard failure.
+    }
   }
 
   Future<void> _submit() async {
@@ -45,9 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await AuthService.instance.signUp(
           email: _emailCtrl.text,
           password: _passwordCtrl.text,
-          displayName: _nameCtrl.text.isEmpty
-              ? 'Anonymous Reader'
-              : _nameCtrl.text,
+          displayName:
+              _nameCtrl.text.isEmpty ? 'Anonymous Reader' : _nameCtrl.text,
         );
         if (!mounted) return;
         if (!AuthService.instance.isSignedIn) {
@@ -64,6 +112,11 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordCtrl.text,
         );
       }
+
+      await _rememberEmail();
+      // Tells Android the login flow is finished, which is what makes
+      // Google Password Manager offer "Save password?".
+      TextInput.finishAutofillContext();
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -108,187 +161,242 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+              padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  const _Monogram(),
-                  const SizedBox(height: 22),
-                  ShaderMask(
-                    shaderCallback: (Rect b) =>
-                        IvoryColors.goldGradient.createShader(b),
-                    child: const Text(
-                      'IVORY',
-                      style: TextStyle(
-                        fontSize: 38,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 9,
-                        color: Colors.white,
+                  // ---- monogram ----
+                  Container(
+                    width: 84,
+                    height: 84,
+                    decoration: BoxDecoration(
+                      gradient: IvoryColors.goldGradient,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: IvoryTheme.softShadow(blur: 20, y: 8),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 71,
+                        height: 71,
+                        decoration: BoxDecoration(
+                          gradient: IvoryColors.deepGradient,
+                          borderRadius: BorderRadius.circular(19),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'I',
+                            style: TextStyle(
+                              fontFamily: IvoryTheme.displayFont,
+                              color: IvoryColors.gold,
+                              fontSize: 34,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 18),
+                  Text('IVORY',
+                      style: Theme.of(context).textTheme.displayLarge),
                   const SizedBox(height: 6),
                   Text(
                     'Every story leaves a mark',
                     style: TextStyle(
+                      fontFamily: IvoryTheme.displayFont,
                       fontSize: 14.5,
                       fontStyle: FontStyle.italic,
-                      color: IvoryColors.burgundy.withValues(alpha: 0.72),
+                      color: IvoryColors.textSoft,
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 28),
+
+                  // ---- the card ----
                   Container(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                    decoration: BoxDecoration(
-                      gradient: IvoryColors.cardGradient,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: IvoryColors.gold.withValues(alpha: 0.55),
-                        width: 1.2,
-                      ),
-                      boxShadow: IvoryTheme.softShadow(),
-                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+                    decoration:
+                        IvoryTheme.card(highlighted: true, radius: 26),
                     child: Form(
                       key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          Text(
-                            _isSignUp ? 'CREATE ACCOUNT' : 'WELCOME BACK',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: IvoryColors.gold,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2.6,
+                      child: AutofillGroup(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            Center(
+                              child: IvoryEyebrow(
+                                _isSignUp ? 'Create account' : 'Welcome back',
+                                icon: _isSignUp
+                                    ? Icons.person_add_alt
+                                    : Icons.lock_open,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          if (_isSignUp) ...<Widget>[
+                            const SizedBox(height: 20),
+                            if (_isSignUp) ...<Widget>[
+                              _IvoryField(
+                                controller: _nameCtrl,
+                                label: 'Display name',
+                                hint: 'How others will see you',
+                                icon: Icons.person_outline,
+                                autofillHints: const <String>[
+                                  AutofillHints.name,
+                                ],
+                                validator: (String? v) =>
+                                    (v == null || v.trim().length < 2)
+                                        ? 'Please enter at least 2 characters'
+                                        : null,
+                              ),
+                              const SizedBox(height: 14),
+                            ],
                             _IvoryField(
-                              controller: _nameCtrl,
-                              label: 'Display name',
-                              hint: 'How others will see you',
-                              icon: Icons.person_outline,
-                              validator: (String? v) {
-                                if (v == null || v.trim().length < 2) {
-                                  return 'Please enter at least 2 characters';
-                                }
-                                return null;
-                              },
+                              controller: _emailCtrl,
+                              label: 'Email',
+                              hint: 'you@example.com',
+                              icon: Icons.mail_outline,
+                              keyboardType: TextInputType.emailAddress,
+                              autofillHints: const <String>[
+                                AutofillHints.username,
+                                AutofillHints.email,
+                              ],
+                              validator: (String? v) =>
+                                  (v == null || !v.contains('@'))
+                                      ? 'Enter a valid email address'
+                                      : null,
                             ),
                             const SizedBox(height: 14),
-                          ],
-                          _IvoryField(
-                            controller: _emailCtrl,
-                            label: 'Email',
-                            hint: 'you@example.com',
-                            icon: Icons.mail_outline,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (String? v) {
-                              if (v == null || !v.contains('@')) {
-                                return 'Enter a valid email address';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 14),
-                          _IvoryField(
-                            controller: _passwordCtrl,
-                            label: 'Password',
-                            hint: 'At least 6 characters',
-                            icon: Icons.lock_outline,
-                            obscure: _obscure,
-                            suffix: IconButton(
-                              icon: Icon(
-                                _obscure
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                color: IvoryColors.burgundy,
-                                size: 20,
-                              ),
-                              onPressed: () =>
-                                  setState(() => _obscure = !_obscure),
-                            ),
-                            validator: (String? v) {
-                              if (v == null || v.length < 6) {
-                                return 'Password must be at least 6 characters';
-                              }
-                              return null;
-                            },
-                          ),
-                          if (_message != null) ...<Widget>[
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: (_messageIsError
-                                        ? IvoryColors.danger
-                                        : IvoryColors.success)
-                                    .withValues(alpha: 0.18),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: _messageIsError
-                                      ? IvoryColors.peach
-                                      : IvoryColors.amber,
+                            _IvoryField(
+                              controller: _passwordCtrl,
+                              label: 'Password',
+                              hint: 'At least 6 characters',
+                              icon: Icons.lock_outline,
+                              obscure: _obscure,
+                              autofillHints: <String>[
+                                _isSignUp
+                                    ? AutofillHints.newPassword
+                                    : AutofillHints.password,
+                              ],
+                              onSubmitted: (_) => _submit(),
+                              suffix: IconButton(
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  size: 20,
                                 ),
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
                               ),
-                              child: Text(
-                                _message!,
-                                style: const TextStyle(
-                                  color: IvoryColors.ivory,
-                                  fontSize: 13.5,
-                                  height: 1.4,
-                                ),
-                              ),
+                              validator: (String? v) =>
+                                  (v == null || v.length < 6)
+                                      ? 'Password must be at least 6 characters'
+                                      : null,
                             ),
-                          ],
-                          const SizedBox(height: 22),
-                          ElevatedButton(
-                            onPressed: _busy ? null : _submit,
-                            child: _busy
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.4,
-                                      color: IvoryColors.burgundy,
-                                    ),
-                                  )
-                                : Text(
-                                    _isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN',
+
+                            // ---- remember me ----
+                            const SizedBox(height: 6),
+                            Row(
+                              children: <Widget>[
+                                Checkbox(
+                                  value: _remember,
+                                  onChanged: (bool? v) =>
+                                      setState(() => _remember = v ?? false),
+                                  side: const BorderSide(
+                                      color: IvoryColors.gold, width: 1.4),
+                                  checkColor: IvoryColors.burgundy,
+                                  fillColor:
+                                      WidgetStateProperty.resolveWith<Color>(
+                                    (Set<WidgetState> states) =>
+                                        states.contains(WidgetState.selected)
+                                            ? IvoryColors.gold
+                                            : Colors.transparent,
                                   ),
-                          ),
-                          const SizedBox(height: 10),
-                          TextButton(
-                            onPressed: _busy
-                                ? null
-                                : () => setState(() {
-                                      _isSignUp = !_isSignUp;
-                                      _message = null;
-                                    }),
-                            child: Text(
-                              _isSignUp
-                                  ? 'Already have an account? Sign in'
-                                  : 'New to Ivory? Create an account',
-                              style: const TextStyle(
-                                color: IvoryColors.peach,
-                                fontSize: 13.5,
-                              ),
+                                ),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        setState(() => _remember = !_remember),
+                                    child: Text(
+                                      'Remember me on this phone',
+                                      style: TextStyle(
+                                        color: IvoryColors.textSoft,
+                                        fontSize: 13.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          if (!_isSignUp)
+
+                            if (_message != null) ...<Widget>[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(13),
+                                decoration: BoxDecoration(
+                                  color: (_messageIsError
+                                          ? IvoryColors.danger
+                                          : IvoryColors.success)
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: _messageIsError
+                                        ? IvoryColors.danger
+                                            .withValues(alpha: 0.5)
+                                        : IvoryColors.success
+                                            .withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                child: Text(
+                                  _message!,
+                                  style: TextStyle(
+                                    color: _messageIsError
+                                        ? IvoryColors.danger
+                                        : IvoryColors.burgundy,
+                                    fontSize: 13.5,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            const SizedBox(height: 18),
+                            IvoryGradientButton(
+                              label: _isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN',
+                              icon: _isSignUp
+                                  ? Icons.auto_awesome
+                                  : Icons.arrow_forward,
+                              busy: _busy,
+                              onPressed: _busy ? null : _submit,
+                            ),
+                            const SizedBox(height: 8),
                             TextButton(
-                              onPressed: _busy ? null : _forgotPassword,
+                              onPressed: _busy
+                                  ? null
+                                  : () => setState(() {
+                                        _isSignUp = !_isSignUp;
+                                        _message = null;
+                                      }),
                               child: Text(
-                                'Forgot password?',
-                                style: TextStyle(
-                                  color: IvoryColors.ivory
-                                      .withValues(alpha: 0.65),
-                                  fontSize: 12.5,
+                                _isSignUp
+                                    ? 'Already have an account? Sign in'
+                                    : 'New to Ivory? Create an account',
+                                style: const TextStyle(
+                                  color: IvoryColors.plum,
+                                  fontSize: 13.5,
                                 ),
                               ),
                             ),
-                        ],
+                            if (!_isSignUp)
+                              TextButton(
+                                onPressed: _busy ? null : _forgotPassword,
+                                child: Text(
+                                  'Forgot password?',
+                                  style: TextStyle(
+                                    color: IvoryColors.textFaint,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -296,18 +404,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                      const Icon(
-                        Icons.shield_outlined,
-                        size: 15,
-                        color: IvoryColors.amber,
-                      ),
+                      const Icon(Icons.shield_outlined,
+                          size: 15, color: IvoryColors.success),
                       const SizedBox(width: 7),
                       Flexible(
                         child: Text(
                           'No phone number is ever collected.',
                           style: TextStyle(
                             fontSize: 12.5,
-                            color: IvoryColors.burgundy.withValues(alpha: 0.6),
+                            color: IvoryColors.textSoft,
                           ),
                         ),
                       ),
@@ -333,6 +438,8 @@ class _IvoryField extends StatelessWidget {
     this.keyboardType,
     this.validator,
     this.suffix,
+    this.autofillHints,
+    this.onSubmitted,
   });
 
   final TextEditingController controller;
@@ -343,6 +450,8 @@ class _IvoryField extends StatelessWidget {
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
   final Widget? suffix;
+  final List<String>? autofillHints;
+  final void Function(String)? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -351,52 +460,16 @@ class _IvoryField extends StatelessWidget {
       obscureText: obscure,
       keyboardType: keyboardType,
       validator: validator,
+      autofillHints: autofillHints,
+      onFieldSubmitted: onSubmitted,
+      textInputAction:
+          onSubmitted != null ? TextInputAction.done : TextInputAction.next,
       style: const TextStyle(color: IvoryColors.burgundy, fontSize: 15),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, color: IvoryColors.burgundy, size: 20),
+        prefixIcon: Icon(icon, size: 20),
         suffixIcon: suffix,
-      ),
-    );
-  }
-}
-
-class _Monogram extends StatelessWidget {
-  const _Monogram();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 104,
-      height: 104,
-      decoration: BoxDecoration(
-        gradient: IvoryColors.cardGradient,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: IvoryColors.gold.withValues(alpha: 0.7),
-          width: 2,
-        ),
-        boxShadow: IvoryTheme.softShadow(blur: 22, y: 10),
-      ),
-      child: Center(
-        child: Container(
-          width: 50,
-          height: 60,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: IvoryColors.cream,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Text(
-            'I',
-            style: TextStyle(
-              fontSize: 38,
-              fontWeight: FontWeight.w700,
-              color: IvoryColors.burgundy,
-            ),
-          ),
-        ),
       ),
     );
   }
