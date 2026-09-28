@@ -10,6 +10,10 @@ jobs:
     name: Compile Ivory into a downloadable APK
     runs-on: ubuntu-24.04
 
+    # Required so the workflow can publish the APK as a GitHub Release.
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -24,7 +28,7 @@ jobs:
           echo "--- lib/ ---"
           ls -laR lib || echo "NO lib FOLDER AT ALL"
           missing=0
-          for f in lib/main.dart lib/theme/ivory_theme.dart pubspec.yaml; do
+          for f in lib/main.dart lib/theme/ivory_theme.dart lib/core/supabase_config.dart lib/models/ivory_profile.dart lib/models/media_ref.dart lib/services/auth_service.dart lib/screens/login_screen.dart lib/screens/home_screen.dart pubspec.yaml; do
             if [ ! -f "$f" ]; then
               echo "::error::MISSING FILE: $f - create it on GitHub before building."
               missing=1
@@ -111,6 +115,22 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 90
           if-no-files-found: warn
+
+      # Publishes the APK as a GitHub Release - a direct, unzipped, one-tap
+      # download link that works perfectly in a mobile browser.
+      - name: Publish APK to Releases
+        if: hashFiles('build/app/outputs/flutter-apk/app-release.apk') != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Ivory build ${{ github.run_number }}
+          body: |
+            Automatic build of Ivory from commit ${{ github.sha }}.
+
+            Tap **app-release.apk** below to install on your Android phone.
+          files: build/app/outputs/flutter-apk/app-release.apk
+          draft: false
+          prerelease: false
 
       # Fails the job at the very end, AFTER the report has been published.
       - name: Fail if the APK was not produced
