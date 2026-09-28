@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/supabase_config.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_shell.dart';
 import 'screens/login_screen.dart';
 import 'theme/ivory_theme.dart';
 
@@ -56,7 +56,7 @@ class AuthGate extends StatelessWidget {
             snapshot.data?.session ?? Supabase.instance.client.auth.currentSession;
 
         if (session != null) {
-          return const HomeScreen();
+          return const MainShell();
         }
         return const LoginScreen();
       },
@@ -82,6 +82,7 @@ class _SplashScreen extends StatelessWidget {
                 child: const Text(
                   'IVORY',
                   style: TextStyle(
+                    fontFamily: IvoryTheme.displayFont,
                     fontSize: 40,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 10,
@@ -90,7 +91,7 @@ class _SplashScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 26),
-              const CircularProgressIndicator(color: IvoryColors.burgundy),
+              const CircularProgressIndicator(color: IvoryColors.amber),
             ],
           ),
         ),
@@ -114,18 +115,14 @@ class SetupNeededScreen extends StatelessWidget {
               padding: const EdgeInsets.all(28),
               child: Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: IvoryColors.cardGradient,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: IvoryColors.gold, width: 1.2),
-                ),
+                decoration: IvoryTheme.card(highlighted: true, radius: 22),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       'SUPABASE KEYS MISSING',
                       style: TextStyle(
-                        color: IvoryColors.gold,
+                        color: IvoryColors.plum,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 2,
@@ -137,7 +134,7 @@ class SetupNeededScreen extends StatelessWidget {
                       'the two placeholder values with your Project URL and '
                       'anon public key, then rebuild the APK.',
                       style: TextStyle(
-                        color: IvoryColors.ivory,
+                        color: IvoryColors.burgundy,
                         fontSize: 14.5,
                         height: 1.5,
                       ),
