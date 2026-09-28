@@ -61,6 +61,43 @@ jobs:
       - name: Generate missing Android platform files
         run: flutter create . --project-name ivory --org com.ivory --platforms android
 
+      # CRITICAL: Flutter's template adds the INTERNET permission only to the
+      # debug and profile manifests, never to the main one. Without this step
+      # a RELEASE apk cannot reach the network at all and every request fails
+      # with "Failed host lookup ... errno = 7".
+      - name: Add Android permissions to the release manifest
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+
+          path = 'android/app/src/main/AndroidManifest.xml'
+          xml = open(path, encoding='utf-8').read()
+
+          permissions = [
+              'android.permission.INTERNET',
+              'android.permission.ACCESS_NETWORK_STATE',
+          ]
+
+          missing = [p for p in permissions if p not in xml]
+          if missing:
+              block = ''.join(
+                  '    <uses-permission android:name="%s"/>\n' % p for p in missing
+              )
+              if '<application' not in xml:
+                  sys.exit('ERROR: no <application> tag found in the manifest')
+              xml = xml.replace('<application', block + '\n    <application', 1)
+              open(path, 'w', encoding='utf-8').write(xml)
+              print('Added:', ', '.join(missing))
+          else:
+              print('All permissions already present.')
+
+          # Fail loudly if INTERNET somehow still is not there.
+          check = open(path, encoding='utf-8').read()
+          assert 'android.permission.INTERNET' in check, 'INTERNET permission missing!'
+          print('--- manifest head ---')
+          print('\n'.join(check.splitlines()[:12]))
+          PYEOF
+
       - name: Remove generated placeholder test
         run: rm -rf test
 
