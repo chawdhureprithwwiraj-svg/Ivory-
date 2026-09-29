@@ -5,6 +5,7 @@ import '../models/wish.dart';
 import '../services/content_service.dart';
 import '../services/wish_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/ivory_logo.dart';
 import '../widgets/post_actions.dart';
 import '../widgets/post_card.dart';
 
@@ -157,36 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Container(
-          width: 92,
-          height: 92,
-          decoration: BoxDecoration(
-            gradient: IvoryColors.goldGradient,
-            borderRadius: BorderRadius.circular(26),
-            boxShadow: IvoryTheme.softShadow(blur: 22, y: 9),
-          ),
-          child: Center(
-            child: Container(
-              width: 78,
-              height: 78,
-              decoration: BoxDecoration(
-                gradient: IvoryColors.deepGradient,
-                borderRadius: BorderRadius.circular(21),
-              ),
-              child: const Center(
-                child: Text(
-                  'I',
-                  style: TextStyle(
-                    fontFamily: IvoryTheme.displayFont,
-                    color: IvoryColors.gold,
-                    fontSize: 38,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
+        const IvoryLogo(size: 96),
         const SizedBox(height: 20),
         Text(
           'A private world of\nstorytelling',
