@@ -96,18 +96,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            Center(
-              child: Text(
-                'From weekly written stories to the innermost circle. '
-                'Cancel whenever you like.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  height: 1.5,
-                  color: IvoryColors.textSoft,
-                ),
-              ),
-            ),
+            _invitation(),
             const SizedBox(height: 22),
             if (_membership != null) _membershipCard(_membership!),
             if (_pending != null) _pendingCard(_pending!),
@@ -160,6 +149,70 @@ class _PremiumScreenState extends State<PremiumScreen> {
       ),
     );
     if (changed == true) await _load();
+  }
+
+  /// The invitation that replaces the old one-line subtitle: the
+  /// masterstroke, set in the house serif, with the crown line raised
+  /// onto its own gold-ruled plate.
+  Widget _invitation() {
+    return Column(
+      children: <Widget>[
+        Text(
+          'Take the masterstroke to get connected to me directly.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: IvoryTheme.displayFont,
+            fontSize: 15.5,
+            height: 1.55,
+            fontStyle: FontStyle.italic,
+            color: IvoryColors.burgundy.withValues(alpha: 0.9),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: <Color>[Color(0xFFFFFCF2), Color(0xFFFDF1DC)],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: IvoryColors.gold.withValues(alpha: 0.85),
+              width: 1.3,
+            ),
+            boxShadow: IvoryTheme.softShadow(blur: 14, y: 5),
+          ),
+          child: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.6,
+                color: IvoryColors.textSoft,
+              ),
+              children: <InlineSpan>[
+                const TextSpan(text: 'Be the '),
+                TextSpan(
+                  text: 'King \u{1F451} of your Desires',
+                  style: const TextStyle(
+                    fontFamily: IvoryTheme.displayFont,
+                    fontSize: 17,
+                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                    color: IvoryColors.burgundy,
+                  ),
+                ),
+                const TextSpan(
+                  text: ' \u2014 select your plan and upgrade your '
+                      'membership.',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _membershipCard(Membership m) {
