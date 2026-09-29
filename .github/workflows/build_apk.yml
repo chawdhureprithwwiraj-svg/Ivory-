@@ -58,6 +58,21 @@ jobs:
               echo "::warning::lib/services/push_service.dart exists but pubspec.yaml has no firebase_core - replace pubspec.yaml too."
             fi
           fi
+          # Sprint 7 (the Admin Studio) is optional in the same way. It is
+          # only required once pubspec.yaml asks for file_picker.
+          if grep -q "file_picker" pubspec.yaml; then
+            echo "pubspec.yaml requests file_picker - checking the Sprint 7 files."
+            for f in lib/services/admin_service.dart lib/screens/admin_create_tab.dart lib/screens/admin_tiers_tab.dart lib/widgets/member_pulse.dart lib/widgets/premium_badge.dart; do
+              if [ ! -f "$f" ]; then
+                echo "::error::MISSING FILE: $f - pubspec.yaml has file_picker, so this Sprint 7 file is required."
+                missing=1
+              else
+                echo "found: $f"
+              fi
+            done
+          else
+            echo "Sprint 7 not installed yet (no file_picker in pubspec.yaml) - skipping studio checks."
+          fi
 
           if [ "$missing" = "1" ]; then
             echo "Build stopped. Add the missing file(s) and re-run."
@@ -303,6 +318,14 @@ jobs:
             if [ ! -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png ]; then
               echo "::error::flutter_launcher_icons ran but produced no ic_launcher.png"
               exit 1
+            fi
+            # Adaptive icon = the round/squircle version modern launchers use.
+            # Without it a launcher shrinks the flat icon inside a grey circle.
+            if [ -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml ]; then
+              echo "--- adaptive icon ---"
+              cat android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+            else
+              echo "::warning::No adaptive icon was produced - launchers will shrink the flat icon."
             fi
             echo "Launcher icon generated."
           fi
