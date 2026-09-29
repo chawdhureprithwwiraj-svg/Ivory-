@@ -111,6 +111,96 @@ jobs:
       - name: Generate missing Android platform files
         run: flutter create . --project-name ivory --org com.ivory --platforms android
 
+      # Plugins are published pre-compiled against whatever Android SDK was
+      # current when they were released - file_picker still says android-34,
+      # while flutter_plugin_android_lifecycle now insists every consumer
+      # compiles against 36. Instead of pinning plugin versions forever, the
+      # root Gradle file is taught to raise EVERY module to compileSdk 36.
+      - name: Force a modern compileSdk for every plugin
+        run: |
+          python3 - <<'PYEOF'
+          import os
+
+          KTS_LINES = [
+              '',
+              '// ---- Ivory: raise every module to a modern compileSdk ----',
+              'subprojects {',
+              '    afterEvaluate {',
+              '        val androidExt = extensions.findByName("android")',
+              '        if (androidExt != null) {',
+              '            val methods = androidExt.javaClass.methods',
+              '            val setCompileSdk = methods.firstOrNull {',
+              '                it.name == "setCompileSdk" && it.parameterTypes.size == 1',
+              '            }',
+              '            try {',
+              '                if (setCompileSdk != null) {',
+              '                    setCompileSdk.invoke(androidExt, 36)',
+              '                } else {',
+              '                    methods.firstOrNull {',
+              '                        it.name == "setCompileSdkVersion" &&',
+              '                            it.parameterTypes.size == 1 &&',
+              '                            it.parameterTypes[0] == Int::class.javaPrimitiveType',
+              '                    }?.invoke(androidExt, 36)',
+              '                }',
+              '            } catch (e: Exception) {',
+              '                logger.lifecycle("Ivory: compileSdk untouched for " + project.name)',
+              '            }',
+              '        }',
+              '    }',
+              '}',
+              '',
+          ]
+
+          GROOVY_LINES = [
+              '',
+              '// ---- Ivory: raise every module to a modern compileSdk ----',
+              'subprojects {',
+              '    afterEvaluate { proj ->',
+              "        if (proj.extensions.findByName('android') != null) {",
+              '            try {',
+              "                proj.extensions.getByName('android').compileSdkVersion 36",
+              '            } catch (Exception e) {',
+              '                logger.lifecycle("Ivory: compileSdk untouched for " + proj.name)',
+              '            }',
+              '        }',
+              '    }',
+              '}',
+              '',
+          ]
+
+          target = None
+          for cand in ('android/build.gradle.kts', 'android/build.gradle'):
+              if os.path.exists(cand):
+                  target = cand
+                  break
+          if target is None:
+              raise SystemExit('ERROR: no android/build.gradle(.kts) found')
+
+          text = open(target, encoding='utf-8').read()
+          if 'Ivory: raise every module' in text:
+              print('compileSdk override already present in', target)
+          else:
+              lines = KTS_LINES if target.endswith('.kts') else GROOVY_LINES
+              text = text + '\n' + '\n'.join(lines) + '\n'
+              open(target, 'w', encoding='utf-8').write(text)
+              print('compileSdk 36 override appended to', target)
+
+          app = None
+          for cand in ('android/app/build.gradle.kts', 'android/app/build.gradle'):
+              if os.path.exists(cand):
+                  app = cand
+                  break
+          if app:
+              t = open(app, encoding='utf-8').read()
+              t = t.replace('compileSdk = flutter.compileSdkVersion', 'compileSdk = 36')
+              t = t.replace('compileSdk flutter.compileSdkVersion', 'compileSdk 36')
+              open(app, 'w', encoding='utf-8').write(t)
+              print('app module pinned to compileSdk 36')
+          PYEOF
+
+          echo "--- root gradle tail ---"
+          tail -n 32 android/build.gradle.kts 2>/dev/null || tail -n 32 android/build.gradle
+
       # CRITICAL: Flutter's template adds the INTERNET permission only to the
       # debug and profile manifests, never to the main one. Without this step
       # a RELEASE apk cannot reach the network at all and every request fails
@@ -329,113 +419,3 @@ jobs:
             ls -l android/app/src/main/res/mipmap-xxxhdpi/ || true
             if [ ! -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png ]; then
               echo "::error::flutter_launcher_icons ran but produced no ic_launcher.png"
-              exit 1
-            fi
-            # Adaptive icon = the round/squircle version modern launchers use.
-            # Without it a launcher shrinks the flat icon inside a grey circle.
-            if [ -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml ]; then
-              echo "--- adaptive icon ---"
-              cat android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            else
-              echo "::warning::No adaptive icon was produced - launchers will shrink the flat icon."
-            fi
-            echo "Launcher icon generated."
-          fi
-
-      - name: Set the app name shown under the icon
-        run: |
-          python3 - <<'PYEOF'
-          import re
-
-          path = 'android/app/src/main/AndroidManifest.xml'
-          xml = open(path, encoding='utf-8').read()
-
-          # The label on the <application> tag is what the launcher shows.
-          def fix(match):
-              tag = match.group(0)
-              if 'android:label=' in tag:
-                  return re.sub(r'android:label="[^"]*"', 'android:label="Ivory"', tag)
-              return tag.replace('<application', '<application android:label="Ivory"', 1)
-
-          xml = re.sub(r'<application[^>]*>', fix, xml, count=1)
-          open(path, 'w', encoding='utf-8').write(xml)
-
-          check = open(path, encoding='utf-8').read()
-          assert 'android:label="Ivory"' in check, 'app label was not applied!'
-          print('App label set to Ivory.')
-          PYEOF
-
-      - name: Build release APK
-        id: build
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          flutter build apk --release 2>&1 | tee build.log
-          echo "exit_status=$?" >> $GITHUB_OUTPUT
-
-      # Prints the last 120 lines of the build log straight onto the
-      # run Summary page - no need to open or scroll any logs on mobile.
-      - name: Publish error report to Summary
-        if: always()
-        run: |
-          {
-            echo "## Ivory build report"
-            echo ""
-            echo "Result of \`flutter build apk --release\`:"
-            echo ""
-            echo '```text'
-            if [ -f build.log ]; then
-              tail -120 build.log
-            else
-              echo "build.log was never created - the job failed before the build step."
-            fi
-            echo '```'
-          } >> $GITHUB_STEP_SUMMARY
-
-      # Always uploads the full log, even when the build fails, so you can
-      # download and read it if the summary is not enough.
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
-          retention-days: 30
-          if-no-files-found: warn
-
-      - name: Upload APK artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ivory-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 90
-          if-no-files-found: warn
-
-      # Publishes the APK as a GitHub Release - a direct, unzipped, one-tap
-      # download link that works perfectly in a mobile browser.
-      - name: Publish APK to Releases
-        if: hashFiles('build/app/outputs/flutter-apk/app-release.apk') != ''
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: Ivory build ${{ github.run_number }}
-          body: |
-            Automatic build of Ivory from commit ${{ github.sha }}.
-
-            Tap **app-release.apk** below to install on your Android phone.
-          files: build/app/outputs/flutter-apk/app-release.apk
-          draft: false
-          prerelease: false
-
-      # Fails the job at the very end, AFTER the report has been published.
-      - name: Fail if the APK was not produced
-        if: always()
-        run: |
-          if [ ! -f build/app/outputs/flutter-apk/app-release.apk ]; then
-            echo "No APK was produced. Read the error report on the Summary page."
-            exit 1
-          fi
-          echo "APK built successfully."
-          ls -lh build/app/outputs/flutter-apk/
-          
