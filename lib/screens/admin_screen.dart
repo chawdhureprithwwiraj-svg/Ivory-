@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/wish.dart';
 import '../services/notification_service.dart';
 import '../services/wish_service.dart';
+import '../models/payment.dart';
+import '../services/payment_service.dart';
 import '../theme/ivory_theme.dart';
 
 /// The mobile admin console: send push-style announcements and work
@@ -17,7 +19,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 2, vsync: this);
+  late final TabController _tabs = TabController(length: 3, vsync: this);
 
   @override
   void dispose() {
@@ -40,9 +42,12 @@ class _AdminScreenState extends State<AdminScreen>
             letterSpacing: 1.2,
             fontSize: 13,
           ),
+          isScrollable: true,
+          tabAlignment: TabAlignment.center,
           tabs: const <Widget>[
             Tab(text: 'BROADCAST'),
             Tab(text: 'WISHES'),
+            Tab(text: 'PAYMENTS'),
           ],
         ),
       ),
@@ -51,7 +56,11 @@ class _AdminScreenState extends State<AdminScreen>
         child: SafeArea(
           child: TabBarView(
             controller: _tabs,
-            children: const <Widget>[_BroadcastTab(), _WishTrackerTab()],
+            children: const <Widget>[
+              _BroadcastTab(),
+              _WishTrackerTab(),
+              _PaymentsTab(),
+            ],
           ),
         ),
       ),
@@ -581,3 +590,6 @@ class _WishTrackerTabState extends State<_WishTrackerTab> {
     );
   }
 }
+
+
+// ================
