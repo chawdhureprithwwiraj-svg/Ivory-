@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../models/payment.dart';
 import '../services/content_service.dart';
+import '../services/payment_service.dart';
 import '../theme/ivory_theme.dart';
+import 'checkout_screen.dart';
 
 /// Membership tiers, rendered entirely from the database.
 /// Three tiers, four, five - the app simply draws whatever rows are
@@ -15,6 +18,8 @@ class PremiumScreen extends StatefulWidget {
 
 class _PremiumScreenState extends State<PremiumScreen> {
   List<Map<String, dynamic>> _tiers = <Map<String, dynamic>>[];
+  Membership? _membership;
+  IvoryPayment? _pending;
   bool _loading = true;
   String? _error;
 
@@ -30,11 +35,24 @@ class _PremiumScreenState extends State<PremiumScreen> {
       _error = null;
     });
     try {
+      await PaymentService.instance.expireOld();
       final List<Map<String, dynamic>> tiers =
           await ContentService.instance.fetchTiers();
+      final Membership? m = await PaymentService.instance.fetchMembership();
+      final List<IvoryPayment> mine =
+          await PaymentService.instance.fetchMyPayments();
+      IvoryPayment? pending;
+      for (final IvoryPayment pay in mine) {
+        if (pay.isPending) {
+          pending = pay;
+          break;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _tiers = tiers;
+        _membership = m;
+        _pending = pending;
         _loading = false;
       });
     } catch (e) {
@@ -91,6 +109,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
               ),
             ),
             const SizedBox(height: 22),
+            if (_membership != null) _membershipCard(_membership!),
+            if (_pending != null) _pendingCard(_pending!),
             _freeCard(),
             if (_loading)
               const Padding(
@@ -107,9 +127,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
               ..._tiers.map(_tierCard),
             const SizedBox(height: 10),
             Text(
-              'Payment by UPI arrives in the next sprint: you will pay from '
-              'any UPI app, send the 12-digit UTR, and your tier unlocks the '
-              'moment it is approved.',
+              'Pay from any UPI app, send the 12-digit UTR, and your tier '
+              'unlocks the moment the payment is verified. Each reference '
+              'number can be used only once.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12.5,
@@ -119,6 +139,111 @@ class _PremiumScreenState extends State<PremiumScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _checkout({
+    required int tierId,
+    required String name,
+    required int price,
+    required int days,
+  }) async {
+    final bool? changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => CheckoutScreen(
+          tierId: tierId,
+          tierName: name,
+          priceInr: price,
+          durationDays: days,
+        ),
+      ),
+    );
+    if (changed == true) await _load();
+  }
+
+  Widget _membershipCard(Membership m) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: IvoryColors.deepGradient,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: IvoryTheme.softShadow(),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text(
+            'YOUR MEMBERSHIP',
+            style: TextStyle(
+              color: IvoryColors.gold,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2.4,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            m.tierName,
+            style: const TextStyle(
+              fontFamily: IvoryTheme.displayFont,
+              color: IvoryColors.cream,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            m.daysLeft > 0
+                ? '${m.daysLeft} days remaining. Everything at this level is open to you.'
+                : 'Renewing today keeps your access unbroken.',
+            style: TextStyle(
+              color: IvoryColors.cream.withValues(alpha: 0.82),
+              fontSize: 13.5,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pendingCard(IvoryPayment p) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: IvoryTheme.card(highlighted: true, radius: 20),
+      child: Row(
+        children: <Widget>[
+          const Icon(Icons.hourglass_top_rounded,
+              color: IvoryColors.plum, size: 22),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Text(
+                  'Pending verification',
+                  style: TextStyle(
+                    color: IvoryColors.burgundy,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '₹${p.amountInr} for ${p.tierName ?? 'a membership'} · UTR ${p.utr}',
+                  style: TextStyle(
+                    color: IvoryColors.textSoft,
+                    fontSize: 12.5,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -185,6 +310,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
     final String name = (t['name'] as String?) ?? 'Tier $level';
     final String? description = t['description'] as String?;
     final bool isTop = _tiers.isNotEmpty && t == _tiers.last;
+    final bool owned =
+        _membership != null && _membership!.tierLevel >= level;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -281,18 +408,24 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ],
           const SizedBox(height: 18),
           IvoryGradientButton(
-            label: 'UNLOCK THIS TIER',
-            icon: Icons.lock_open,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'UPI checkout for $name arrives in the next sprint.',
-                  ),
-                ),
-              );
-            },
+            label: owned ? 'RENEW FOR $days MORE DAYS' : 'UNLOCK THIS TIER',
+            icon: owned ? Icons.autorenew : Icons.lock_open,
+            onPressed: _pending != null
+                ? null
+                : () => _checkout(
+                      tierId: ((t['id'] as num?) ?? 0).toInt(),
+                      name: name,
+                      price: price,
+                      days: days,
+                    ),
           ),
+          if (_pending != null) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              'A payment is already being verified.',
+              style: TextStyle(color: IvoryColors.textFaint, fontSize: 12),
+            ),
+          ],
         ],
       ),
     );
