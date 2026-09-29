@@ -58,7 +58,7 @@ REQUIRED = [
 # Installed only from the sprint that introduced the matching dependency.
 GATED = [
     ('firebase_core', ['lib/services/push_service.dart']),
-    ('file_picker', [
+    ('file_selector', [
         'lib/services/admin_service.dart',
         'lib/widgets/admin_bits.dart',
         'lib/widgets/member_pulse.dart',
