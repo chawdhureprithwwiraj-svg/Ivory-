@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/ivory_notification.dart';
 import '../services/notification_service.dart';
@@ -55,6 +56,24 @@ class _InboxScreenState extends State<InboxScreen> {
       await _load();
     }
     if (!mounted) return;
+
+    // An attachment always wins: a picture, a recording, a video or a
+    // link travels with the message and opens straight away.
+    final String? url = n.actionUrl;
+    if (url != null && url.trim().isNotEmpty) {
+      final Uri? uri = Uri.tryParse(url.trim());
+      if (uri != null) {
+        final bool ok =
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (ok) return;
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open that attachment.')),
+      );
+      return;
+    }
+
     final String? tab = n.actionTab;
     if (tab != null && widget.onOpenTab != null) {
       widget.onOpenTab!(tab);
@@ -218,6 +237,11 @@ class _NotificationTile extends StatelessWidget {
                           color: IvoryColors.textSoft,
                         ),
                       ),
+                      if (item.actionUrl != null &&
+                          item.actionUrl!.trim().isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 10),
+                        _Attachment(url: item.actionUrl!.trim()),
+                      ],
                       const SizedBox(height: 7),
                       Text(
                         item.whenLabel,
@@ -236,6 +260,103 @@ class _NotificationTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// What an attachment looks like inside a message: pictures show
+/// themselves, everything else becomes a gold "open" strip.
+class _Attachment extends StatelessWidget {
+  const _Attachment({required this.url});
+
+  final String url;
+
+  bool get _isImage {
+    final String u = url.toLowerCase().split('?').first;
+    return u.endsWith('.jpg') ||
+        u.endsWith('.jpeg') ||
+        u.endsWith('.png') ||
+        u.endsWith('.webp') ||
+        u.endsWith('.gif');
+  }
+
+  bool get _isAudio {
+    final String u = url.toLowerCase().split('?').first;
+    return u.endsWith('.mp3') ||
+        u.endsWith('.m4a') ||
+        u.endsWith('.aac') ||
+        u.endsWith('.wav') ||
+        u.endsWith('.ogg') ||
+        u.endsWith('.opus');
+  }
+
+  bool get _isVideo {
+    final String u = url.toLowerCase().split('?').first;
+    return u.endsWith('.mp4') || u.endsWith('.mov') || u.endsWith('.webm');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isImage) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: IvoryColors.hairline),
+          ),
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            height: 168,
+            width: double.infinity,
+            errorBuilder: (BuildContext c, Object e, StackTrace? st) =>
+                _strip(Icons.image_outlined, 'Open the picture'),
+            loadingBuilder: (BuildContext c, Widget child,
+                ImageChunkEvent? p) {
+              if (p == null) return child;
+              return Container(
+                height: 168,
+                alignment: Alignment.center,
+                color: IvoryColors.surfaceWarm,
+                child: const CircularProgressIndicator(
+                    color: IvoryColors.amber, strokeWidth: 2),
+              );
+            },
+          ),
+        ),
+      );
+    }
+    if (_isAudio) return _strip(Icons.play_circle_fill, 'Play the recording');
+    if (_isVideo) return _strip(Icons.movie_outlined, 'Watch the video');
+    return _strip(Icons.open_in_new, 'Open the attachment');
+  }
+
+  Widget _strip(IconData icon, String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: <Color>[Color(0xFFFFFCF2), Color(0xFFFDF1DC)],
+          ),
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: IvoryColors.hairlineStrong),
+        ),
+        child: Row(
+          children: <Widget>[
+            Icon(icon, size: 18, color: IvoryColors.plum),
+            const SizedBox(width: 9),
+            Text(
+              label,
+              style: const TextStyle(
+                color: IvoryColors.burgundy,
+                fontSize: 12.8,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const Spacer(),
+            const Icon(Icons.chevron_right,
+                size: 18, color: IvoryColors.plum),
+          ],
+        ),
+      );
 }
 
 class _Empty extends StatelessWidget {
