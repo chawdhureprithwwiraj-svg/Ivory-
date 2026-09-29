@@ -157,44 +157,59 @@ QUERIES = (
 
 # Some plugins are still published against android-34, while newer ones
 # refuse to be consumed below 36. Every module is lifted in one place.
-KTS_BLOCK = '''
+KTS_BLOCK = """
 // ---- Ivory: raise every module to a modern compileSdk ----
+// Registered BEFORE Flutter's own subprojects block, because that one
+// calls evaluationDependsOn(":app") and afterEvaluate cannot be added
+// to a project that has already been evaluated.
 subprojects {
-    afterEvaluate {
-        val androidExt = extensions.findByName("android")
-        if (androidExt != null) {
-            val methods = androidExt.javaClass.methods
-            val setter = methods.firstOrNull {
-                it.name == "setCompileSdk" && it.parameterTypes.size == 1
-            } ?: methods.firstOrNull {
-                it.name == "setCompileSdkVersion" &&
-                    it.parameterTypes.size == 1 &&
-                    it.parameterTypes[0] == Int::class.javaPrimitiveType
-            }
-            try {
-                setter?.invoke(androidExt, 36)
-            } catch (e: Exception) {
-                logger.lifecycle("Ivory: compileSdk untouched for " + name)
-            }
+    val raiseCompileSdk = fun(p: org.gradle.api.Project) {
+        val ext = p.extensions.findByName("android") ?: return
+        val methods = ext.javaClass.methods
+        val setter = methods.firstOrNull {
+            it.name == "setCompileSdk" && it.parameterTypes.size == 1
+        } ?: methods.firstOrNull {
+            it.name == "setCompileSdkVersion" &&
+                it.parameterTypes.size == 1 &&
+                it.parameterTypes[0] == Int::class.javaPrimitiveType
+        }
+        try {
+            setter?.invoke(ext, 36)
+            p.logger.lifecycle("Ivory: compileSdk 36 for " + p.name)
+        } catch (e: Exception) {
+            p.logger.lifecycle("Ivory: compileSdk untouched for " + p.name)
         }
     }
+    if (state.executed) {
+        raiseCompileSdk(this)
+    } else {
+        afterEvaluate { raiseCompileSdk(this) }
+    }
 }
-'''
 
-GROOVY_BLOCK = '''
+"""
+
+GROOVY_BLOCK = """
 // ---- Ivory: raise every module to a modern compileSdk ----
 subprojects {
-    afterEvaluate { proj ->
+    def raiseCompileSdk = { proj ->
         if (proj.extensions.findByName('android') != null) {
             try {
                 proj.extensions.getByName('android').compileSdkVersion 36
+                proj.logger.lifecycle("Ivory: compileSdk 36 for " + proj.name)
             } catch (Exception e) {
-                logger.lifecycle("Ivory: compileSdk untouched")
+                proj.logger.lifecycle("Ivory: compileSdk untouched")
             }
         }
     }
+    if (project.state.executed) {
+        raiseCompileSdk(project)
+    } else {
+        project.afterEvaluate { raiseCompileSdk(it) }
+    }
 }
-'''
+
+"""
 
 
 def cmd_prepare():
@@ -247,9 +262,20 @@ def cmd_prepare():
     if 'Ivory: raise every module' in text:
         print('compileSdk override already present in', root)
     else:
-        text += KTS_BLOCK if root.endswith('.kts') else GROOVY_BLOCK
+        block = KTS_BLOCK if root.endswith('.kts') else GROOVY_BLOCK
+        # It MUST come before Flutter's own subprojects block: that one
+        # calls evaluationDependsOn(":app"), and afterEvaluate cannot be
+        # registered on an already-evaluated project.
+        cut = text.find('subprojects')
+        if cut == -1:
+            cut = text.find('tasks.register')
+        if cut == -1:
+            text = text + block
+            print('compileSdk 36 override appended to', root)
+        else:
+            text = text[:cut] + block + text[cut:]
+            print('compileSdk 36 override inserted early in', root)
         write(root, text)
-        print('compileSdk 36 override appended to', root)
 
     for cand in ('android/app/build.gradle.kts', 'android/app/build.gradle'):
         if os.path.exists(cand):
