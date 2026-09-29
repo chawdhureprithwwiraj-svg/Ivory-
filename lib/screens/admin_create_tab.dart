@@ -4,19 +4,18 @@ import 'package:flutter/material.dart';
 import '../models/media_ref.dart';
 import '../services/admin_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/admin_bits.dart';
+import 'admin_library_list.dart';
 
-/// ============================================================
 /// ADMIN STUDIO - THE COMPOSER
 ///
 /// Drop an audiobook, a voice note, a video, an image, a written story
-/// or a poll into Ivory from the phone. Media can either be uploaded
-/// straight into Supabase Storage or pointed at any provider by link -
-/// YouTube, Telegram, Cloudflare R2, a plain https file - because the
-/// post only ever stores a source plus an opaque reference.
+/// or a poll into Ivory from the phone. Media is either uploaded into
+/// Supabase Storage or pointed at any provider by link, because a post
+/// only ever stores a source plus an opaque reference.
 ///
-/// Publishing writes the post AND fires the announcement and the device
-/// push, because the database trigger does that for every new post.
-/// ============================================================
+/// Publishing also fires the announcement and the device push, because
+/// the database trigger does that for every new post.
 class AdminCreateTab extends StatefulWidget {
   const AdminCreateTab({super.key});
 
@@ -36,35 +35,25 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     TextEditingController(),
   ];
 
-  /// blog | audio | video | image | poll
   String _type = 'blog';
   int _tier = 0;
   bool _publishNow = true;
 
   PickedMedia? _picked;
   String? _uploadedUrl;
-  PickedMedia? _pickedThumb;
+  PickedMedia? _thumb;
   String? _uploadedThumbUrl;
 
   bool _busy = false;
   String _busyLabel = '';
+  int _libraryStamp = 0;
 
   List<Map<String, dynamic>> _tiers = <Map<String, dynamic>>[];
-  List<Map<String, dynamic>> _library = <Map<String, dynamic>>[];
-  bool _loadingLibrary = true;
-
-  static const List<_TypeSpec> _types = <_TypeSpec>[
-    _TypeSpec('blog', 'Story', Icons.auto_stories_outlined),
-    _TypeSpec('audio', 'Audio', Icons.headphones_outlined),
-    _TypeSpec('video', 'Video', Icons.play_circle_outline),
-    _TypeSpec('image', 'Image', Icons.image_outlined),
-    _TypeSpec('poll', 'Poll', Icons.how_to_vote_outlined),
-  ];
 
   @override
   void initState() {
     super.initState();
-    _loadSideData();
+    _loadTiers();
   }
 
   @override
@@ -80,22 +69,16 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     super.dispose();
   }
 
-  Future<void> _loadSideData() async {
+  Future<void> _loadTiers() async {
     try {
       final List<Map<String, dynamic>> t =
           await AdminService.instance.fetchAllTiers();
-      final List<Map<String, dynamic>> lib =
-          await AdminService.instance.fetchLibrary();
       if (!mounted) return;
-      setState(() {
-        _tiers = t.where((Map<String, dynamic> e) => e['is_active'] == true)
-            .toList();
-        _library = lib;
-        _loadingLibrary = false;
-      });
+      setState(() => _tiers = t
+          .where((Map<String, dynamic> e) => e['is_active'] == true)
+          .toList());
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _loadingLibrary = false);
+      // The tier chips simply fall back to "Free for everyone".
     }
   }
 
@@ -109,13 +92,28 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     );
   }
 
+  IconData get _typeIcon {
+    switch (_type) {
+      case 'audio':
+        return Icons.headphones_outlined;
+      case 'video':
+        return Icons.play_circle_outline;
+      case 'image':
+        return Icons.image_outlined;
+      case 'poll':
+        return Icons.how_to_vote_outlined;
+      default:
+        return Icons.auto_stories_outlined;
+    }
+  }
+
   // ------------------------------------------------------------- picking
 
-  Future<void> _pickForType({required bool thumbnail}) async {
+  Future<void> _pick({required bool thumbnail}) async {
     try {
       PickedMedia? m;
       if (thumbnail || _type == 'image') {
-        m = await _chooseImageSource();
+        m = await AdminService.instance.pickImage();
       } else if (_type == 'video') {
         m = await AdminService.instance.pickVideo();
       } else if (_type == 'audio') {
@@ -124,19 +122,17 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
         m = await AdminService.instance.pickFile();
       }
       if (m == null) return;
-
       if (m.size > 48 * 1024 * 1024) {
         _toast(
-          'That file is ${m.sizeLabel}. Keep uploads under about 48 MB - '
-          'for anything larger, host it and paste the link instead.',
+          'That file is ${m.sizeLabel}. Keep uploads under about 48 MB, or '
+          'host it and paste the link instead.',
           bad: true,
         );
         return;
       }
-
       setState(() {
         if (thumbnail) {
-          _pickedThumb = m;
+          _thumb = m;
           _uploadedThumbUrl = null;
         } else {
           _picked = m;
@@ -149,56 +145,24 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     }
   }
 
-  Future<PickedMedia?> _chooseImageSource() async {
-    final bool? camera = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: IvoryColors.surface,
-      builder: (BuildContext c) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined,
-                  color: IvoryColors.plum),
-              title: const Text('Choose from gallery',
-                  style: TextStyle(color: IvoryColors.burgundy)),
-              onTap: () => Navigator.of(c).pop(false),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined,
-                  color: IvoryColors.plum),
-              title: const Text('Take a photo',
-                  style: TextStyle(color: IvoryColors.burgundy)),
-              onTap: () => Navigator.of(c).pop(true),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (camera == null) return null;
-    return AdminService.instance.pickImage(fromCamera: camera);
-  }
-
-  // ----------------------------------------------------------- publishing
+  // ---------------------------------------------------------- publishing
 
   Future<void> _publish() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final bool needsMedia = _type == 'audio' || _type == 'video' ||
-        _type == 'image';
+    final bool needsMedia =
+        _type == 'audio' || _type == 'video' || _type == 'image';
     final bool hasLink = _link.text.trim().isNotEmpty;
     if (needsMedia && _picked == null && !hasLink) {
       _toast('Attach a file or paste a link first.', bad: true);
       return;
     }
 
-    final List<String> pollOptions = _options
+    final List<String> poll = _options
         .map((TextEditingController c) => c.text.trim())
         .where((String s) => s.isNotEmpty)
         .toList();
-    if (_type == 'poll' && pollOptions.length < 2) {
+    if (_type == 'poll' && poll.length < 2) {
       _toast('A poll needs at least two options.', bad: true);
       return;
     }
@@ -209,7 +173,6 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     });
 
     try {
-      // 1. upload whatever is waiting
       String? mediaRef = _uploadedUrl;
       MediaSource mediaSource = MediaSource.none;
 
@@ -233,15 +196,14 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
       String? thumbRef = _uploadedThumbUrl;
       MediaSource thumbSource = MediaSource.none;
-      if (_pickedThumb != null && thumbRef == null) {
+      if (_thumb != null && thumbRef == null) {
         setState(() => _busyLabel = 'Uploading the cover...');
-        thumbRef = await AdminService.instance
-            .upload(_pickedThumb!, folder: 'thumbs');
+        thumbRef =
+            await AdminService.instance.upload(_thumb!, folder: 'thumbs');
         _uploadedThumbUrl = thumbRef;
       }
       if (thumbRef != null) thumbSource = MediaSource.supabase;
 
-      // 2. publish
       setState(() => _busyLabel = 'Publishing...');
       final int? mins = int.tryParse(_minutes.text.trim());
 
@@ -256,7 +218,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
         thumbRef: thumbRef,
         tierRequired: _tier,
         durationSecs: mins == null ? null : mins * 60,
-        pollOptions: _type == 'poll' ? pollOptions : null,
+        pollOptions: _type == 'poll' ? poll : null,
         isPublished: _publishNow,
       );
 
@@ -265,7 +227,6 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
       _toast(_publishNow
           ? 'Published. Every member has been notified.'
           : 'Saved as a draft. Nobody has been notified.');
-      await _loadSideData();
     } catch (e) {
       _toast('Could not publish: $e', bad: true);
     } finally {
@@ -290,10 +251,11 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     setState(() {
       _picked = null;
       _uploadedUrl = null;
-      _pickedThumb = null;
+      _thumb = null;
       _uploadedThumbUrl = null;
       _tier = 0;
       _publishNow = true;
+      _libraryStamp++;
     });
   }
 
@@ -313,23 +275,16 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
               style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 6),
           Text(
-            'Anything you publish here appears in the feed at once, and '
-            'every member receives the announcement and the device push '
-            'automatically.',
+            'Anything published here appears in the feed at once, and every '
+            'member gets the announcement and the phone notification.',
             style: TextStyle(
                 fontSize: 13, height: 1.45, color: IvoryColors.textSoft),
           ),
           const SizedBox(height: 20),
-
-          _label('WHAT ARE YOU POSTING'),
+          const AdminLabel('WHAT ARE YOU POSTING'),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _types.map(_typeChip).toList(),
-          ),
+          Wrap(spacing: 8, runSpacing: 8, children: _typeChips()),
           const SizedBox(height: 20),
-
           TextFormField(
             controller: _title,
             textCapitalization: TextCapitalization.sentences,
@@ -351,86 +306,35 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
             const SizedBox(height: 14),
             TextFormField(
               controller: _body,
-              maxLines: 12,
               minLines: 6,
+              maxLines: 14,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'The story itself',
                 alignLabelWithHint: true,
               ),
-              validator: (String? v) => (_type == 'blog' &&
-                      (v == null || v.trim().length < 20))
-                  ? 'Write at least a paragraph'
-                  : null,
+              validator: (String? v) =>
+                  (_type == 'blog' && (v == null || v.trim().length < 20))
+                      ? 'Write at least a paragraph'
+                      : null,
             ),
           ],
-
-          if (isPoll) ...<Widget>[
-            const SizedBox(height: 20),
-            _label('THE OPTIONS'),
-            const SizedBox(height: 10),
-            ..._options.asMap().entries.map(_optionRow),
-            const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () => setState(
-                    () => _options.add(TextEditingController())),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('ADD ANOTHER OPTION'),
-                style: TextButton.styleFrom(
-                    foregroundColor: IvoryColors.burgundy),
-              ),
-            ),
-          ] else ...<Widget>[
-            const SizedBox(height: 20),
-            _label('THE MEDIA'),
-            const SizedBox(height: 10),
-            _mediaPanel(),
-          ],
-
+          if (isPoll) ..._pollSection() else ..._mediaSection(),
           if (_type == 'audio' || _type == 'video') ...<Widget>[
             const SizedBox(height: 14),
             TextFormField(
               controller: _minutes,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Length in minutes (optional)',
-              ),
+                  labelText: 'Length in minutes (optional)'),
             ),
           ],
-
           const SizedBox(height: 22),
-          _label('WHO CAN OPEN IT'),
+          const AdminLabel('WHO CAN OPEN IT'),
           const SizedBox(height: 10),
-          _tierPicker(),
-
+          Wrap(spacing: 8, runSpacing: 8, children: _tierChips()),
           const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: IvoryTheme.card(radius: 18),
-            child: SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              activeColor: IvoryColors.gold,
-              value: _publishNow,
-              onChanged: (bool v) => setState(() => _publishNow = v),
-              title: const Text(
-                'Publish immediately',
-                style: TextStyle(
-                  color: IvoryColors.burgundy,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              subtitle: Text(
-                _publishNow
-                    ? 'Goes live and notifies every member.'
-                    : 'Saved quietly as a draft. You can publish it from '
-                        'the library below.',
-                style: TextStyle(fontSize: 12, color: IvoryColors.textFaint),
-              ),
-            ),
-          ),
-
+          _publishSwitch(),
           const SizedBox(height: 22),
           IvoryGradientButton(
             label: _busy
@@ -440,22 +344,8 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
             busy: _busy,
             onPressed: _busy ? null : _publish,
           ),
-
           const SizedBox(height: 34),
-          const IvoryEyebrow('The library', icon: Icons.inventory_2_outlined),
-          const SizedBox(height: 12),
-          if (_loadingLibrary)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: CircularProgressIndicator(color: IvoryColors.amber),
-              ),
-            )
-          else if (_library.isEmpty)
-            Text('Nothing published yet.',
-                style: TextStyle(color: IvoryColors.textFaint))
-          else
-            ..._library.map(_libraryRow),
+          AdminLibraryList(refreshStamp: _libraryStamp),
         ],
       ),
     );
@@ -463,149 +353,200 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
   // ------------------------------------------------------------ fragments
 
-  Widget _label(String text) => Text(
-        text,
-        style: const TextStyle(
-          color: IvoryColors.plum,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 2,
-        ),
+  List<Widget> _typeChips() {
+    const List<List<Object>> specs = <List<Object>>[
+      <Object>['blog', 'Story', Icons.auto_stories_outlined],
+      <Object>['audio', 'Audio', Icons.headphones_outlined],
+      <Object>['video', 'Video', Icons.play_circle_outline],
+      <Object>['image', 'Image', Icons.image_outlined],
+      <Object>['poll', 'Poll', Icons.how_to_vote_outlined],
+    ];
+    return specs.map((List<Object> s) {
+      final String value = s[0] as String;
+      return AdminSelectChip(
+        label: s[1] as String,
+        icon: s[2] as IconData,
+        selected: _type == value,
+        onTap: () => setState(() {
+          _type = value;
+          _picked = null;
+          _uploadedUrl = null;
+        }),
       );
-
-  Widget _typeChip(_TypeSpec spec) {
-    final bool on = _type == spec.value;
-    return GestureDetector(
-      onTap: () => setState(() {
-        _type = spec.value;
-        _picked = null;
-        _uploadedUrl = null;
-      }),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          gradient: on
-              ? IvoryColors.goldGradient
-              : const LinearGradient(
-                  colors: <Color>[Color(0xFFFFFCF2), Color(0xFFFDF4E2)],
-                ),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: on ? IvoryColors.gold : IvoryColors.hairline,
-            width: on ? 1.4 : 1,
-          ),
-          boxShadow: on ? IvoryTheme.softShadow(blur: 10, y: 4) : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(spec.icon, size: 17, color: IvoryColors.burgundy),
-            const SizedBox(width: 7),
-            Text(
-              spec.label,
-              style: TextStyle(
-                color: IvoryColors.burgundy,
-                fontSize: 13,
-                fontWeight: on ? FontWeight.w800 : FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    }).toList();
   }
 
-  Widget _optionRow(MapEntry<int, TextEditingController> e) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: TextFormField(
-              controller: e.value,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                labelText: 'Option ${e.key + 1}',
+  List<Widget> _tierChips() {
+    final List<Widget> chips = <Widget>[
+      AdminSelectChip(
+        label: 'Free for everyone',
+        icon: Icons.lock_open,
+        selected: _tier == 0,
+        onTap: () => setState(() => _tier = 0),
+      ),
+    ];
+    for (final Map<String, dynamic> t in _tiers) {
+      final int level = ((t['level'] as num?) ?? 0).toInt();
+      final int price = ((t['price_inr'] as num?) ?? 0).toInt();
+      chips.add(AdminSelectChip(
+        label: '${(t['name'] as String?) ?? 'Tier'} \u00b7 \u20B9$price',
+        icon: Icons.lock_outline,
+        selected: _tier == level,
+        onTap: () => setState(() => _tier = level),
+      ));
+    }
+    return chips;
+  }
+
+  List<Widget> _pollSection() {
+    final List<Widget> rows = <Widget>[
+      const SizedBox(height: 20),
+      const AdminLabel('THE OPTIONS'),
+      const SizedBox(height: 10),
+    ];
+    for (int i = 0; i < _options.length; i++) {
+      rows.add(Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: TextFormField(
+                controller: _options[i],
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  labelText: 'Option ${i + 1}',
+                  isDense: true,
+                ),
+              ),
+            ),
+            if (_options.length > 2)
+              IconButton(
+                onPressed: () => setState(() => _options.removeAt(i)),
+                icon: const Icon(Icons.remove_circle_outline,
+                    color: IvoryColors.plum),
+              ),
+          ],
+        ),
+      ));
+    }
+    rows.add(Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: () =>
+            setState(() => _options.add(TextEditingController())),
+        icon: const Icon(Icons.add, size: 18),
+        label: const Text('ADD ANOTHER OPTION'),
+        style: TextButton.styleFrom(foregroundColor: IvoryColors.burgundy),
+      ),
+    ));
+    return rows;
+  }
+
+  List<Widget> _mediaSection() {
+    return <Widget>[
+      const SizedBox(height: 20),
+      const AdminLabel('THE MEDIA'),
+      const SizedBox(height: 10),
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: IvoryTheme.card(radius: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            if (_picked != null) ...<Widget>[
+              AdminPickedFileCard(
+                media: _picked!,
+                uploaded: _uploadedUrl != null,
+                icon: _typeIcon,
+                onRemove: () => setState(() {
+                  _picked = null;
+                  _uploadedUrl = null;
+                }),
+              ),
+              const SizedBox(height: 10),
+            ],
+            SizedBox(
+              width: double.infinity,
+              child: AdminButton(
+                label: _picked == null ? 'UPLOAD A FILE' : 'REPLACE FILE',
+                icon: Icons.upload_file,
+                onPressed: _busy ? null : () => _pick(thumbnail: false),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const AdminOrLine('or point at a link'),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _link,
+              keyboardType: TextInputType.url,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'YouTube / Telegram / R2 / direct link',
                 isDense: true,
               ),
             ),
-          ),
-          if (_options.length > 2)
-            IconButton(
-              onPressed: () => setState(() => _options.removeAt(e.key)),
-              icon: const Icon(Icons.remove_circle_outline,
-                  color: IvoryColors.plum),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mediaPanel() {
-    final PickedMedia? m = _picked;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: IvoryTheme.card(radius: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          if (m != null) ...<Widget>[
+            if (_link.text.trim().isNotEmpty) ...<Widget>[
+              const SizedBox(height: 8),
+              Text(
+                'Detected: '
+                '${MediaRef.parse(_link.text.trim()).source.label}',
+                style: TextStyle(fontSize: 11.5, color: IvoryColors.success),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Divider(color: IvoryColors.hairline),
             Row(
               children: <Widget>[
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    gradient: IvoryColors.goldGradient,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    _type == 'audio'
-                        ? Icons.graphic_eq
-                        : (_type == 'video'
-                            ? Icons.movie_outlined
-                            : Icons.image_outlined),
-                    color: IvoryColors.burgundy,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        m.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: IvoryColors.burgundy,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                      Text(
-                        _uploadedUrl == null
-                            ? '${m.sizeLabel} · ready to upload'
-                            : '${m.sizeLabel} · uploaded',
-                        style: TextStyle(
-                            fontSize: 11.5, color: IvoryColors.textFaint),
-                      ),
-                    ],
+                  child: Text(
+                    _thumb == null
+                        ? 'Cover image (optional)'
+                        : '${_thumb!.name} \u00b7 ${_thumb!.sizeLabel}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        TextStyle(fontSize: 12.8, color: IvoryColors.textSoft),
                   ),
                 ),
-                IconButton(
-                  onPressed: () => setState(() {
-                    _picked = null;
-                    _uploadedUrl = null;
-                  }),
-                  icon: const Icon(Icons.close, color: IvoryColors.plum),
+                TextButton(
+                  onPressed: _busy ? null : () => _pick(thumbnail: true),
+                  style: TextButton.styleFrom(
+                      foregroundColor: IvoryColors.burgundy),
+                  child: Text(_thumb == null ? 'ADD' : 'CHANGE'),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
           ],
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: 
+        ),
+      ),
+    ];
+  }
+
+  Widget _publishSwitch() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: IvoryTheme.card(radius: 18),
+      child: SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        activeColor: IvoryColors.gold,
+        value: _publishNow,
+        onChanged: (bool v) => setState(() => _publishNow = v),
+        title: const Text(
+          'Publish immediately',
+          style: TextStyle(
+            color: IvoryColors.burgundy,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: Text(
+          _publishNow
+              ? 'Goes live and notifies every member.'
+              : 'Saved as a draft. Publish it later from the library.',
+          style: TextStyle(fontSize: 12, color: IvoryColors.textFaint),
+        ),
+      ),
+    );
+  }
+}
+
+// END OF FILE - lib/screens/admin_create_tab.dart
