@@ -1,4 +1,3 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../models/media_ref.dart';
@@ -117,7 +116,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
       } else if (_type == 'video') {
         m = await AdminService.instance.pickVideo();
       } else if (_type == 'audio') {
-        m = await AdminService.instance.pickFile(type: FileType.audio);
+        m = await AdminService.instance.pickFile(audioOnly: true);
       } else {
         m = await AdminService.instance.pickFile();
       }
