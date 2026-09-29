@@ -1,4 +1,3 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../services/admin_service.dart';
@@ -71,7 +70,7 @@ class _AdminBroadcastTabState extends State<AdminBroadcastTab> {
       } else if (what == 'video') {
         m = await AdminService.instance.pickVideo();
       } else if (what == 'audio') {
-        m = await AdminService.instance.pickFile(type: FileType.audio);
+        m = await AdminService.instance.pickFile(audioOnly: true);
       } else {
         m = await AdminService.instance.pickFile();
       }
