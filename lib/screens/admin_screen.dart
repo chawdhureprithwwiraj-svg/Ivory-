@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/wish.dart';
 import '../services/notification_service.dart';
 import '../services/wish_service.dart';
-import '../models/payment.dart';
-import '../services/payment_service.dart';
 import '../theme/ivory_theme.dart';
+import 'admin_payments_tab.dart';
 
 /// The mobile admin console: send push-style announcements and work
 /// through incoming wishes. Every action is re-checked by the database,
@@ -56,10 +55,10 @@ class _AdminScreenState extends State<AdminScreen>
         child: SafeArea(
           child: TabBarView(
             controller: _tabs,
-            children: const <Widget>[
-              _BroadcastTab(),
-              _WishTrackerTab(),
-              _PaymentsTab(),
+            children: <Widget>[
+              const _BroadcastTab(),
+              const _WishTrackerTab(),
+              const AdminPaymentsTab(),
             ],
           ),
         ),
@@ -590,6 +589,3 @@ class _WishTrackerTabState extends State<_WishTrackerTab> {
     );
   }
 }
-
-
-// ================
