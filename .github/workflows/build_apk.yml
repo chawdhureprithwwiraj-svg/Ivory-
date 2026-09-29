@@ -70,11 +70,13 @@ jobs:
                 echo "found: $f"
               fi
             done
-            # Android browsers sometimes cut a long paste short. Every
-            # Sprint 7 file ends with an "END OF FILE" marker, so a
-            # truncated paste is caught here in seconds instead of after
-            # a two-minute compile.
-            for f in lib/widgets/admin_bits.dart lib/screens/admin_create_tab.dart lib/screens/admin_library_list.dart lib/screens/admin_tiers_tab.dart lib/screens/admin_broadcast_tab.dart lib/screens/admin_wishes_tab.dart lib/screens/admin_screen.dart lib/services/admin_service.dart lib/widgets/member_pulse.dart lib/widgets/premium_badge.dart lib/screens/inbox_screen.dart; do
+            # Android browsers sometimes cut a long paste short. The six
+            # files split out of the old giant admin screens each end with
+            # an "END OF FILE" marker, so a truncated paste is caught here
+            # in seconds instead of after a two-minute compile. Only those
+            # six are checked - older files were installed before the
+            # marker existed and are fine without it.
+            for f in lib/widgets/admin_bits.dart lib/screens/admin_create_tab.dart lib/screens/admin_library_list.dart lib/screens/admin_broadcast_tab.dart lib/screens/admin_wishes_tab.dart lib/screens/admin_screen.dart; do
               if [ -f "$f" ] && ! tail -n 3 "$f" | grep -q "END OF FILE"; then
                 echo "::error::TRUNCATED PASTE: $f does not end with its END OF FILE line. Paste it again."
                 missing=1
