@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/ivory_profile.dart';
+import '../models/payment.dart';
 import '../services/auth_service.dart';
+import '../services/payment_service.dart';
 import '../services/notification_service.dart';
 import '../theme/ivory_theme.dart';
 
@@ -16,6 +18,8 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   IvoryProfile? _profile;
+  Membership? _membership;
+  List<IvoryPayment> _payments = <IvoryPayment>[];
   bool _loading = true;
   String? _error;
 
@@ -32,9 +36,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
     try {
       final IvoryProfile? p = await AuthService.instance.loadProfile();
+      await PaymentService.instance.expireOld();
+      Membership? m;
+      List<IvoryPayment> pays = <IvoryPayment>[];
+      try {
+        m = await PaymentService.instance.fetchMembership();
+        pays = await PaymentService.instance.fetchMyPayments();
+      } catch (_) {
+        // A member with no payment history is not an error.
+      }
       if (!mounted) return;
       setState(() {
         _profile = p;
+        _membership = m;
+        _payments = pays;
         _loading = false;
       });
     } catch (e) {
@@ -166,21 +181,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.diamond_outlined),
                     const SizedBox(height: 12),
                     Text(
-                      'Free Guest',
+                      _membership?.tierName ?? 'Free Guest',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'The open feed, polls and teasers. Premium tiers and '
-                      'UPI payment arrive in the next sprint.',
+                      _membership == null
+                          ? 'The open feed, polls and teasers. Unlock a tier '
+                              'to open the private rooms.'
+                          : '${_membership!.daysLeft} days remaining. '
+                              'Everything at this level is open to you.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 16),
                     IvoryGradientButton(
-                      label: 'SEE MEMBERSHIP TIERS',
+                      label: _membership == null
+                          ? 'SEE MEMBERSHIP TIERS'
+                          : 'MANAGE OR RENEW',
                       icon: Icons.workspace_premium_outlined,
                       onPressed: () => widget.onOpenTab?.call('premium'),
                     ),
+                    if (_payments.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 18),
+                      const IvoryEyebrow('Payment history',
+                          icon: Icons.receipt_long_outlined),
+                      const SizedBox(height: 10),
+                      ..._payments.take(4).map(_paymentRow),
+                    ],
                   ],
                 ),
               ),
@@ -212,6 +239,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _paymentRow(IvoryPayment p) {
+    final Color tone = p.isApproved
+        ? IvoryColors.success
+        : (p.isPending ? IvoryColors.amber : IvoryColors.danger);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '₹${p.amountInr} · ${p.tierName ?? 'Membership'}',
+              style: const TextStyle(
+                color: IvoryColors.burgundy,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            p.statusLabel,
+            style: TextStyle(
+              color: tone,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
