@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -54,24 +54,25 @@ class AdminService {
     );
   }
 
-  /// Audio, documents, anything. [type] is FileType.audio for voice notes
-  /// and audiobooks, FileType.any for everything else.
-  Future<PickedMedia?> pickFile({FileType type = FileType.any}) async {
-    // file_picker 11 made pickFiles a static method - there is no
-    // FilePicker.platform any more.
-    final FilePickerResult? r = await FilePicker.pickFiles(
-      type: type,
-      allowMultiple: false,
-      withData: false,
+  /// Audio, documents, anything. file_selector is the Flutter team's own
+  /// plugin, so it keeps pace with each Android SDK instead of lagging a
+  /// year behind the way the community pickers do.
+  Future<PickedMedia?> pickFile({bool audioOnly = false}) async {
+    const XTypeGroup audioGroup = XTypeGroup(
+      label: 'Audio',
+      extensions: <String>['mp3', 'm4a', 'aac', 'wav', 'ogg', 'opus', 'flac'],
+      mimeTypes: <String>['audio/*'],
     );
-    if (r == null || r.files.isEmpty) return null;
-    final PlatformFile f = r.files.first;
-    final Uint8List bytes = f.bytes ??
-        (f.path == null
-            ? Uint8List(0)
-            : await File(f.path!).readAsBytes());
+    const XTypeGroup anyGroup = XTypeGroup(label: 'Any file');
+
+    final XFile? x = await openFile(
+      acceptedTypeGroups: <XTypeGroup>[audioOnly ? audioGroup : anyGroup],
+    );
+    if (x == null) return null;
+
+    final Uint8List bytes = await x.readAsBytes();
     if (bytes.isEmpty) return null;
-    return PickedMedia(name: f.name, bytes: bytes);
+    return PickedMedia(name: x.name, bytes: bytes);
   }
 
   // =================================================================
