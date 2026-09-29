@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/supabase_config.dart';
-import 'screens/main_shell.dart';
 import 'screens/login_screen.dart';
+import 'screens/main_shell.dart';
+import 'services/push_service.dart';
 import 'theme/ivory_theme.dart';
 
 Future<void> main() async {
@@ -16,6 +17,10 @@ Future<void> main() async {
       url: SupabaseConfig.url,
       anonKey: SupabaseConfig.anonKey,
     );
+
+    // Device push. If Firebase was never configured this returns false and
+    // Ivory carries on with the in-app inbox alone.
+    await PushService.initFirebase();
   }
 
   runApp(const IvoryApp());
