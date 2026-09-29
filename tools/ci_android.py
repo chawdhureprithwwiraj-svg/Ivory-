@@ -1,0 +1,386 @@
+#!/usr/bin/env python3
+"""Ivory - everything the GitHub Actions build needs to do to the
+generated android/ folder.
+
+Kept here, in the repository, instead of inside build_apk.yml, because a
+long YAML file is easy to truncate when it is pasted from a phone. The
+workflow is now a short list of one-line calls into this script.
+
+Usage:  python3 tools/ci_android.py <command>
+
+  verify    - every required source file is present and complete
+  prepare   - manifest permissions, <queries>, app label, compileSdk 36
+  firebase  - copy google-services.json and wire the Gradle plugin
+  icons     - put phone-renamed asset files back under their exact names
+"""
+
+import glob
+import os
+import re
+import shutil
+import sys
+
+MANIFEST = 'android/app/src/main/AndroidManifest.xml'
+GMS_VERSION = '4.4.2'
+
+REQUIRED = [
+    'lib/main.dart',
+    'lib/theme/ivory_theme.dart',
+    'lib/core/supabase_config.dart',
+    'lib/models/ivory_profile.dart',
+    'lib/models/media_ref.dart',
+    'lib/models/ivory_post.dart',
+    'lib/models/wish.dart',
+    'lib/models/ivory_notification.dart',
+    'lib/models/payment.dart',
+    'lib/services/auth_service.dart',
+    'lib/services/content_service.dart',
+    'lib/services/wish_service.dart',
+    'lib/services/notification_service.dart',
+    'lib/services/payment_service.dart',
+    'lib/widgets/post_card.dart',
+    'lib/widgets/post_actions.dart',
+    'lib/widgets/ivory_logo.dart',
+    'lib/screens/login_screen.dart',
+    'lib/screens/main_shell.dart',
+    'lib/screens/home_screen.dart',
+    'lib/screens/explore_screen.dart',
+    'lib/screens/wish_screen.dart',
+    'lib/screens/premium_screen.dart',
+    'lib/screens/inbox_screen.dart',
+    'lib/screens/profile_screen.dart',
+    'lib/screens/checkout_screen.dart',
+    'lib/screens/admin_screen.dart',
+    'lib/screens/admin_payments_tab.dart',
+    'pubspec.yaml',
+]
+
+# Installed only from the sprint that introduced the matching dependency.
+GATED = [
+    ('firebase_core', ['lib/services/push_service.dart']),
+    ('file_picker', [
+        'lib/services/admin_service.dart',
+        'lib/widgets/admin_bits.dart',
+        'lib/widgets/member_pulse.dart',
+        'lib/widgets/premium_badge.dart',
+        'lib/screens/admin_create_tab.dart',
+        'lib/screens/admin_library_list.dart',
+        'lib/screens/admin_tiers_tab.dart',
+        'lib/screens/admin_broadcast_tab.dart',
+        'lib/screens/admin_wishes_tab.dart',
+    ]),
+]
+
+# These end with a marker line, so a paste cut short is caught in seconds.
+MARKED = [
+    'lib/widgets/admin_bits.dart',
+    'lib/screens/admin_create_tab.dart',
+    'lib/screens/admin_library_list.dart',
+    'lib/screens/admin_broadcast_tab.dart',
+    'lib/screens/admin_wishes_tab.dart',
+    'lib/screens/admin_screen.dart',
+]
+
+
+def read(path):
+    return open(path, encoding='utf-8').read()
+
+
+def write(path, text):
+    open(path, 'w', encoding='utf-8').write(text)
+
+
+# ----------------------------------------------------------------- verify
+
+def cmd_verify():
+    problems = 0
+    pubspec = read('pubspec.yaml') if os.path.exists('pubspec.yaml') else ''
+
+    needed = list(REQUIRED)
+    for marker, files in GATED:
+        if marker in pubspec:
+            needed.extend(files)
+            print('pubspec.yaml requests %s - those files are required.'
+                  % marker)
+        else:
+            print('%s not installed yet - skipping its files.' % marker)
+
+    for f in needed:
+        if os.path.exists(f):
+            print('found:', f)
+        else:
+            print('::error::MISSING FILE: %s - create it on GitHub before '
+                  'building.' % f)
+            problems += 1
+
+    for f in MARKED:
+        if os.path.exists(f):
+            tail = read(f).strip().splitlines()[-3:]
+            if not any('END OF FILE' in line for line in tail):
+                print('::error::TRUNCATED PASTE: %s does not end with its '
+                      'END OF FILE line. Paste it again.' % f)
+                problems += 1
+
+    if problems:
+        sys.exit('%d problem(s) found.' % problems)
+    print('All required files are present and complete.')
+
+
+# ---------------------------------------------------------------- prepare
+
+PERMISSIONS = [
+    'android.permission.INTERNET',
+    'android.permission.ACCESS_NETWORK_STATE',
+    'android.permission.POST_NOTIFICATIONS',
+]
+
+QUERIES = (
+    '    <queries>\n'
+    '        <intent>\n'
+    '            <action android:name="android.intent.action.VIEW"/>\n'
+    '            <data android:scheme="https"/>\n'
+    '        </intent>\n'
+    '        <intent>\n'
+    '            <action android:name="android.intent.action.VIEW"/>\n'
+    '            <data android:scheme="http"/>\n'
+    '        </intent>\n'
+    '        <intent>\n'
+    '            <action android:name="android.intent.action.VIEW"/>\n'
+    '            <data android:scheme="tg"/>\n'
+    '        </intent>\n'
+    '        <intent>\n'
+    '            <action android:name="android.intent.action.VIEW"/>\n'
+    '            <data android:scheme="upi"/>\n'
+    '        </intent>\n'
+    '    </queries>\n'
+)
+
+# Some plugins are still published against android-34, while newer ones
+# refuse to be consumed below 36. Every module is lifted in one place.
+KTS_BLOCK = '''
+// ---- Ivory: raise every module to a modern compileSdk ----
+subprojects {
+    afterEvaluate {
+        val androidExt = extensions.findByName("android")
+        if (androidExt != null) {
+            val methods = androidExt.javaClass.methods
+            val setter = methods.firstOrNull {
+                it.name == "setCompileSdk" && it.parameterTypes.size == 1
+            } ?: methods.firstOrNull {
+                it.name == "setCompileSdkVersion" &&
+                    it.parameterTypes.size == 1 &&
+                    it.parameterTypes[0] == Int::class.javaPrimitiveType
+            }
+            try {
+                setter?.invoke(androidExt, 36)
+            } catch (e: Exception) {
+                logger.lifecycle("Ivory: compileSdk untouched for " + name)
+            }
+        }
+    }
+}
+'''
+
+GROOVY_BLOCK = '''
+// ---- Ivory: raise every module to a modern compileSdk ----
+subprojects {
+    afterEvaluate { proj ->
+        if (proj.extensions.findByName('android') != null) {
+            try {
+                proj.extensions.getByName('android').compileSdkVersion 36
+            } catch (Exception e) {
+                logger.lifecycle("Ivory: compileSdk untouched")
+            }
+        }
+    }
+}
+'''
+
+
+def cmd_prepare():
+    xml = read(MANIFEST)
+
+    missing = [p for p in PERMISSIONS if p not in xml]
+    if missing:
+        block = ''.join(
+            '    <uses-permission android:name="%s"/>\n' % p for p in missing)
+        if '<application' not in xml:
+            sys.exit('ERROR: no <application> tag in the manifest')
+        xml = xml.replace('<application', block + '\n    <application', 1)
+        print('Added:', ', '.join(missing))
+    else:
+        print('All permissions already present.')
+
+    # url_launcher on Android 11+ can only see apps declared in <queries>.
+    if '<queries>' not in xml:
+        xml = xml.replace('<application', QUERIES + '\n    <application', 1)
+        print('Added <queries> block for url_launcher.')
+
+    # The label on <application> is what the launcher shows.
+    def fix(match):
+        tag = match.group(0)
+        if 'android:label=' in tag:
+            return re.sub(r'android:label="[^"]*"',
+                          'android:label="Ivory"', tag)
+        return tag.replace('<application',
+                           '<application android:label="Ivory"', 1)
+
+    xml = re.sub(r'<application[^>]*>', fix, xml, count=1)
+    write(MANIFEST, xml)
+
+    check = read(MANIFEST)
+    assert 'android.permission.INTERNET' in check, 'INTERNET missing!'
+    assert '<queries>' in check, '<queries> missing!'
+    assert 'android:label="Ivory"' in check, 'app label not applied!'
+    print('Manifest ready: permissions, queries and the Ivory label.')
+
+    # ---- compileSdk 36 for every module ----
+    root = None
+    for cand in ('android/build.gradle.kts', 'android/build.gradle'):
+        if os.path.exists(cand):
+            root = cand
+            break
+    if root is None:
+        sys.exit('ERROR: no android/build.gradle(.kts) found')
+
+    text = read(root)
+    if 'Ivory: raise every module' in text:
+        print('compileSdk override already present in', root)
+    else:
+        text += KTS_BLOCK if root.endswith('.kts') else GROOVY_BLOCK
+        write(root, text)
+        print('compileSdk 36 override appended to', root)
+
+    for cand in ('android/app/build.gradle.kts', 'android/app/build.gradle'):
+        if os.path.exists(cand):
+            t = read(cand)
+            t = t.replace('compileSdk = flutter.compileSdkVersion',
+                          'compileSdk = 36')
+            t = t.replace('compileSdk flutter.compileSdkVersion',
+                          'compileSdk 36')
+            t = re.sub(r'minSdk\s*=\s*flutter\.minSdkVersion',
+                       'minSdk = 23', t)
+            t = re.sub(r'minSdkVersion\s+flutter\.minSdkVersion',
+                       'minSdkVersion 23', t)
+            write(cand, t)
+            print('app module: compileSdk 36, minSdk 23')
+            break
+
+
+# --------------------------------------------------------------- firebase
+
+def cmd_firebase():
+    if not os.path.exists('firebase/google-services.json'):
+        print('::warning::firebase/google-services.json not found - the app '
+              'will build WITHOUT device push.')
+        return
+
+    os.makedirs('android/app', exist_ok=True)
+    shutil.copyfile('firebase/google-services.json',
+                    'android/app/google-services.json')
+    print('Copied google-services.json into android/app/')
+
+    settings = None
+    for cand in ('android/settings.gradle.kts', 'android/settings.gradle'):
+        if os.path.exists(cand):
+            settings = cand
+            break
+    if settings is None:
+        sys.exit('ERROR: no android/settings.gradle(.kts) found')
+
+    text = read(settings)
+    if 'com.google.gms.google-services' not in text:
+        if settings.endswith('.kts'):
+            line = ('    id("com.google.gms.google-services") version "%s" '
+                    'apply false\n' % GMS_VERSION)
+        else:
+            line = ("    id 'com.google.gms.google-services' version '%s' "
+                    "apply false\n" % GMS_VERSION)
+        m = re.search(r'plugins\s*\{', text)
+        if not m:
+            sys.exit('ERROR: no plugins block in ' + settings)
+        text = text[:m.end()] + '\n' + line + text[m.end():]
+        write(settings, text)
+        print('Added the google-services plugin to', settings)
+
+    app = None
+    for cand in ('android/app/build.gradle.kts', 'android/app/build.gradle'):
+        if os.path.exists(cand):
+            app = cand
+            break
+    if app is None:
+        sys.exit('ERROR: no android/app/build.gradle(.kts) found')
+
+    text = read(app)
+    if 'com.google.gms.google-services' not in text:
+        line = ('    id("com.google.gms.google-services")\n'
+                if app.endswith('.kts')
+                else "    id 'com.google.gms.google-services'\n")
+        m = re.search(r'plugins\s*\{', text)
+        if not m:
+            sys.exit('ERROR: no plugins block in ' + app)
+        text = text[:m.end()] + '\n' + line + text[m.end():]
+        write(app, text)
+        print('Applied the google-services plugin in', app)
+    print('Firebase wired up.')
+
+
+# ------------------------------------------------------------------ icons
+
+def normalise(folder, target, must_contain, must_not_contain=()):
+    dest = os.path.join(folder, target)
+    if os.path.exists(dest):
+        return
+    for src in sorted(glob.glob(os.path.join(folder, '*.png'))):
+        base = os.path.basename(src).lower()
+        if any(bad in base for bad in must_not_contain):
+            continue
+        if all(good in base for good in must_contain):
+            shutil.copyfile(src, dest)
+            print('renamed %s -> %s' % (src, target))
+            return
+
+
+def cmd_icons():
+    # pubspec declares both asset folders, so they must exist.
+    for folder in ('assets/icon', 'assets/logo'):
+        os.makedirs(folder, exist_ok=True)
+        if not os.listdir(folder):
+            open(os.path.join(folder, '.gitkeep'), 'w').close()
+
+    # Phone browsers rename downloads to "ivory_icon (1).png" and the like.
+    normalise('assets/icon', 'ivory_icon_bg.png', ['_bg'])
+    normalise('assets/icon', 'ivory_icon_foreground.png', ['foreground'])
+    normalise('assets/icon', 'ivory_icon.png', ['ivory_icon'],
+              ['_bg', 'foreground'])
+    normalise('assets/logo', 'ivory_logo.png', ['logo'])
+
+    if not os.path.exists('assets/icon/ivory_icon.png'):
+        print('::error::assets/icon/ivory_icon.png is missing - the launcher '
+              'icon was NOT changed.')
+        sys.exit(0)
+
+    layers_ok = (os.path.exists('assets/icon/ivory_icon_foreground.png')
+                 and os.path.exists('assets/icon/ivory_icon_bg.png'))
+    if not layers_ok:
+        print('::warning::Adaptive icon layers missing - plain icon only.')
+        lines = read('pubspec.yaml').splitlines(True)
+        write('pubspec.yaml',
+              ''.join(l for l in lines if 'adaptive_icon_' not in l))
+        print('Removed adaptive_icon_* from pubspec.yaml for this build.')
+    print('ICON_READY')
+
+
+COMMANDS = {
+    'verify': cmd_verify,
+    'prepare': cmd_prepare,
+    'firebase': cmd_firebase,
+    'icons': cmd_icons,
+}
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2 or sys.argv[1] not in COMMANDS:
+        sys.exit('usage: ci_android.py %s' % '|'.join(COMMANDS))
+    COMMANDS[sys.argv[1]]()
+
+# END OF FILE - tools/ci_android.py
