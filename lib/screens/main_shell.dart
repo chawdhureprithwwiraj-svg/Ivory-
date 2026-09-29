@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/ivory_profile.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/push_service.dart';
 import '../theme/ivory_theme.dart';
 import 'admin_screen.dart';
 import 'explore_screen.dart';
@@ -50,6 +51,7 @@ class _MainShellState extends State<MainShell> {
     super.initState();
     _loadProfile();
     NotificationService.instance.start();
+    PushService.instance.start();
   }
 
   Future<void> _loadProfile() async {
@@ -125,6 +127,7 @@ class _MainShellState extends State<MainShell> {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await NotificationService.instance.stop();
+              await PushService.instance.stop();
               await AuthService.instance.signOut();
             },
           ),
