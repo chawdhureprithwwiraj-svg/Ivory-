@@ -1,100 +1,44 @@
 name: Build Ivory APK
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
-  build-apk:
+  build:
     name: Compile Ivory into a downloadable APK
-    runs-on: ubuntu-24.04
-
-    # Required so the workflow can publish the APK as a GitHub Release.
-    permissions:
-      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      # Guard: if your Dart files are missing, "flutter create" would silently
-      # substitute Flutter's default counter-app template and the build would
-      # fail on template code you never wrote. Fail loudly and early instead.
-      - name: Verify Ivory source files are present
+      # A long file pasted from a phone can be cut short without warning.
+      # This file and tools/ci_android.py both end with an END OF FILE
+      # line, so a truncated paste is caught in seconds.
+      - name: Check the build files are complete
         run: |
-          echo "--- repo root ---"
-          ls -la
-          echo "--- lib/ ---"
-          ls -laR lib || echo "NO lib FOLDER AT ALL"
-          missing=0
-          for f in lib/main.dart lib/theme/ivory_theme.dart lib/core/supabase_config.dart lib/models/ivory_profile.dart lib/models/media_ref.dart lib/models/ivory_post.dart lib/models/wish.dart lib/models/ivory_notification.dart lib/services/auth_service.dart lib/services/content_service.dart lib/services/wish_service.dart lib/services/notification_service.dart lib/widgets/post_card.dart lib/widgets/post_actions.dart lib/widgets/ivory_logo.dart lib/models/payment.dart lib/services/payment_service.dart lib/screens/checkout_screen.dart lib/screens/admin_payments_tab.dart lib/screens/login_screen.dart lib/screens/main_shell.dart lib/screens/home_screen.dart lib/screens/explore_screen.dart lib/screens/wish_screen.dart lib/screens/premium_screen.dart lib/screens/inbox_screen.dart lib/screens/profile_screen.dart lib/screens/admin_screen.dart pubspec.yaml; do
+          for f in .github/workflows/build_apk.yml tools/ci_android.py; do
             if [ ! -f "$f" ]; then
-              echo "::error::MISSING FILE: $f - create it on GitHub before building."
-              missing=1
-            else
-              echo "found: $f"
+              echo "::error::MISSING FILE: $f"
+              exit 1
             fi
+            if ! tail -n 3 "$f" | grep -q "END OF FILE"; then
+              echo "::error::TRUNCATED PASTE: $f is incomplete. Paste it again."
+              exit 1
+            fi
+            echo "complete: $f"
           done
-          if [ -f lib/screens/feed_screen.dart ] || [ -f lib/screens/home_screen.dart.old ]; then
-            echo "::warning::lib/screens/feed_screen.dart is no longer used - delete it on GitHub."
-          fi
-          # Sprint 6 (device push) is optional. It is only required when
-          # pubspec.yaml actually asks for Firebase - that way the icon fix
-          # can be installed on its own, without the push files.
-          if grep -q "firebase_core" pubspec.yaml; then
-            echo "pubspec.yaml requests Firebase - checking the Sprint 6 files."
-            for f in lib/services/push_service.dart; do
-              if [ ! -f "$f" ]; then
-                echo "::error::MISSING FILE: $f - pubspec.yaml has firebase_core, so this file is required."
-                missing=1
-              else
-                echo "found: $f"
-              fi
-            done
-          else
-            echo "Sprint 6 not installed yet (no firebase_core in pubspec.yaml) - skipping push checks."
-            if [ -f lib/services/push_service.dart ]; then
-              echo "::warning::lib/services/push_service.dart exists but pubspec.yaml has no firebase_core - replace pubspec.yaml too."
-            fi
-          fi
-          # Sprint 7 (the Admin Studio) is optional in the same way. It is
-          # only required once pubspec.yaml asks for file_picker.
-          if grep -q "file_picker" pubspec.yaml; then
-            echo "pubspec.yaml requests file_picker - checking the Sprint 7 files."
-            for f in lib/services/admin_service.dart lib/widgets/admin_bits.dart lib/screens/admin_create_tab.dart lib/screens/admin_library_list.dart lib/screens/admin_tiers_tab.dart lib/screens/admin_broadcast_tab.dart lib/screens/admin_wishes_tab.dart lib/widgets/member_pulse.dart lib/widgets/premium_badge.dart; do
-              if [ ! -f "$f" ]; then
-                echo "::error::MISSING FILE: $f - pubspec.yaml has file_picker, so this Sprint 7 file is required."
-                missing=1
-              else
-                echo "found: $f"
-              fi
-            done
-            # Android browsers sometimes cut a long paste short. The six
-            # files split out of the old giant admin screens each end with
-            # an "END OF FILE" marker, so a truncated paste is caught here
-            # in seconds instead of after a two-minute compile. Only those
-            # six are checked - older files were installed before the
-            # marker existed and are fine without it.
-            for f in lib/widgets/admin_bits.dart lib/screens/admin_create_tab.dart lib/screens/admin_library_list.dart lib/screens/admin_broadcast_tab.dart lib/screens/admin_wishes_tab.dart lib/screens/admin_screen.dart; do
-              if [ -f "$f" ] && ! tail -n 3 "$f" | grep -q "END OF FILE"; then
-                echo "::error::TRUNCATED PASTE: $f does not end with its END OF FILE line. Paste it again."
-                missing=1
-              fi
-            done
-          else
-            echo "Sprint 7 not installed yet (no file_picker in pubspec.yaml) - skipping studio checks."
-          fi
 
-          if [ "$missing" = "1" ]; then
-            echo "Build stopped. Add the missing file(s) and re-run."
-            exit 1
-          fi
+      - name: Verify Ivory source files are present
+        run: python3 tools/ci_android.py verify
 
       - name: Set up Java 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Set up Flutter
@@ -111,311 +55,99 @@ jobs:
       - name: Generate missing Android platform files
         run: flutter create . --project-name ivory --org com.ivory --platforms android
 
-      # Plugins are published pre-compiled against whatever Android SDK was
-      # current when they were released - file_picker still says android-34,
-      # while flutter_plugin_android_lifecycle now insists every consumer
-      # compiles against 36. Instead of pinning plugin versions forever, the
-      # root Gradle file is taught to raise EVERY module to compileSdk 36.
-      - name: Force a modern compileSdk for every plugin
-        run: |
-          python3 - <<'PYEOF'
-          import os
-
-          KTS_LINES = [
-              '',
-              '// ---- Ivory: raise every module to a modern compileSdk ----',
-              'subprojects {',
-              '    afterEvaluate {',
-              '        val androidExt = extensions.findByName("android")',
-              '        if (androidExt != null) {',
-              '            val methods = androidExt.javaClass.methods',
-              '            val setCompileSdk = methods.firstOrNull {',
-              '                it.name == "setCompileSdk" && it.parameterTypes.size == 1',
-              '            }',
-              '            try {',
-              '                if (setCompileSdk != null) {',
-              '                    setCompileSdk.invoke(androidExt, 36)',
-              '                } else {',
-              '                    methods.firstOrNull {',
-              '                        it.name == "setCompileSdkVersion" &&',
-              '                            it.parameterTypes.size == 1 &&',
-              '                            it.parameterTypes[0] == Int::class.javaPrimitiveType',
-              '                    }?.invoke(androidExt, 36)',
-              '                }',
-              '            } catch (e: Exception) {',
-              '                logger.lifecycle("Ivory: compileSdk untouched for " + project.name)',
-              '            }',
-              '        }',
-              '    }',
-              '}',
-              '',
-          ]
-
-          GROOVY_LINES = [
-              '',
-              '// ---- Ivory: raise every module to a modern compileSdk ----',
-              'subprojects {',
-              '    afterEvaluate { proj ->',
-              "        if (proj.extensions.findByName('android') != null) {",
-              '            try {',
-              "                proj.extensions.getByName('android').compileSdkVersion 36",
-              '            } catch (Exception e) {',
-              '                logger.lifecycle("Ivory: compileSdk untouched for " + proj.name)',
-              '            }',
-              '        }',
-              '    }',
-              '}',
-              '',
-          ]
-
-          target = None
-          for cand in ('android/build.gradle.kts', 'android/build.gradle'):
-              if os.path.exists(cand):
-                  target = cand
-                  break
-          if target is None:
-              raise SystemExit('ERROR: no android/build.gradle(.kts) found')
-
-          text = open(target, encoding='utf-8').read()
-          if 'Ivory: raise every module' in text:
-              print('compileSdk override already present in', target)
-          else:
-              lines = KTS_LINES if target.endswith('.kts') else GROOVY_LINES
-              text = text + '\n' + '\n'.join(lines) + '\n'
-              open(target, 'w', encoding='utf-8').write(text)
-              print('compileSdk 36 override appended to', target)
-
-          app = None
-          for cand in ('android/app/build.gradle.kts', 'android/app/build.gradle'):
-              if os.path.exists(cand):
-                  app = cand
-                  break
-          if app:
-              t = open(app, encoding='utf-8').read()
-              t = t.replace('compileSdk = flutter.compileSdkVersion', 'compileSdk = 36')
-              t = t.replace('compileSdk flutter.compileSdkVersion', 'compileSdk 36')
-              open(app, 'w', encoding='utf-8').write(t)
-              print('app module pinned to compileSdk 36')
-          PYEOF
-
-          echo "--- root gradle tail ---"
-          tail -n 32 android/build.gradle.kts 2>/dev/null || tail -n 32 android/build.gradle
-
-      # CRITICAL: Flutter's template adds the INTERNET permission only to the
-      # debug and profile manifests, never to the main one. Without this step
-      # a RELEASE apk cannot reach the network at all and every request fails
-      # with "Failed host lookup ... errno = 7".
-      - name: Add Android permissions to the release manifest
-        run: |
-          python3 - <<'PYEOF'
-          import sys
-
-          path = 'android/app/src/main/AndroidManifest.xml'
-          xml = open(path, encoding='utf-8').read()
-
-          permissions = [
-              'android.permission.INTERNET',
-              'android.permission.ACCESS_NETWORK_STATE',
-              'android.permission.POST_NOTIFICATIONS',
-          ]
-
-          missing = [p for p in permissions if p not in xml]
-          if missing:
-              block = ''.join(
-                  '    <uses-permission android:name="%s"/>\n' % p for p in missing
-              )
-              if '<application' not in xml:
-                  sys.exit('ERROR: no <application> tag found in the manifest')
-              xml = xml.replace('<application', block + '\n    <application', 1)
-              open(path, 'w', encoding='utf-8').write(xml)
-              print('Added:', ', '.join(missing))
-          else:
-              print('All permissions already present.')
-
-          # url_launcher on Android 11+ can only see apps that the
-          # manifest declares in <queries>. Without this block every
-          # "Open in Telegram" / "Play now" button silently fails.
-          xml = open(path, encoding='utf-8').read()
-          if '<queries>' not in xml:
-              queries = (
-                  '    <queries>\n'
-                  '        <intent>\n'
-                  '            <action android:name="android.intent.action.VIEW"/>\n'
-                  '            <data android:scheme="https"/>\n'
-                  '        </intent>\n'
-                  '        <intent>\n'
-                  '            <action android:name="android.intent.action.VIEW"/>\n'
-                  '            <data android:scheme="http"/>\n'
-                  '        </intent>\n'
-                  '        <intent>\n'
-                  '            <action android:name="android.intent.action.VIEW"/>\n'
-                  '            <data android:scheme="tg"/>\n'
-                  '        </intent>\n'
-                  '        <intent>\n'
-                  '            <action android:name="android.intent.action.VIEW"/>\n'
-                  '            <data android:scheme="upi"/>\n'
-                  '        </intent>\n'
-                  '    </queries>\n'
-              )
-              xml = xml.replace('<application', queries + '\n    <application', 1)
-              open(path, 'w', encoding='utf-8').write(xml)
-              print('Added <queries> block for url_launcher.')
-          else:
-              print('<queries> block already present.')
-
-          # Fail loudly if anything is still missing.
-          check = open(path, encoding='utf-8').read()
-          assert 'android.permission.INTERNET' in check, 'INTERNET permission missing!'
-          assert '<queries>' in check, '<queries> block missing!'
-          print('--- manifest head ---')
-          print('\n'.join(check.splitlines()[:30]))
-          PYEOF
+      # Permissions, the url_launcher <queries> block, the launcher label
+      # and compileSdk 36 for every module.
+      - name: Prepare the Android project
+        run: python3 tools/ci_android.py prepare
 
       - name: Wire up Firebase push (optional)
-        run: |
-          if [ ! -f firebase/google-services.json ]; then
-            echo "::warning::firebase/google-services.json not found - the app will build WITHOUT device push."
-            exit 0
-          fi
-
-          mkdir -p android/app
-          cp firebase/google-services.json android/app/google-services.json
-          echo "Copied google-services.json into android/app/"
-
-          python3 - <<'PYEOF'
-          import os, re, sys
-
-          GMS_VERSION = '4.4.2'
-
-          def read(p):
-              return open(p, encoding='utf-8').read()
-
-          def write(p, t):
-              open(p, 'w', encoding='utf-8').write(t)
-
-          # ---- settings.gradle(.kts): declare the Google services plugin ----
-          settings = None
-          for cand in ('android/settings.gradle.kts', 'android/settings.gradle'):
-              if os.path.exists(cand):
-                  settings = cand
-                  break
-          if settings is None:
-              sys.exit('ERROR: no android/settings.gradle(.kts) found')
-
-          text = read(settings)
-          if 'com.google.gms.google-services' not in text:
-              if settings.endswith('.kts'):
-                  line = '    id("com.google.gms.google-services") version "%s" apply false\n' % GMS_VERSION
-              else:
-                  line = "    id 'com.google.gms.google-services' version '%s' apply false\n" % GMS_VERSION
-              m = re.search(r'plugins\s*\{', text)
-              if not m:
-                  sys.exit('ERROR: no plugins block in ' + settings)
-              cut = m.end()
-              text = text[:cut] + '\n' + line + text[cut:]
-              write(settings, text)
-              print('Added the google-services plugin to', settings)
-          else:
-              print('google-services already declared in', settings)
-
-          # ---- app/build.gradle(.kts): apply it ----
-          appgradle = None
-          for cand in ('android/app/build.gradle.kts', 'android/app/build.gradle'):
-              if os.path.exists(cand):
-                  appgradle = cand
-                  break
-          if appgradle is None:
-              sys.exit('ERROR: no android/app/build.gradle(.kts) found')
-
-          text = read(appgradle)
-          if 'com.google.gms.google-services' not in text:
-              if appgradle.endswith('.kts'):
-                  line = '    id("com.google.gms.google-services")\n'
-              else:
-                  line = "    id 'com.google.gms.google-services'\n"
-              m = re.search(r'plugins\s*\{', text)
-              if not m:
-                  sys.exit('ERROR: no plugins block in ' + appgradle)
-              cut = m.end()
-              text = text[:cut] + '\n' + line + text[cut:]
-              write(appgradle, text)
-              print('Applied the google-services plugin in', appgradle)
-          else:
-              print('google-services already applied in', appgradle)
-
-          # ---- multidex + a sane minSdk for Firebase ----
-          text = read(appgradle)
-          text = re.sub(r'minSdk\s*=\s*flutter\.minSdkVersion', 'minSdk = 23', text)
-          text = re.sub(r'minSdkVersion\s+flutter\.minSdkVersion', 'minSdkVersion 23', text)
-          write(appgradle, text)
-          print('minSdk pinned to 23 for Firebase Messaging')
-          PYEOF
-
-          echo "--- settings.gradle ---"
-          cat android/settings.gradle.kts 2>/dev/null | head -20 || cat android/settings.gradle | head -20
+        run: python3 tools/ci_android.py firebase
 
       - name: Remove generated placeholder test
-        run: rm -rf test
+        run: rm -f test/widget_test.dart
 
       - name: Install dependencies
         run: flutter pub get
 
       - name: Generate the launcher icon
         run: |
-          # pubspec declares both asset folders, so they must exist even if an
-          # upload has not happened yet - otherwise the build stops.
-          mkdir -p assets/icon assets/logo
-          if [ -z "$(ls -A assets/icon)" ]; then touch assets/icon/.gitkeep; fi
-          if [ -z "$(ls -A assets/logo)" ]; then touch assets/logo/.gitkeep; fi
-          echo "--- assets/icon ---"; ls -la assets/icon
-          echo "--- assets/logo ---"; ls -la assets/logo
-
-          # Phone browsers rename downloads to "ivory_icon (1).png" and the
-          # like. Put every variant back under the exact name Flutter wants.
-          python3 - <<'PYEOF'
-          import glob, os, shutil
-
-          def normalise(folder, target, must_contain, must_not_contain=()):
-              dest = os.path.join(folder, target)
-              if os.path.exists(dest):
-                  return
-              for src in sorted(glob.glob(os.path.join(folder, '*.png'))):
-                  base = os.path.basename(src).lower()
-                  if any(bad in base for bad in must_not_contain):
-                      continue
-                  if all(good in base for good in must_contain):
-                      shutil.copyfile(src, dest)
-                      print('renamed %s -> %s' % (src, target))
-                      return
-
-          normalise('assets/icon', 'ivory_icon_bg.png', ['_bg'])
-          normalise('assets/icon', 'ivory_icon_foreground.png', ['foreground'])
-          normalise('assets/icon', 'ivory_icon.png', ['ivory_icon'],
-                    ['_bg', 'foreground'])
-          normalise('assets/logo', 'ivory_logo.png', ['logo'])
-          PYEOF
-
-          if [ ! -f assets/icon/ivory_icon.png ]; then
-            echo "=================================================="
-            echo " LAUNCHER ICON NOT APPLIED"
-            echo " assets/icon/ivory_icon.png is missing from the repo."
-            echo " Upload it here, then run this workflow again:"
-            echo "   github.com/${GITHUB_REPOSITORY}/upload/main/assets/icon"
-            echo " The app will keep the default blue Flutter icon for now."
-            echo "=================================================="
-            echo "::error::assets/icon/ivory_icon.png is missing - the launcher icon was NOT changed."
-          else
-            if [ ! -f assets/icon/ivory_icon_foreground.png ] || [ ! -f assets/icon/ivory_icon_bg.png ]; then
-              echo "::warning::Adaptive icon layers missing - using the plain icon only."
-              python3 - <<'PYEOF'
-          lines = open('pubspec.yaml', encoding='utf-8').read().splitlines(True)
-          keep = [l for l in lines if 'adaptive_icon_' not in l]
-          open('pubspec.yaml', 'w', encoding='utf-8').writelines(keep)
-          print('Removed adaptive_icon_* from pubspec.yaml for this build.')
-          PYEOF
-            fi
+          python3 tools/ci_android.py icons | tee icons.log
+          if grep -q ICON_READY icons.log; then
             dart run flutter_launcher_icons
-            echo "--- generated mipmaps ---"
             ls -l android/app/src/main/res/mipmap-xxxhdpi/ || true
             if [ ! -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png ]; then
-              echo "::error::flutter_launcher_icons ran but produced no ic_launcher.png"
+              echo "::error::flutter_launcher_icons produced no ic_launcher.png"
+              exit 1
+            fi
+            echo "Launcher icon generated."
+          else
+            echo "::warning::Building with the default Flutter icon."
+          fi
+
+      - name: Build release APK
+        id: build
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          flutter build apk --release 2>&1 | tee build.log
+
+      # Prints the tail of the build log straight onto the run Summary
+      # page - no need to open or scroll any logs on a phone.
+      - name: Publish error report to Summary
+        if: always()
+        run: |
+          {
+            echo "## Ivory build report"
+            echo ""
+            echo '```text'
+            if [ -f build.log ]; then
+              tail -120 build.log
+            else
+              echo "build.log was never created - the job failed earlier."
+            fi
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload APK artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ivory-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 90
+          if-no-files-found: warn
+
+      # A GitHub Release is a direct, unzipped, one-tap download link that
+      # works perfectly in a mobile browser.
+      - name: Publish APK to Releases
+        if: hashFiles('build/app/outputs/flutter-apk/app-release.apk') != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Ivory build ${{ github.run_number }}
+          body: |
+            Automatic build of Ivory from commit ${{ github.sha }}.
+
+            Tap **app-release.apk** below to install on your Android phone.
+          files: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Fail if the APK was not produced
+        if: always()
+        run: |
+          if [ ! -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            echo "No APK was produced. Read the report on the Summary page."
+            exit 1
+          fi
+          echo "APK built successfully."
+          ls -lh build/app/outputs/flutter-apk/
+
+# END OF FILE - .github/workflows/build_apk.yml
