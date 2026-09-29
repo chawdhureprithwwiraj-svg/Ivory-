@@ -5,6 +5,7 @@ import '../models/payment.dart';
 import '../services/auth_service.dart';
 import '../services/payment_service.dart';
 import '../services/notification_service.dart';
+import '../services/push_service.dart';
 import '../theme/ivory_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -223,6 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               OutlinedButton.icon(
                 onPressed: () async {
                   await NotificationService.instance.stop();
+                  await PushService.instance.stop();
                   await AuthService.instance.signOut();
                 },
                 icon: const Icon(Icons.logout, size: 18),
