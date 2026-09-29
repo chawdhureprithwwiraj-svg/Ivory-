@@ -28,7 +28,7 @@ jobs:
           echo "--- lib/ ---"
           ls -laR lib || echo "NO lib FOLDER AT ALL"
           missing=0
-          for f in lib/main.dart lib/theme/ivory_theme.dart lib/core/supabase_config.dart lib/models/ivory_profile.dart lib/models/media_ref.dart lib/models/ivory_post.dart lib/models/wish.dart lib/models/ivory_notification.dart lib/services/auth_service.dart lib/services/content_service.dart lib/services/wish_service.dart lib/services/notification_service.dart lib/widgets/post_card.dart lib/widgets/post_actions.dart lib/widgets/ivory_logo.dart lib/models/payment.dart lib/services/payment_service.dart lib/services/push_service.dart lib/screens/checkout_screen.dart lib/screens/admin_payments_tab.dart lib/screens/login_screen.dart lib/screens/main_shell.dart lib/screens/home_screen.dart lib/screens/explore_screen.dart lib/screens/wish_screen.dart lib/screens/premium_screen.dart lib/screens/inbox_screen.dart lib/screens/profile_screen.dart lib/screens/admin_screen.dart pubspec.yaml; do
+          for f in lib/main.dart lib/theme/ivory_theme.dart lib/core/supabase_config.dart lib/models/ivory_profile.dart lib/models/media_ref.dart lib/models/ivory_post.dart lib/models/wish.dart lib/models/ivory_notification.dart lib/services/auth_service.dart lib/services/content_service.dart lib/services/wish_service.dart lib/services/notification_service.dart lib/widgets/post_card.dart lib/widgets/post_actions.dart lib/widgets/ivory_logo.dart lib/models/payment.dart lib/services/payment_service.dart lib/screens/checkout_screen.dart lib/screens/admin_payments_tab.dart lib/screens/login_screen.dart lib/screens/main_shell.dart lib/screens/home_screen.dart lib/screens/explore_screen.dart lib/screens/wish_screen.dart lib/screens/premium_screen.dart lib/screens/inbox_screen.dart lib/screens/profile_screen.dart lib/screens/admin_screen.dart pubspec.yaml; do
             if [ ! -f "$f" ]; then
               echo "::error::MISSING FILE: $f - create it on GitHub before building."
               missing=1
@@ -39,6 +39,26 @@ jobs:
           if [ -f lib/screens/feed_screen.dart ] || [ -f lib/screens/home_screen.dart.old ]; then
             echo "::warning::lib/screens/feed_screen.dart is no longer used - delete it on GitHub."
           fi
+          # Sprint 6 (device push) is optional. It is only required when
+          # pubspec.yaml actually asks for Firebase - that way the icon fix
+          # can be installed on its own, without the push files.
+          if grep -q "firebase_core" pubspec.yaml; then
+            echo "pubspec.yaml requests Firebase - checking the Sprint 6 files."
+            for f in lib/services/push_service.dart; do
+              if [ ! -f "$f" ]; then
+                echo "::error::MISSING FILE: $f - pubspec.yaml has firebase_core, so this file is required."
+                missing=1
+              else
+                echo "found: $f"
+              fi
+            done
+          else
+            echo "Sprint 6 not installed yet (no firebase_core in pubspec.yaml) - skipping push checks."
+            if [ -f lib/services/push_service.dart ]; then
+              echo "::warning::lib/services/push_service.dart exists but pubspec.yaml has no firebase_core - replace pubspec.yaml too."
+            fi
+          fi
+
           if [ "$missing" = "1" ]; then
             echo "Build stopped. Add the missing file(s) and re-run."
             exit 1
