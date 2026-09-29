@@ -28,7 +28,7 @@ jobs:
           echo "--- lib/ ---"
           ls -laR lib || echo "NO lib FOLDER AT ALL"
           missing=0
-          for f in lib/main.dart lib/theme/ivory_theme.dart lib/core/supabase_config.dart lib/models/ivory_profile.dart lib/models/media_ref.dart lib/models/ivory_post.dart lib/models/wish.dart lib/models/ivory_notification.dart lib/services/auth_service.dart lib/services/content_service.dart lib/services/wish_service.dart lib/services/notification_service.dart lib/widgets/post_card.dart lib/widgets/post_actions.dart lib/widgets/ivory_logo.dart lib/models/payment.dart lib/services/payment_service.dart lib/screens/checkout_screen.dart lib/screens/login_screen.dart lib/screens/main_shell.dart lib/screens/home_screen.dart lib/screens/explore_screen.dart lib/screens/wish_screen.dart lib/screens/premium_screen.dart lib/screens/inbox_screen.dart lib/screens/profile_screen.dart lib/screens/admin_screen.dart pubspec.yaml; do
+          for f in lib/main.dart lib/theme/ivory_theme.dart lib/core/supabase_config.dart lib/models/ivory_profile.dart lib/models/media_ref.dart lib/models/ivory_post.dart lib/models/wish.dart lib/models/ivory_notification.dart lib/services/auth_service.dart lib/services/content_service.dart lib/services/wish_service.dart lib/services/notification_service.dart lib/widgets/post_card.dart lib/widgets/post_actions.dart lib/widgets/ivory_logo.dart lib/models/payment.dart lib/services/payment_service.dart lib/services/push_service.dart lib/screens/checkout_screen.dart lib/screens/admin_payments_tab.dart lib/screens/login_screen.dart lib/screens/main_shell.dart lib/screens/home_screen.dart lib/screens/explore_screen.dart lib/screens/wish_screen.dart lib/screens/premium_screen.dart lib/screens/inbox_screen.dart lib/screens/profile_screen.dart lib/screens/admin_screen.dart pubspec.yaml; do
             if [ ! -f "$f" ]; then
               echo "::error::MISSING FILE: $f - create it on GitHub before building."
               missing=1
@@ -79,6 +79,7 @@ jobs:
           permissions = [
               'android.permission.INTERNET',
               'android.permission.ACCESS_NETWORK_STATE',
+              'android.permission.POST_NOTIFICATIONS',
           ]
 
           missing = [p for p in permissions if p not in xml]
@@ -133,6 +134,89 @@ jobs:
           print('\n'.join(check.splitlines()[:30]))
           PYEOF
 
+      - name: Wire up Firebase push (optional)
+        run: |
+          if [ ! -f firebase/google-services.json ]; then
+            echo "::warning::firebase/google-services.json not found - the app will build WITHOUT device push."
+            exit 0
+          fi
+
+          mkdir -p android/app
+          cp firebase/google-services.json android/app/google-services.json
+          echo "Copied google-services.json into android/app/"
+
+          python3 - <<'PYEOF'
+          import os, re, sys
+
+          GMS_VERSION = '4.4.2'
+
+          def read(p):
+              return open(p, encoding='utf-8').read()
+
+          def write(p, t):
+              open(p, 'w', encoding='utf-8').write(t)
+
+          # ---- settings.gradle(.kts): declare the Google services plugin ----
+          settings = None
+          for cand in ('android/settings.gradle.kts', 'android/settings.gradle'):
+              if os.path.exists(cand):
+                  settings = cand
+                  break
+          if settings is None:
+              sys.exit('ERROR: no android/settings.gradle(.kts) found')
+
+          text = read(settings)
+          if 'com.google.gms.google-services' not in text:
+              if settings.endswith('.kts'):
+                  line = '    id("com.google.gms.google-services") version "%s" apply false\n' % GMS_VERSION
+              else:
+                  line = "    id 'com.google.gms.google-services' version '%s' apply false\n" % GMS_VERSION
+              m = re.search(r'plugins\s*\{', text)
+              if not m:
+                  sys.exit('ERROR: no plugins block in ' + settings)
+              cut = m.end()
+              text = text[:cut] + '\n' + line + text[cut:]
+              write(settings, text)
+              print('Added the google-services plugin to', settings)
+          else:
+              print('google-services already declared in', settings)
+
+          # ---- app/build.gradle(.kts): apply it ----
+          appgradle = None
+          for cand in ('android/app/build.gradle.kts', 'android/app/build.gradle'):
+              if os.path.exists(cand):
+                  appgradle = cand
+                  break
+          if appgradle is None:
+              sys.exit('ERROR: no android/app/build.gradle(.kts) found')
+
+          text = read(appgradle)
+          if 'com.google.gms.google-services' not in text:
+              if appgradle.endswith('.kts'):
+                  line = '    id("com.google.gms.google-services")\n'
+              else:
+                  line = "    id 'com.google.gms.google-services'\n"
+              m = re.search(r'plugins\s*\{', text)
+              if not m:
+                  sys.exit('ERROR: no plugins block in ' + appgradle)
+              cut = m.end()
+              text = text[:cut] + '\n' + line + text[cut:]
+              write(appgradle, text)
+              print('Applied the google-services plugin in', appgradle)
+          else:
+              print('google-services already applied in', appgradle)
+
+          # ---- multidex + a sane minSdk for Firebase ----
+          text = read(appgradle)
+          text = re.sub(r'minSdk\s*=\s*flutter\.minSdkVersion', 'minSdk = 23', text)
+          text = re.sub(r'minSdkVersion\s+flutter\.minSdkVersion', 'minSdkVersion 23', text)
+          write(appgradle, text)
+          print('minSdk pinned to 23 for Firebase Messaging')
+          PYEOF
+
+          echo "--- settings.gradle ---"
+          cat android/settings.gradle.kts 2>/dev/null | head -20 || cat android/settings.gradle | head -20
+
       - name: Remove generated placeholder test
         run: rm -rf test
 
@@ -146,12 +230,46 @@ jobs:
           mkdir -p assets/icon assets/logo
           if [ -z "$(ls -A assets/icon)" ]; then touch assets/icon/.gitkeep; fi
           if [ -z "$(ls -A assets/logo)" ]; then touch assets/logo/.gitkeep; fi
-          ls -la assets/icon assets/logo
+          echo "--- assets/icon ---"; ls -la assets/icon
+          echo "--- assets/logo ---"; ls -la assets/logo
+
+          # Phone browsers rename downloads to "ivory_icon (1).png" and the
+          # like. Put every variant back under the exact name Flutter wants.
+          python3 - <<'PYEOF'
+          import glob, os, shutil
+
+          def normalise(folder, target, must_contain, must_not_contain=()):
+              dest = os.path.join(folder, target)
+              if os.path.exists(dest):
+                  return
+              for src in sorted(glob.glob(os.path.join(folder, '*.png'))):
+                  base = os.path.basename(src).lower()
+                  if any(bad in base for bad in must_not_contain):
+                      continue
+                  if all(good in base for good in must_contain):
+                      shutil.copyfile(src, dest)
+                      print('renamed %s -> %s' % (src, target))
+                      return
+
+          normalise('assets/icon', 'ivory_icon_bg.png', ['_bg'])
+          normalise('assets/icon', 'ivory_icon_foreground.png', ['foreground'])
+          normalise('assets/icon', 'ivory_icon.png', ['ivory_icon'],
+                    ['_bg', 'foreground'])
+          normalise('assets/logo', 'ivory_logo.png', ['logo'])
+          PYEOF
+
           if [ ! -f assets/icon/ivory_icon.png ]; then
-            echo '::warning::assets/icon/ivory_icon.png missing - keeping the default Flutter icon.'
+            echo "=================================================="
+            echo " LAUNCHER ICON NOT APPLIED"
+            echo " assets/icon/ivory_icon.png is missing from the repo."
+            echo " Upload it here, then run this workflow again:"
+            echo "   github.com/${GITHUB_REPOSITORY}/upload/main/assets/icon"
+            echo " The app will keep the default blue Flutter icon for now."
+            echo "=================================================="
+            echo "::error::assets/icon/ivory_icon.png is missing - the launcher icon was NOT changed."
           else
             if [ ! -f assets/icon/ivory_icon_foreground.png ] || [ ! -f assets/icon/ivory_icon_bg.png ]; then
-              echo '::warning::Adaptive icon parts missing - falling back to the plain icon.'
+              echo "::warning::Adaptive icon layers missing - using the plain icon only."
               python3 - <<'PYEOF'
           lines = open('pubspec.yaml', encoding='utf-8').read().splitlines(True)
           keep = [l for l in lines if 'adaptive_icon_' not in l]
@@ -160,23 +278,38 @@ jobs:
           PYEOF
             fi
             dart run flutter_launcher_icons
-            echo 'Launcher icon generated.'
+            echo "--- generated mipmaps ---"
+            ls -l android/app/src/main/res/mipmap-xxxhdpi/ || true
+            if [ ! -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png ]; then
+              echo "::error::flutter_launcher_icons ran but produced no ic_launcher.png"
+              exit 1
+            fi
+            echo "Launcher icon generated."
           fi
 
       - name: Set the app name shown under the icon
         run: |
           python3 - <<'PYEOF'
+          import re
+
           path = 'android/app/src/main/AndroidManifest.xml'
           xml = open(path, encoding='utf-8').read()
-          import re
-          xml = re.sub(r'android:label="[^"]*"', 'android:label="Ivory"', xml, count=1)
+
+          # The label on the <application> tag is what the launcher shows.
+          def fix(match):
+              tag = match.group(0)
+              if 'android:label=' in tag:
+                  return re.sub(r'android:label="[^"]*"', 'android:label="Ivory"', tag)
+              return tag.replace('<application', '<application android:label="Ivory"', 1)
+
+          xml = re.sub(r'<application[^>]*>', fix, xml, count=1)
           open(path, 'w', encoding='utf-8').write(xml)
+
+          check = open(path, encoding='utf-8').read()
+          assert 'android:label="Ivory"' in check, 'app label was not applied!'
           print('App label set to Ivory.')
           PYEOF
 
-
-      # The build runs inside a wrapper that captures EVERYTHING to build.log,
-      # so the real error can be shown on the run Summary page afterwards.
       - name: Build release APK
         id: build
         continue-on-error: true
