@@ -4,6 +4,7 @@ import '../models/ivory_post.dart';
 import '../services/content_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/ivory_logo.dart';
+import '../widgets/member_pulse.dart';
 import '../widgets/post_actions.dart';
 import '../widgets/post_card.dart';
 
@@ -152,12 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
         ),
         const SizedBox(height: 12),
-        Text(
-          'Curated stories, voice notes, cinema vignettes and polls — '
-          'and wishes made only for you.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
+        _heroCopy(),
         const SizedBox(height: 22),
         Row(
           children: <Widget>[
@@ -182,6 +178,91 @@ class _HomeScreenState extends State<HomeScreen> {
         _freeForever(),
         const SizedBox(height: 12),
         _trust(Icons.verified_user_outlined, 'Consensual & lawful'),
+        const SizedBox(height: 18),
+        const MemberPulseStrip(),
+      ],
+    );
+  }
+
+  /// The promise of the house. The one phrase that has to land -
+  /// "Real Life Stories and Experiences" - is set in gold serif italic
+  /// so the eye finds it before it reads a word of the rest.
+  Widget _heroCopy() {
+    final TextStyle base = TextStyle(
+      fontSize: 14,
+      height: 1.62,
+      color: IvoryColors.textSoft,
+    );
+    final TextStyle accent = const TextStyle(
+      fontFamily: IvoryTheme.displayFont,
+      fontSize: 16,
+      height: 1.5,
+      fontStyle: FontStyle.italic,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.2,
+      color: IvoryColors.burgundy,
+    );
+
+    return Column(
+      children: <Widget>[
+        RichText(
+          textAlign: TextAlign.center,
+          text: TextSpan(
+            style: base,
+            children: <InlineSpan>[
+              const TextSpan(
+                text: "It's not just an app where you can only watch or "
+                    'hear one sidedly. It\u2019s a ',
+              ),
+              TextSpan(
+                text: 'connection with Me',
+                style: base.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: IvoryColors.burgundy,
+                ),
+              ),
+              const TextSpan(text: ' \u2014 '),
+              TextSpan(
+                text: 'Real Life Stories and Experiences',
+                style: accent.copyWith(
+                  decoration: TextDecoration.underline,
+                  decorationColor: IvoryColors.gold,
+                  decorationThickness: 1.6,
+                ),
+              ),
+              const TextSpan(text: ', shared with you and no one else.'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: <Color>[Color(0xFFFFFCF2), Color(0xFFFDF1DC)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border(
+              left: BorderSide(color: IvoryColors.gold, width: 3),
+              top: BorderSide(color: IvoryColors.hairline),
+              right: BorderSide(color: IvoryColors.hairline),
+              bottom: BorderSide(color: IvoryColors.hairline),
+            ),
+          ),
+          child: Text(
+            'Get connected directly to a real woman according to your '
+            'criteria \u2014 with whom you can talk, watch her and feel '
+            'live, as per your wish!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: IvoryTheme.displayFont,
+              fontSize: 14.5,
+              height: 1.55,
+              fontStyle: FontStyle.italic,
+              color: IvoryColors.burgundy.withValues(alpha: 0.88),
+            ),
+          ),
+        ),
       ],
     );
   }
