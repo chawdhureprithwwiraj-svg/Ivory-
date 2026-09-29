@@ -372,24 +372,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      const Icon(Icons.shield_outlined,
-                          size: 15, color: IvoryColors.success),
-                      const SizedBox(width: 7),
-                      Flexible(
-                        child: Text(
-                          'No phone number is ever collected.',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: IvoryColors.textSoft,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
