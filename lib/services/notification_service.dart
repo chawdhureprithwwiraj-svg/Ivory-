@@ -84,6 +84,7 @@ class NotificationService {
     int tierLevel = 0,
     String? userId,
     String? actionTab,
+    String? actionUrl,
   }) async {
     await _db.rpc('send_notification', params: <String, dynamic>{
       'title_in': title,
@@ -94,6 +95,7 @@ class NotificationService {
       'user_id_in': userId,
       'post_id_in': null,
       'action_tab_in': actionTab,
+      'action_url_in': actionUrl,
     });
     await refreshUnread();
   }
