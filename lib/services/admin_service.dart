@@ -57,7 +57,9 @@ class AdminService {
   /// Audio, documents, anything. [type] is FileType.audio for voice notes
   /// and audiobooks, FileType.any for everything else.
   Future<PickedMedia?> pickFile({FileType type = FileType.any}) async {
-    final FilePickerResult? r = await FilePicker.platform.pickFiles(
+    // file_picker 11 made pickFiles a static method - there is no
+    // FilePicker.platform any more.
+    final FilePickerResult? r = await FilePicker.pickFiles(
       type: type,
       allowMultiple: false,
       withData: false,
@@ -294,3 +296,5 @@ class PickedMedia {
   int get size => bytes.length;
   String get sizeLabel => AdminService.sizeLabel(size);
 }
+
+// END OF FILE - lib/services/admin_service.dart
