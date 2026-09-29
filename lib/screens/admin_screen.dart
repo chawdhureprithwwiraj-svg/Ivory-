@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
+import 'package:file_picker/file_picker.dart';
+
 import '../models/wish.dart';
+import '../services/admin_service.dart';
 import '../services/notification_service.dart';
 import '../services/wish_service.dart';
 import '../theme/ivory_theme.dart';
+import 'admin_create_tab.dart';
 import 'admin_payments_tab.dart';
+import 'admin_tiers_tab.dart';
 
 /// The mobile admin console: send push-style announcements and work
 /// through incoming wishes. Every action is re-checked by the database,
@@ -18,7 +23,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 3, vsync: this);
+  late final TabController _tabs = TabController(length: 5, vsync: this);
 
   @override
   void dispose() {
@@ -42,9 +47,11 @@ class _AdminScreenState extends State<AdminScreen>
             fontSize: 13,
           ),
           isScrollable: true,
-          tabAlignment: TabAlignment.center,
+          tabAlignment: TabAlignment.start,
           tabs: const <Widget>[
+            Tab(text: 'CREATE'),
             Tab(text: 'BROADCAST'),
+            Tab(text: 'TIERS'),
             Tab(text: 'WISHES'),
             Tab(text: 'PAYMENTS'),
           ],
@@ -56,7 +63,9 @@ class _AdminScreenState extends State<AdminScreen>
           child: TabBarView(
             controller: _tabs,
             children: <Widget>[
+              const AdminCreateTab(),
               const _BroadcastTab(),
+              const AdminTiersTab(),
               const _WishTrackerTab(),
               const AdminPaymentsTab(),
             ],
@@ -89,9 +98,18 @@ class _BroadcastTabState extends State<_BroadcastTab> {
   String _userName = '';
   bool _sending = false;
 
+  /// An optional attachment: a file picked off the phone and uploaded to
+  /// Supabase Storage, or a link typed straight in. Either way it ends up
+  /// as the notification's action_url, and the Inbox shows it.
+  PickedMedia? _attachment;
+  String? _attachmentUrl;
+  final TextEditingController _linkCtrl = TextEditingController();
+  String _status = '';
+
   static const List<String> _kinds = <String>[
     'system',
     'story',
+    'image',
     'audio',
     'video',
     'poll',
@@ -104,6 +122,7 @@ class _BroadcastTabState extends State<_BroadcastTab> {
   void dispose() {
     _title.dispose();
     _body.dispose();
+    _linkCtrl.dispose();
     super.dispose();
   }
 
@@ -182,6 +201,47 @@ class _BroadcastTabState extends State<_BroadcastTab> {
     );
   }
 
+  Future<void> _attach(String what) async {
+    try {
+      PickedMedia? m;
+      switch (what) {
+        case 'image':
+          m = await AdminService.instance.pickImage();
+          break;
+        case 'video':
+          m = await AdminService.instance.pickVideo();
+          break;
+        case 'audio':
+          m = await AdminService.instance.pickFile(type: FileType.audio);
+          break;
+        default:
+          m = await AdminService.instance.pickFile();
+      }
+      if (m == null) return;
+      if (m.size > 48 * 1024 * 1024) {
+        _snack('That file is ${m.sizeLabel}. Keep it under about 48 MB, '
+            'or host it and paste the link instead.');
+        return;
+      }
+      setState(() {
+        _attachment = m;
+        _attachmentUrl = null;
+        _linkCtrl.clear();
+        if (what == 'image') _kind = 'image';
+        if (what == 'audio') _kind = 'audio';
+        if (what == 'video') _kind = 'video';
+      });
+    } catch (e) {
+      _snack('Could not open that file: $e');
+    }
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _send() async {
     if (!_formKey.currentState!.validate()) return;
     if (_audience == 'user' && _userId == null) {
@@ -190,8 +250,23 @@ class _BroadcastTabState extends State<_BroadcastTab> {
       );
       return;
     }
-    setState(() => _sending = true);
+    setState(() {
+      _sending = true;
+      _status = '';
+    });
     try {
+      // 1. upload the attachment, if there is one waiting
+      String? url = _attachmentUrl;
+      if (_attachment != null && url == null) {
+        setState(() => _status = 'Uploading ${_attachment!.sizeLabel}...');
+        url = await AdminService.instance
+            .upload(_attachment!, folder: 'broadcast');
+        _attachmentUrl = url;
+      }
+      url ??= _linkCtrl.text.trim().isEmpty ? null : _linkCtrl.text.trim();
+
+      // 2. send it
+      setState(() => _status = 'Sending...');
       await NotificationService.instance.send(
         title: _title.text.trim(),
         body: _body.text.trim(),
@@ -200,19 +275,32 @@ class _BroadcastTabState extends State<_BroadcastTab> {
         tierLevel: _audience == 'tier' ? _tierLevel : 0,
         userId: _audience == 'user' ? _userId : null,
         actionTab: 'feed',
+        actionUrl: url,
       );
       if (!mounted) return;
       _title.clear();
       _body.clear();
+      _linkCtrl.clear();
+      setState(() {
+        _attachment = null;
+        _attachmentUrl = null;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sent. It is in their inbox now.')),
+        const SnackBar(
+          content: Text('Sent. It is in their inbox and on their phone.'),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Could not send: $e')));
     } finally {
-      if (mounted) setState(() => _sending = false);
+      if (mounted) {
+        setState(() {
+          _sending = false;
+          _status = '';
+        });
+      }
     }
   }
 
@@ -227,9 +315,10 @@ class _BroadcastTabState extends State<_BroadcastTab> {
               style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 6),
           Text(
-            'It lands in the Sanctuary Inbox instantly and lights up the bell. '
-            'Device push notifications are wired in the next sprint and will '
-            'use these same messages.',
+            'It lands in the Sanctuary Inbox instantly, lights up the bell '
+            'and arrives as a notification on their phone within the '
+            'minute. Attach a picture, a voice note, a video or a link and '
+            'it travels with the message.',
             style: TextStyle(
               fontSize: 13,
               height: 1.45,
@@ -314,6 +403,16 @@ class _BroadcastTabState extends State<_BroadcastTab> {
             ),
           ],
           const SizedBox(height: 18),
+          const Text('ATTACH SOMETHING (OPTIONAL)',
+              style: TextStyle(
+                color: IvoryColors.plum,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+              )),
+          const SizedBox(height: 10),
+          _attachmentPanel(),
+          const SizedBox(height: 18),
           const Text('STYLE',
               style: TextStyle(
                 color: IvoryColors.plum,
@@ -341,12 +440,112 @@ class _BroadcastTabState extends State<_BroadcastTab> {
           ),
           const SizedBox(height: 24),
           IvoryGradientButton(
-            label: _sending ? 'SENDING...' : 'SEND NOW',
+            label: _sending
+                ? (_status.isEmpty ? 'SENDING...' : _status.toUpperCase())
+                : 'SEND NOW',
             icon: Icons.campaign,
             busy: _sending,
             onPressed: _sending ? null : _send,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _attachmentPanel() {
+    final PickedMedia? a = _attachment;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: IvoryTheme.card(radius: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (a != null) ...<Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: IvoryColors.goldGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.attachment,
+                      color: IvoryColors.burgundy, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        a.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: IvoryColors.burgundy,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                      Text(
+                        _attachmentUrl == null
+                            ? '${a.sizeLabel} \u00b7 will upload when you send'
+                            : '${a.sizeLabel} \u00b7 uploaded',
+                        style: TextStyle(
+                            fontSize: 11.5, color: IvoryColors.textFaint),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => setState(() {
+                    _attachment = null;
+                    _attachmentUrl = null;
+                  }),
+                  icon: const Icon(Icons.close, color: IvoryColors.plum),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              _attachButton('Photo', Icons.image_outlined, 'image'),
+              _attachButton('Voice note', Icons.mic_none, 'audio'),
+              _attachButton('Video', Icons.videocam_outlined, 'video'),
+              _attachButton('Any file', Icons.attach_file, 'file'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _linkCtrl,
+            keyboardType: TextInputType.url,
+            enabled: _attachment == null,
+            decoration: InputDecoration(
+              labelText: _attachment == null
+                  ? 'or paste a link'
+                  : 'remove the file to use a link',
+              isDense: true,
+              prefixIcon: const Icon(Icons.link, size: 18),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _attachButton(String label, IconData icon, String what) {
+    return OutlinedButton.icon(
+      onPressed: _sending ? null : () => _attach(what),
+      icon: Icon(icon, size: 17),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: IvoryColors.burgundy,
+        side: BorderSide(color: IvoryColors.hairlineStrong),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
     );
   }
@@ -408,184 +607,4 @@ class _WishTrackerTabState extends State<_WishTrackerTab> {
 
     await showModalBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: IvoryColors.surface,
-      builder: (BuildContext sheetContext) => StatefulBuilder(
-        builder: (BuildContext c, StateSetter setSheet) => Padding(
-          padding: EdgeInsets.only(
-            left: 18,
-            right: 18,
-            top: 18,
-            bottom: MediaQuery.of(c).viewInsets.bottom + 18,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(w.title,
-                  style: Theme.of(c).textTheme.headlineMedium),
-              const SizedBox(height: 6),
-              Text(
-                '${w.categoryName} · ₹${w.budgetInr} · '
-                '${w.requesterName ?? "someone"}',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: IvoryColors.textSoft,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(w.details,
-                  style: const TextStyle(
-                      color: IvoryColors.burgundy, fontSize: 14, height: 1.5)),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: Wish.allStatuses
-                    .map((String s) => ChoiceChip(
-                          label: Text(s.replaceAll('_', ' ')),
-                          selected: status == s,
-                          showCheckmark: false,
-                          labelStyle: const TextStyle(
-                              color: IvoryColors.burgundy, fontSize: 12.5),
-                          onSelected: (_) => setSheet(() => status = s),
-                        ))
-                    .toList(),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: reply,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Reply to them',
-                  alignLabelWithHint: true,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: link,
-                decoration: const InputDecoration(
-                  labelText: 'Delivery link (optional)',
-                  hintText: 'https://t.me/... or any link',
-                ),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    await WishService.instance.updateStatus(
-                      wishId: w.id,
-                      status: status,
-                      adminReply: reply.text.trim(),
-                      deliveryUrl:
-                          link.text.trim().isEmpty ? null : link.text.trim(),
-                    );
-                    if (!c.mounted) return;
-                    Navigator.of(sheetContext).pop();
-                  },
-                  child: const Text('SAVE & NOTIFY THEM'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    await _load();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-          child: CircularProgressIndicator(color: IvoryColors.burgundy));
-    }
-    if (_wishes.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(30),
-          child: Text(
-            'No wishes yet. When someone makes one, it appears here.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: IvoryColors.textSoft,
-            ),
-          ),
-        ),
-      );
-    }
-    return RefreshIndicator(
-      color: IvoryColors.burgundy,
-      backgroundColor: IvoryColors.surface,
-      onRefresh: _load,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 36),
-        itemCount: _wishes.length,
-        itemBuilder: (BuildContext c, int i) {
-          final Wish w = _wishes[i];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(18),
-                onTap: () => _edit(w),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: IvoryTheme.card(radius: 18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: Text(
-                              w.title,
-                              style: const TextStyle(
-                                color: IvoryColors.burgundy,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 9, vertical: 4),
-                            decoration: BoxDecoration(
-                              gradient: IvoryColors.goldGradient,
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Text(
-                              w.statusLabel.toUpperCase(),
-                              style: const TextStyle(
-                                color: IvoryColors.burgundy,
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${w.categoryName} · ₹${w.budgetInr} · '
-                        '${w.requesterName ?? "someone"}',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: IvoryColors.textSoft,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
+      isScr
