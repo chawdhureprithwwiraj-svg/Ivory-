@@ -28,7 +28,7 @@ jobs:
           echo "--- lib/ ---"
           ls -laR lib || echo "NO lib FOLDER AT ALL"
           missing=0
-          for f in lib/main.dart lib/theme/ivory_theme.dart lib/core/supabase_config.dart lib/models/ivory_profile.dart lib/models/media_ref.dart lib/models/ivory_post.dart lib/models/wish.dart lib/models/ivory_notification.dart lib/services/auth_service.dart lib/services/content_service.dart lib/services/wish_service.dart lib/services/notification_service.dart lib/widgets/post_card.dart lib/widgets/post_actions.dart lib/screens/login_screen.dart lib/screens/main_shell.dart lib/screens/home_screen.dart lib/screens/explore_screen.dart lib/screens/wish_screen.dart lib/screens/premium_screen.dart lib/screens/inbox_screen.dart lib/screens/profile_screen.dart lib/screens/admin_screen.dart pubspec.yaml; do
+          for f in lib/main.dart lib/theme/ivory_theme.dart lib/core/supabase_config.dart lib/models/ivory_profile.dart lib/models/media_ref.dart lib/models/ivory_post.dart lib/models/wish.dart lib/models/ivory_notification.dart lib/services/auth_service.dart lib/services/content_service.dart lib/services/wish_service.dart lib/services/notification_service.dart lib/widgets/post_card.dart lib/widgets/post_actions.dart lib/widgets/ivory_logo.dart lib/models/payment.dart lib/services/payment_service.dart lib/screens/checkout_screen.dart lib/screens/login_screen.dart lib/screens/main_shell.dart lib/screens/home_screen.dart lib/screens/explore_screen.dart lib/screens/wish_screen.dart lib/screens/premium_screen.dart lib/screens/inbox_screen.dart lib/screens/profile_screen.dart lib/screens/admin_screen.dart pubspec.yaml; do
             if [ ! -f "$f" ]; then
               echo "::error::MISSING FILE: $f - create it on GitHub before building."
               missing=1
@@ -138,6 +138,42 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate the launcher icon
+        run: |
+          # pubspec declares both asset folders, so they must exist even if an
+          # upload has not happened yet - otherwise the build stops.
+          mkdir -p assets/icon assets/logo
+          if [ -z "$(ls -A assets/icon)" ]; then touch assets/icon/.gitkeep; fi
+          if [ -z "$(ls -A assets/logo)" ]; then touch assets/logo/.gitkeep; fi
+          ls -la assets/icon assets/logo
+          if [ ! -f assets/icon/ivory_icon.png ]; then
+            echo '::warning::assets/icon/ivory_icon.png missing - keeping the default Flutter icon.'
+          else
+            if [ ! -f assets/icon/ivory_icon_foreground.png ] || [ ! -f assets/icon/ivory_icon_bg.png ]; then
+              echo '::warning::Adaptive icon parts missing - falling back to the plain icon.'
+              python3 - <<'PYEOF'
+          lines = open('pubspec.yaml', encoding='utf-8').read().splitlines(True)
+          keep = [l for l in lines if 'adaptive_icon_' not in l]
+          open('pubspec.yaml', 'w', encoding='utf-8').writelines(keep)
+          print('Removed adaptive_icon_* from pubspec.yaml for this build.')
+          PYEOF
+            fi
+            dart run flutter_launcher_icons
+            echo 'Launcher icon generated.'
+          fi
+
+      - name: Set the app name shown under the icon
+        run: |
+          python3 - <<'PYEOF'
+          path = 'android/app/src/main/AndroidManifest.xml'
+          xml = open(path, encoding='utf-8').read()
+          import re
+          xml = re.sub(r'android:label="[^"]*"', 'android:label="Ivory"', xml, count=1)
+          open(path, 'w', encoding='utf-8').write(xml)
+          print('App label set to Ivory.')
+          PYEOF
+
 
       # The build runs inside a wrapper that captures EVERYTHING to build.log,
       # so the real error can be shown on the run Summary page afterwards.
