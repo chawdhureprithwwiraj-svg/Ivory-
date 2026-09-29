@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../models/ivory_post.dart';
-import '../models/wish.dart';
 import '../services/content_service.dart';
-import '../services/wish_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/ivory_logo.dart';
 import '../widgets/post_actions.dart';
 import '../widgets/post_card.dart';
 
-/// The front page: a banner strip, the Ivory hero, the featured drop,
-/// the Wish highlight, and the most recent stories.
+/// The front page: a banner strip, the Ivory hero, the featured drop
+/// and the most recent stories.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onOpenTab});
 
@@ -22,7 +20,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<IvoryPost> _posts = <IvoryPost>[];
-  int _wishFrom = 999;
   bool _loading = true;
   String? _error;
 
@@ -40,22 +37,9 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final List<IvoryPost> posts =
           await ContentService.instance.fetchFeed(limit: 12);
-      int from = 999;
-      try {
-        final List<WishCategory> cats =
-            await WishService.instance.fetchCategories();
-        if (cats.isNotEmpty) {
-          from = cats
-              .map((WishCategory c) => c.basePriceInr)
-              .reduce((int a, int b) => a < b ? a : b);
-        }
-      } catch (_) {
-        // The Wish price is decoration here; never block the home page.
-      }
       if (!mounted) return;
       setState(() {
         _posts = posts;
-        _wishFrom = from;
         _loading = false;
       });
     } catch (e) {
@@ -125,8 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 14),
                     ],
-                    _wishCard(),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 16),
                     IvorySectionHeader(
                       title: 'Recent stories & media',
                       subtitle: 'Written stories, voice notes and vignettes',
@@ -195,126 +178,71 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 18),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 14,
-          runSpacing: 6,
-          children: <Widget>[
-            _trust(Icons.verified_user_outlined, 'Consensual & lawful'),
-            _trust(Icons.shield_outlined, 'No phone number ever'),
-            _trust(Icons.currency_rupee, 'Free tier, always'),
-          ],
-        ),
+        const SizedBox(height: 20),
+        _freeForever(),
+        const SizedBox(height: 12),
+        _trust(Icons.verified_user_outlined, 'Consensual & lawful'),
       ],
     );
   }
 
-  Widget _trust(IconData icon, String label) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 14, color: IvoryColors.success),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11.8, color: IvoryColors.textSoft),
+  /// The one promise worth saying out loud, dressed like the rest of the
+  /// Golden Edition: gold rule, serif italic, burgundy ink.
+  Widget _freeForever() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: <Color>[Color(0xFFFFFCF2), Color(0xFFFDF1DC)],
           ),
-        ],
-      );
-
-  Widget _wishCard() {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: () => _go('wish'),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-          decoration: BoxDecoration(
-            gradient: IvoryColors.deepGradient,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: IvoryColors.gold, width: 1.4),
-            boxShadow: IvoryTheme.softShadow(blur: 22, y: 9),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: IvoryColors.gold.withValues(alpha: 0.85),
+            width: 1.3,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: const BoxDecoration(
-                      gradient: IvoryColors.goldGradient,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.auto_awesome,
-                        color: IvoryColors.burgundy, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'THE WISH',
-                      style: TextStyle(
-                        color: IvoryColors.gold,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 3.5,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: IvoryColors.goldGradient,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '₹$_wishFrom+',
-                      style: const TextStyle(
-                        color: IvoryColors.burgundy,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
+          boxShadow: IvoryTheme.softShadow(blur: 14, y: 5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ShaderMask(
+              shaderCallback: (Rect b) =>
+                  IvoryColors.goldGradient.createShader(b),
+              child: const Icon(Icons.auto_awesome,
+                  size: 17, color: Colors.white),
+            ),
+            const SizedBox(width: 9),
+            const Text(
+              'Free Tier Forever.',
+              style: TextStyle(
+                fontFamily: IvoryTheme.displayFont,
+                fontSize: 17,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+                color: IvoryColors.burgundy,
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Just close your eyes\nand make a wish',
-                style: TextStyle(
-                  fontFamily: IvoryTheme.displayFont,
-                  color: IvoryColors.cream,
-                  fontSize: 25,
-                  height: 1.22,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 11),
-              Text(
-                'Request anything from me — entirely virtual. A story with '
-                'your name in it, a voice note meant only for you, a vignette '
-                'shot to your brief.',
-                style: TextStyle(
-                  color: IvoryColors.cream.withValues(alpha: 0.82),
-                  fontSize: 14,
-                  height: 1.55,
-                ),
-              ),
-              const SizedBox(height: 18),
-              IvoryGradientButton(
-                label: 'MAKE YOUR WISH',
-                icon: Icons.nightlight_round,
-                onPressed: () => _go('wish'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Widget _trust(IconData icon, String label) => Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 14, color: IvoryColors.success),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(fontSize: 11.8, color: IvoryColors.textSoft),
+            ),
+          ],
+        ),
+      );
 
   Widget _errorBox() => Container(
         padding: const EdgeInsets.all(20),
