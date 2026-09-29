@@ -10,6 +10,7 @@ class IvoryNotification {
     required this.isRead,
     this.postId,
     this.actionTab,
+    this.actionUrl,
     this.createdAt,
   });
 
@@ -20,6 +21,9 @@ class IvoryNotification {
   final bool isRead;
   final int? postId;
   final String? actionTab;
+
+  /// An optional picture, recording, video or link sent with the message.
+  final String? actionUrl;
   final DateTime? createdAt;
 
   factory IvoryNotification.fromMap(Map<String, dynamic> m) =>
@@ -31,6 +35,7 @@ class IvoryNotification {
         isRead: (m['is_read'] as bool?) ?? false,
         postId: (m['post_id'] as num?)?.toInt(),
         actionTab: m['action_tab'] as String?,
+        actionUrl: m['action_url'] as String?,
         createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
       );
 
