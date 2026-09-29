@@ -7,6 +7,8 @@ import '../services/payment_service.dart';
 import '../services/notification_service.dart';
 import '../services/push_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/member_pulse.dart';
+import '../widgets/premium_badge.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.onOpenTab});
@@ -136,6 +138,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                         ),
+                        if (!(p?.isAdmin ?? false) && _membership != null)
+                          PremiumBadge.chip(
+                            tierName: _membership!.tierName,
+                            level: _membership!.tierLevel,
+                          ),
                         if (p?.isAdmin ?? false)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -157,11 +164,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     Divider(color: IvoryColors.hairline, height: 30),
-                    _line(Icons.check_circle, IvoryColors.success,
-                        'Connected to Supabase. Profile loaded.'),
+                    // Members see who they are. The technical diagnostics
+                    // below are for the administrator only.
+                    _line(Icons.alternate_email, IvoryColors.plum,
+                        AuthService.instance.currentUser?.email ??
+                            'Signed in privately'),
                     const SizedBox(height: 10),
-                    _line(Icons.shield_outlined, IvoryColors.plum,
-                        'No phone number stored. You are a UUID here.'),
+                    _line(
+                      Icons.workspace_premium_outlined,
+                      IvoryColors.gold,
+                      _membership == null
+                          ? 'Free membership \u00b7 no plan active yet'
+                          : '${_membership!.tierName} \u00b7 '
+                              '${_membership!.daysLeft} days remaining',
+                    ),
+                    if (p?.isAdmin ?? false) ...<Widget>[
+                      const SizedBox(height: 10),
+                      _line(Icons.check_circle, IvoryColors.success,
+                          'Connected to Supabase. Profile loaded.'),
+                      const SizedBox(height: 10),
+                      _line(Icons.shield_outlined, IvoryColors.plum,
+                          'No phone number stored. Identity is a UUID.'),
+                    ],
                     if (_error != null) ...<Widget>[
                       const SizedBox(height: 10),
                       _line(Icons.error_outline, IvoryColors.danger, _error!),
@@ -181,10 +205,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const IvoryEyebrow('Your membership',
                         icon: Icons.diamond_outlined),
                     const SizedBox(height: 12),
-                    Text(
-                      _membership?.tierName ?? 'Free Guest',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
+                    if (_membership != null) ...<Widget>[
+                      PremiumBadge.ribbon(
+                        tierName: _membership!.tierName,
+                        level: _membership!.tierLevel,
+                        subtitle: 'Premium member \u00b7 '
+                            '${_membership!.daysLeft} days remaining',
+                      ),
+                      const SizedBox(height: 14),
+                    ] else ...<Widget>[
+                      Row(
+                        children: <Widget>[
+                          Text(
+                            'Free Guest',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(width: 10),
+                          FreeMemberChip(
+                            onTap: () => widget.onOpenTab?.call('premium'),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 6),
                     Text(
                       _membership == null
@@ -219,6 +261,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   () => widget.onOpenTab?.call('wish')),
               _row(Icons.mail_outline, 'Sanctuary Inbox',
                   () => widget.onOpenTab?.call('inbox')),
+
+              const SizedBox(height: 18),
+              const Center(child: MemberPulseStrip(compact: true)),
 
               const SizedBox(height: 22),
               OutlinedButton.icon(
