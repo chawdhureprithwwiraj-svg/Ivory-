@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/ivory_logo.dart';
 
 /// Sign in / create account, in the Ivory Golden Edition style.
 ///
@@ -165,37 +166,8 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  // ---- monogram ----
-                  Container(
-                    width: 84,
-                    height: 84,
-                    decoration: BoxDecoration(
-                      gradient: IvoryColors.goldGradient,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: IvoryTheme.softShadow(blur: 20, y: 8),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 71,
-                        height: 71,
-                        decoration: BoxDecoration(
-                          gradient: IvoryColors.deepGradient,
-                          borderRadius: BorderRadius.circular(19),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'I',
-                            style: TextStyle(
-                              fontFamily: IvoryTheme.displayFont,
-                              color: IvoryColors.gold,
-                              fontSize: 34,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  // ---- the mark ----
+                  const IvoryLogo(size: 92),
                   const SizedBox(height: 18),
                   Text('IVORY',
                       style: Theme.of(context).textTheme.displayLarge),
