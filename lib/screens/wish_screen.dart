@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/wish.dart';
 import '../services/wish_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/call_wish_sheet.dart';
+import 'wish_form.dart';
 
 /// Material icons the database is allowed to name, so wish categories
 /// can pick their own look without a rebuild.
@@ -265,11 +267,23 @@ class _WishScreenState extends State<WishScreen> {
                         const SizedBox(height: 4),
                         Text(
                           c.tagline!,
-                          style: TextStyle(
-                            fontSize: 13,
-                            height: 1.4,
-                            color: IvoryColors.textSoft,
-                          ),
+                          style: c.highlight
+                              // The two call wishes are the headline
+                              // offer: gold serif italic, the same
+                              // emphasis the Home hero uses.
+                              ? const TextStyle(
+                                  fontFamily: 'serif',
+                                  fontSize: 14,
+                                  height: 1.45,
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.w600,
+                                  color: IvoryColors.plum,
+                                )
+                              : TextStyle(
+                                  fontSize: 13,
+                                  height: 1.4,
+                                  color: IvoryColors.textSoft,
+                                ),
                         ),
                       ],
                       const SizedBox(height: 8),
@@ -285,7 +299,9 @@ class _WishScreenState extends State<WishScreen> {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            '~${c.deliveryDays} days',
+                            c.isCall
+                                ? c.callLabel
+                                : '~${c.deliveryDays} days',
                             style: TextStyle(
                               fontSize: 12,
                               color: IvoryColors.textFaint,
@@ -371,6 +387,18 @@ class _WishScreenState extends State<WishScreen> {
   }
 
   void _openWishForm(WishCategory c) {
+    // A call is not a written wish: it needs a time slot, a live
+    // balance and a booking page, so it gets its own sheet.
+    if (c.isCall) {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => CallWishSheet(category: c),
+      );
+      return;
+    }
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -379,7 +407,7 @@ class _WishScreenState extends State<WishScreen> {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: _WishForm(
+        child: WishForm(
           category: c,
           onDone: () {
             Navigator.of(context).pop();
@@ -391,174 +419,4 @@ class _WishScreenState extends State<WishScreen> {
   }
 }
 
-class _WishForm extends StatefulWidget {
-  const _WishForm({required this.category, required this.onDone});
-
-  final WishCategory category;
-  final VoidCallback onDone;
-
-  @override
-  State<_WishForm> createState() => _WishFormState();
-}
-
-class _WishFormState extends State<_WishForm> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _title = TextEditingController();
-  final TextEditingController _details = TextEditingController();
-  late final TextEditingController _budget =
-      TextEditingController(text: widget.category.basePriceInr.toString());
-  bool _sending = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _title.dispose();
-    _details.dispose();
-    _budget.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _sending = true;
-      _error = null;
-    });
-    try {
-      await WishService.instance.makeWish(
-        category: widget.category,
-        title: _title.text,
-        details: _details.text,
-        budgetInr: int.parse(_budget.text.trim()),
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your wish has been sent. Watch your inbox.'),
-        ),
-      );
-      widget.onDone();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _sending = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(22, 14, 22, 26),
-      decoration: const BoxDecoration(
-        gradient: IvoryColors.pageGradient,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-      ),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Center(
-                child: Container(
-                  width: 46,
-                  height: 4.5,
-                  decoration: BoxDecoration(
-                    color: IvoryColors.gold.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                widget.category.name,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'From ₹${widget.category.basePriceInr} · usually ready in '
-                '${widget.category.deliveryDays} days',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: IvoryColors.textSoft,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _title,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Give your wish a name',
-                  hintText: 'A letter for a rainy Sunday',
-                ),
-                validator: (String? v) => (v == null || v.trim().length < 3)
-                    ? 'Please name your wish'
-                    : null,
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _details,
-                maxLines: 5,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Describe it in your own words',
-                  hintText:
-                      'The mood, the place, the names, how it should end...',
-                  alignLabelWithHint: true,
-                ),
-                validator: (String? v) => (v == null || v.trim().length < 10)
-                    ? 'Tell me a little more'
-                    : null,
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _budget,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Your offer in ₹',
-                  prefixText: '₹ ',
-                ),
-                validator: (String? v) {
-                  final int? n = int.tryParse((v ?? '').trim());
-                  if (n == null) return 'Enter an amount';
-                  if (n < widget.category.basePriceInr) {
-                    return 'This wish starts at ₹${widget.category.basePriceInr}';
-                  }
-                  return null;
-                },
-              ),
-              if (_error != null) ...<Widget>[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style:
-                      const TextStyle(color: IvoryColors.danger, fontSize: 13),
-                ),
-              ],
-              const SizedBox(height: 20),
-              IvoryGradientButton(
-                label: _sending ? 'SENDING...' : 'MAKE THIS WISH',
-                icon: Icons.auto_awesome,
-                busy: _sending,
-                onPressed: _sending ? null : _submit,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Nothing is charged yet. I will reply in your inbox with a '
-                'yes and a payment link, or with questions.',
-                style: TextStyle(
-                  fontSize: 12,
-                  height: 1.45,
-                  color: IvoryColors.textFaint,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+// END OF FILE - lib/screens/wish_screen.dart
