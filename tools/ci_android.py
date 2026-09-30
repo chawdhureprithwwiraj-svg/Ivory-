@@ -63,6 +63,8 @@ GATED = [
         'lib/services/live_service.dart',
         'lib/screens/live_screen.dart',
         'lib/widgets/live_banner.dart',
+        'lib/widgets/call_wish_sheet.dart',
+        'lib/screens/wish_form.dart',
     ]),
     ('video_player', [
         'lib/widgets/ivory_media_view.dart',
@@ -84,6 +86,9 @@ GATED = [
 # These end with a marker line, so a paste cut short is caught in seconds.
 MARKED = [
     'lib/services/live_service.dart',
+    'lib/widgets/call_wish_sheet.dart',
+    'lib/screens/wish_form.dart',
+    'lib/screens/wish_screen.dart',
     'lib/screens/live_screen.dart',
     'lib/widgets/live_banner.dart',
     'lib/screens/home_screen.dart',
