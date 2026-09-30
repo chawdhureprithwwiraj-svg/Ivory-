@@ -5,6 +5,7 @@ import '../models/ivory_post.dart';
 import '../models/media_ref.dart';
 import '../services/content_service.dart';
 import '../theme/ivory_theme.dart';
+import 'ivory_media_view.dart';
 
 /// Everything that happens when a story card is tapped. Shared by the
 /// Home and Explore tabs so the behaviour is identical in both.
@@ -143,6 +144,9 @@ class _MediaBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A file Ivory can stream itself: Supabase Storage, Cloudflare R2 or
+    // any direct https link. YouTube and Telegram still open outside.
+    final String? playable = post.media.directUrl();
     final String? external = post.media.externalUrl;
     final bool isTelegram = post.media.source == MediaSource.telegramChannel;
 
@@ -157,71 +161,108 @@ class _MediaBody extends StatelessWidget {
           const SizedBox(height: 10),
           Text(post.summary!, style: Theme.of(context).textTheme.bodyLarge),
         ],
-        const SizedBox(height: 22),
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: IvoryTheme.card(highlighted: true),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 20),
+
+        // ---- in-app viewing / playback ----
+        if (playable != null && post.type == PostType.image)
+          IvoryImageView(url: playable)
+        else if (playable != null)
+          IvoryPlayer(
+            url: playable,
+            audioOnly: post.type == PostType.audio,
+            posterUrl: post.thumbnailFor(),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: IvoryTheme.card(highlighted: true),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Icon(
+                      isTelegram
+                          ? Icons.send_rounded
+                          : Icons.play_circle_fill,
+                      color: IvoryColors.amber,
+                      size: 21,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        post.media.source.label,
+                        style: const TextStyle(
+                          color: IvoryColors.plum,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                    ),
+                    if (post.durationLabel != null)
+                      Text(
+                        post.durationLabel!,
+                        style: TextStyle(
+                          color: IvoryColors.textFaint,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (external != null)
+                  IvoryGradientButton(
+                    label: isTelegram ? 'OPEN IN TELEGRAM' : 'WATCH NOW',
+                    icon: isTelegram
+                        ? Icons.send_rounded
+                        : Icons.play_arrow,
+                    onPressed: () => PostActions.launch(context, external),
+                  )
+                else
+                  Text(
+                    'No playable link is attached to this post yet.',
+                    style: TextStyle(
+                      color: IvoryColors.textSoft,
+                      fontSize: 14,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+        // ---- footer line ----
+        if (playable != null) ...<Widget>[
+          const SizedBox(height: 14),
+          Row(
             children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Icon(
-                    isTelegram ? Icons.send_rounded : Icons.play_circle_fill,
-                    color: IvoryColors.amber,
-                    size: 21,
+              Icon(Icons.verified_rounded,
+                  size: 15, color: IvoryColors.gold),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  post.durationLabel != null
+                      ? 'Streaming inside Ivory - ${post.durationLabel}'
+                      : 'Streaming inside Ivory',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: IvoryColors.textFaint,
                   ),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Text(
-                      post.media.source.label,
-                      style: const TextStyle(
-                        color: IvoryColors.plum,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-                  ),
-                  if (post.durationLabel != null)
-                    Text(
-                      post.durationLabel!,
-                      style: TextStyle(
-                        color: IvoryColors.textFaint,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                ],
+                ),
               ),
-              const SizedBox(height: 16),
               if (external != null)
-                IvoryGradientButton(
-                  label: isTelegram ? 'OPEN IN TELEGRAM' : 'PLAY NOW',
-                  icon: isTelegram ? Icons.send_rounded : Icons.play_arrow,
+                TextButton(
                   onPressed: () => PostActions.launch(context, external),
-                )
-              else
-                Text(
-                  'No playable link is attached to this post yet.',
-                  style: TextStyle(color: IvoryColors.textSoft, fontSize: 14),
+                  child: const Text('Open externally'),
                 ),
             ],
           ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'An in-app player arrives in a later sprint. For now Ivory hands '
-          'the story to the app that streams it best.',
-          style: TextStyle(
-            fontSize: 12.5,
-            height: 1.5,
-            color: IvoryColors.textFaint,
-          ),
-        ),
+        ],
       ],
     );
   }
 }
+
 
 /// Tiny helper so the sheets can reuse the card's icon mapping.
 class PostCardIcons {
@@ -302,13 +343,14 @@ class _LockedBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const IvoryEyebrow('Subscriptions arrive next sprint',
+              const IvoryEyebrow('Unlock this story',
                   icon: Icons.diamond_outlined),
               const SizedBox(height: 10),
               Text(
-                'Tier pricing, UPI payment and instant unlocking are being '
-                'built now. This card is already fully secured: the media '
-                'link for a locked story is never sent to your device.',
+                'Open the Premium tab to choose your plan. Payment is '
+                'instant over UPI and the story unlocks the moment it is '
+                'confirmed. This card is fully secured: the media link '
+                'for a locked story never reaches your device.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
