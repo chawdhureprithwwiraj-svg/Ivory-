@@ -1,9 +1,8 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../models/ivory_post.dart';
 import '../theme/ivory_theme.dart';
+import 'post_artwork.dart';
 
 /// A story card in the Ivory Golden Edition style: a near-white card
 /// with a hairline gold border, a tall image, a category pill and an
@@ -51,7 +50,7 @@ class PostCard extends StatelessWidget {
       children: <Widget>[
         Stack(
           children: <Widget>[
-            _Artwork(post: post, height: 230),
+            PostArtwork(post: post, maxHeight: 470),
             Positioned(
               left: 14,
               top: 14,
@@ -151,7 +150,7 @@ class PostCard extends StatelessWidget {
       children: <Widget>[
         Stack(
           children: <Widget>[
-            _Artwork(post: post, height: 172),
+            PostArtwork(post: post, maxHeight: 360),
             Positioned(left: 12, top: 12, child: _TypePill(type: post.type)),
             Positioned(right: 12, top: 12, child: _StatePill(post: post)),
             if (post.durationLabel != null)
@@ -289,139 +288,6 @@ class PostCard extends StatelessWidget {
   }
 }
 
-/// The image area, including the blurred treatment for locked posts and
-/// a warm typographic panel when a post has no artwork at all.
-class _Artwork extends StatelessWidget {
-  const _Artwork({required this.post, required this.height});
-
-  final IvoryPost post;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    final String? url = post.thumbnailFor();
-
-    final Widget base = url == null
-        ? Container(
-            height: height,
-            width: double.infinity,
-            decoration: const BoxDecoration(gradient: IvoryColors.warmGradient),
-            child: Center(
-              child: Icon(
-                PostCard.actionIcon(post.type),
-                size: 44,
-                color: IvoryColors.burgundy.withValues(alpha: 0.55),
-              ),
-            ),
-          )
-        : Image.network(
-            url,
-            height: height,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
-              height: height,
-              decoration:
-                  const BoxDecoration(gradient: IvoryColors.warmGradient),
-              child: Center(
-                child: Icon(
-                  PostCard.actionIcon(post.type),
-                  size: 40,
-                  color: IvoryColors.burgundy.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-            loadingBuilder: (BuildContext c, Widget child, ImageChunkEvent? p) {
-              if (p == null) return child;
-              return Container(
-                height: height,
-                color: IvoryColors.surfaceWarm,
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    color: IvoryColors.amber,
-                    strokeWidth: 2,
-                  ),
-                ),
-              );
-            },
-          );
-
-    // A soft burgundy wash at the bottom so overlaid text stays legible.
-    final Widget scrim = Positioned.fill(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[
-              IvoryColors.burgundy.withValues(alpha: 0.0),
-              IvoryColors.burgundy.withValues(alpha: 0.55),
-            ],
-            stops: const <double>[0.45, 1.0],
-          ),
-        ),
-      ),
-    );
-
-    if (!post.isLocked) {
-      return Stack(children: <Widget>[base, scrim]);
-    }
-
-    // Locked: blur is presentation only. The media link for a locked
-    // post is never sent to this device in the first place.
-    return Stack(
-      children: <Widget>[
-        ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: base,
-        ),
-        Positioned.fill(
-          child: Container(
-            color: IvoryColors.cream.withValues(alpha: 0.35),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      gradient: IvoryColors.goldGradient,
-                      shape: BoxShape.circle,
-                      boxShadow: IvoryTheme.softShadow(blur: 14, y: 5),
-                    ),
-                    child: const Icon(Icons.lock,
-                        color: IvoryColors.burgundy, size: 25),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: IvoryColors.surface.withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: IvoryColors.hairlineStrong),
-                    ),
-                    child: Text(
-                      post.tierName != null
-                          ? '${post.tierName} members'
-                          : 'Members only',
-                      style: const TextStyle(
-                        color: IvoryColors.burgundy,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _TypePill extends StatelessWidget {
   const _TypePill({required this.type});
@@ -507,3 +373,5 @@ class _StatePill extends StatelessWidget {
     );
   }
 }
+
+// END OF FILE - lib/widgets/post_card.dart
