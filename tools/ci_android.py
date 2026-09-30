@@ -58,6 +58,10 @@ REQUIRED = [
 # Installed only from the sprint that introduced the matching dependency.
 GATED = [
     ('firebase_core', ['lib/services/push_service.dart']),
+    ('agora_rtc_engine', [
+        'lib/core/agora_config.dart',
+        'lib/services/live_service.dart',
+    ]),
     ('video_player', [
         'lib/widgets/ivory_media_view.dart',
         'lib/widgets/post_artwork.dart',
@@ -77,6 +81,7 @@ GATED = [
 
 # These end with a marker line, so a paste cut short is caught in seconds.
 MARKED = [
+    'lib/services/live_service.dart',
     'lib/widgets/ivory_media_view.dart',
     'lib/widgets/post_artwork.dart',
     'lib/widgets/post_card.dart',
@@ -139,6 +144,14 @@ PERMISSIONS = [
     'android.permission.INTERNET',
     'android.permission.ACCESS_NETWORK_STATE',
     'android.permission.POST_NOTIFICATIONS',
+    # Agora live video and calls.
+    'android.permission.CAMERA',
+    'android.permission.RECORD_AUDIO',
+    'android.permission.MODIFY_AUDIO_SETTINGS',
+    'android.permission.ACCESS_WIFI_STATE',
+    'android.permission.READ_PHONE_STATE',
+    'android.permission.BLUETOOTH',
+    'android.permission.BLUETOOTH_CONNECT',
 ]
 
 QUERIES = (
