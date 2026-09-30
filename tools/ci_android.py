@@ -85,6 +85,7 @@ GATED = [
 
 # These end with a marker line, so a paste cut short is caught in seconds.
 MARKED = [
+    'lib/widgets/member_pulse.dart',
     'lib/services/live_service.dart',
     'lib/widgets/call_wish_sheet.dart',
     'lib/screens/wish_form.dart',
