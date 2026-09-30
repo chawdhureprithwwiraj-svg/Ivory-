@@ -58,6 +58,10 @@ REQUIRED = [
 # Installed only from the sprint that introduced the matching dependency.
 GATED = [
     ('firebase_core', ['lib/services/push_service.dart']),
+    ('video_player', [
+        'lib/widgets/ivory_media_view.dart',
+        'lib/widgets/post_artwork.dart',
+    ]),
     ('file_selector', [
         'lib/services/admin_service.dart',
         'lib/widgets/admin_bits.dart',
@@ -73,6 +77,9 @@ GATED = [
 
 # These end with a marker line, so a paste cut short is caught in seconds.
 MARKED = [
+    'lib/widgets/ivory_media_view.dart',
+    'lib/widgets/post_artwork.dart',
+    'lib/widgets/post_card.dart',
     'lib/widgets/admin_bits.dart',
     'lib/screens/admin_create_tab.dart',
     'lib/screens/admin_library_list.dart',
