@@ -1,7 +1,7 @@
 name: ivory
 description: "Ivory - Every story leaves a mark. A premium storytelling platform."
 publish_to: 'none'
-version: 0.9.0+18
+version: 0.9.1+19
 
 environment:
   sdk: '>=3.8.0 <4.0.0'
@@ -17,7 +17,10 @@ dependencies:
   file_selector: ^1.1.0
   video_player: ^2.14.0
   agora_rtc_engine: ^6.6.4
-  permission_handler: ^13.0.2
+  # 13.x compiles against Android 17 preview APIs that the
+  # current stable SDK does not ship. 12.x is the newest line
+  # that builds on Android 16.
+  permission_handler: ^12.0.1
   firebase_core: ^3.6.0
   firebase_messaging: ^15.1.3
 
