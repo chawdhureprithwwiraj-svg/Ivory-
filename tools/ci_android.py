@@ -178,14 +178,46 @@ QUERIES = (
 # Some plugins are still published against android-34, while newer ones
 # refuse to be consumed below 36. Every module is lifted in one place.
 KTS_BLOCK = """
-// ---- Ivory: raise every module to a modern compileSdk ----
+// ---- Ivory: give every module a modern compileSdk ----
 // Registered BEFORE Flutter's own subprojects block, because that one
 // calls evaluationDependsOn(":app") and afterEvaluate cannot be added
 // to a project that has already been evaluated.
+//
+// RAISE ONLY. A plugin that already compiles against something newer
+// than 36 is left completely alone - forcing it down to 36 would strip
+// away the very APIs its source code references, and it would fail to
+// compile with "symbol not found".
 subprojects {
     val raiseCompileSdk = fun(p: org.gradle.api.Project) {
         val ext = p.extensions.findByName("android") ?: return
         val methods = ext.javaClass.methods
+
+        var current = 0
+        try {
+            val getter = methods.firstOrNull {
+                it.name == "getCompileSdk" && it.parameterTypes.isEmpty()
+            }
+            val value = getter?.invoke(ext)
+            if (value is Int) {
+                current = value
+            } else {
+                val legacy = methods.firstOrNull {
+                    it.name == "getCompileSdkVersion" &&
+                        it.parameterTypes.isEmpty()
+                }
+                val text = legacy?.invoke(ext) as? String
+                current = text?.removePrefix("android-")?.toIntOrNull() ?: 0
+            }
+        } catch (e: Exception) {
+            current = 0
+        }
+
+        if (current >= 36) {
+            p.logger.lifecycle("Ivory: " + p.name + " keeps compileSdk " +
+                current)
+            return
+        }
+
         val setter = methods.firstOrNull {
             it.name == "setCompileSdk" && it.parameterTypes.size == 1
         } ?: methods.firstOrNull {
@@ -195,7 +227,8 @@ subprojects {
         }
         try {
             setter?.invoke(ext, 36)
-            p.logger.lifecycle("Ivory: compileSdk 36 for " + p.name)
+            p.logger.lifecycle("Ivory: " + p.name + " raised " + current +
+                " -> 36")
         } catch (e: Exception) {
             p.logger.lifecycle("Ivory: compileSdk untouched for " + p.name)
         }
@@ -210,16 +243,32 @@ subprojects {
 """
 
 GROOVY_BLOCK = """
-// ---- Ivory: raise every module to a modern compileSdk ----
+// ---- Ivory: give every module a modern compileSdk (raise only) ----
 subprojects {
     def raiseCompileSdk = { proj ->
-        if (proj.extensions.findByName('android') != null) {
-            try {
-                proj.extensions.getByName('android').compileSdkVersion 36
-                proj.logger.lifecycle("Ivory: compileSdk 36 for " + proj.name)
-            } catch (Exception e) {
-                proj.logger.lifecycle("Ivory: compileSdk untouched")
+        def ext = proj.extensions.findByName('android')
+        if (ext == null) {
+            return
+        }
+        int current = 0
+        try {
+            def v = ext.compileSdkVersion
+            if (v instanceof Integer) {
+                current = v
+            } else if (v instanceof String) {
+                def digits = v.replaceAll('[^0-9]', '')
+                current = digits ? digits.toInteger() : 0
             }
+        } catch (Exception e) {
+            current = 0
+        }
+        if (current >= 36) {
+            return
+        }
+        try {
+            ext.compileSdkVersion 36
+        } catch (Exception e) {
+            proj.logger.lifecycle("Ivory: compileSdk untouched")
         }
     }
     if (project.state.executed) {
