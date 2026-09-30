@@ -1,80 +1,141 @@
-import 'dart:async';
-import 'dart:math' as math;
+import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/ivory_theme.dart';
 
 /// ============================================================
-/// THE MEMBER PULSE
+/// IVORY - THE MEMBER PULSE
 ///
-/// "You are the 1,842 member who visited today."
+/// "You are the 2,317 member who visited today."
 ///
-/// The number is generated on the phone, entirely offline, from the
-/// calendar date plus the time of day, so:
+/// TWO RULES THAT MAKE IT FEEL REAL
 ///
-///   * every member sees the same number on the same day at the same
-///     minute (it is seeded by the date, not by a random call),
-///   * it only ever climbs as the day goes on - quiet in the morning,
-///     busy at night,
-///   * it resets to a fresh, different figure at midnight,
-///   * the day's closing figure lands anywhere between roughly 2,400
-///     and 4,000, while the first hours of the morning sit near 700.
+/// 1. IT RUNS ON INDIA TIME, and on Ivory's day, not the clock's.
+///    A day here begins at 5 in the morning IST, not at midnight -
+///    so 2 a.m. is still the busy tail of the evening before, not
+///    the dead start of a new morning. The number climbs all
+///    evening and peaks in the small hours, which is when Ivory is
+///    actually read.
 ///
-/// No server call, no cost, no stored state.
+/// 2. IT NEVER MOVES WHILE YOU ARE LOOKING AT IT.
+///    The number is fixed for one visit. Leave the app and come
+///    back - even a minute later, even without signing out - and
+///    it has risen. It can never go down within a day, because the
+///    last number shown is remembered and the next one is always
+///    higher.
 /// ============================================================
 class MemberPulse {
   MemberPulse._();
 
-  /// Deterministic 32-bit hash of an integer seed.
-  static int _hash(int seed) {
-    int x = (seed * 2654435761) & 0x7FFFFFFF;
-    x ^= (x >> 13);
-    x = (x * 1274126177) & 0x7FFFFFFF;
-    x ^= (x >> 16);
-    return x & 0x7FFFFFFF;
+  /// India Standard Time, whatever the phone is set to.
+  static const Duration _ist = Duration(hours: 5, minutes: 30);
+
+  /// Ivory's day starts at 05:00 IST.
+  static const Duration _dayStart = Duration(hours: 5);
+
+  static const String _kDay = 'ivory_pulse_day';
+  static const String _kValue = 'ivory_pulse_value';
+
+  /// The number for this visit. Computed once, then held.
+  static int? _current;
+
+  static int get value => _current ?? _estimate().round();
+
+  static String get formattedValue => _format(value);
+
+  /// Kept for older call sites.
+  static String formatted() => formattedValue;
+
+  // ---------------------------------------------------------------
+  // The maths
+  // ---------------------------------------------------------------
+  static DateTime get _nowIst => DateTime.now().toUtc().add(_ist);
+
+  /// Which Ivory day we are in, counted from 05:00 IST.
+  static int get _dayNumber {
+    final DateTime shifted = _nowIst.subtract(_dayStart);
+    return shifted.millisecondsSinceEpoch ~/ 86400000;
   }
 
-  /// How many members have "visited" so far today.
-  static int count([DateTime? at]) {
-    final DateTime now = at ?? DateTime.now();
-    final int dayNumber =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch ~/
-            Duration.millisecondsPerDay;
-
-    // Two independent daily seeds: where the day starts and where it ends.
-    final int h1 = _hash(dayNumber);
-    final int h2 = _hash(dayNumber + 9176);
-
-    final int dawn = 640 + (h1 % 260); //  640 -  899
-    final int dusk = 2450 + (h2 % 1550); // 2450 - 3999
-
-    // Share of the day already gone, 0.0 at midnight to 1.0 at 23:59.
-    final double t =
-        ((now.hour * 60 + now.minute) / 1440.0).clamp(0.0, 1.0).toDouble();
-
-    // A night-heavy curve: a slow linear trickle plus an accelerating
-    // evening rush, so 8 a.m. is calm and 11 p.m. is the day's peak.
-    final double curve = 0.34 * t + 0.66 * math.pow(t, 2.2).toDouble();
-
-    final int value = dawn + ((dusk - dawn) * curve).round();
-    return value < 700 ? 700 : value;
+  /// How far through the day we are, 0.0 at 5 a.m. to 1.0 at 5 a.m.
+  static double get _through {
+    final DateTime n = _nowIst.subtract(_dayStart);
+    final DateTime midnight = DateTime.utc(n.year, n.month, n.day);
+    final double ms =
+        n.millisecondsSinceEpoch - midnight.millisecondsSinceEpoch.toDouble();
+    return (ms / 86400000).clamp(0.0, 1.0);
   }
 
-  /// 1842 -> "1,842"
-  static String formatted([DateTime? at]) {
-    final String s = count(at).toString();
-    final StringBuffer out = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) out.write(',');
-      out.write(s[i]);
+  static int _hash(int n) {
+    int h = (n * 2654435761) & 0x7FFFFFFF;
+    h ^= h >> 13;
+    h = (h * 1274126177) & 0x7FFFFFFF;
+    h ^= h >> 16;
+    return h;
+  }
+
+  /// Where the count sits right now, before any memory is applied.
+  static double _estimate() {
+    final int day = _dayNumber;
+
+    // A different shape every day, but the same all day.
+    final int dawn = 640 + _hash(day) % 260;
+    final int dusk = 2450 + _hash(day + 9176) % 1550;
+
+    final double t = _through;
+
+    // Slow at first, then steepening: most members arrive late.
+    final double curve = 0.34 * t + 0.66 * pow(t, 2.2).toDouble();
+
+    final double v = dawn + (dusk - dawn) * curve;
+    return v < 700 ? 700 : v;
+  }
+
+  // ---------------------------------------------------------------
+  // One number per visit
+  // ---------------------------------------------------------------
+
+  /// Called when the app opens and every time it returns to the
+  /// foreground. Works out this visit's number and remembers it, so
+  /// the next visit is always higher than this one.
+  static Future<void> newVisit() async {
+    final int day = _dayNumber;
+    int next = _estimate().round();
+
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final int lastDay = prefs.getInt(_kDay) ?? -1;
+      final int lastValue = prefs.getInt(_kValue) ?? 0;
+
+      if (lastDay == day && next <= lastValue) {
+        // The clock has barely moved, but this is a new visit: nudge
+        // it up by a believable handful rather than repeating.
+        final int bump = 1 + _hash(lastValue + day) % 7;
+        next = lastValue + bump;
+      }
+
+      await prefs.setInt(_kDay, day);
+      await prefs.setInt(_kValue, next);
+    } catch (_) {
+      // Storage is a nicety here, never a requirement.
     }
-    return out.toString();
+
+    _current = next;
+  }
+
+  static String _format(int n) {
+    final String s = n.toString();
+    if (s.length <= 3) return s;
+    final String head = s.substring(0, s.length - 3);
+    final String tail = s.substring(s.length - 3);
+    return '$head,$tail';
   }
 }
 
-/// The little live strip shown on Home and Profile. It refreshes itself
-/// every minute so the figure visibly creeps upward while the app is open.
+/// The strip itself. It listens for the app coming back to the
+/// foreground and asks for a fresh number then - and only then.
 class MemberPulseStrip extends StatefulWidget {
   const MemberPulseStrip({super.key, this.compact = false});
 
@@ -85,26 +146,36 @@ class MemberPulseStrip extends StatefulWidget {
   State<MemberPulseStrip> createState() => _MemberPulseStripState();
 }
 
-class _MemberPulseStripState extends State<MemberPulseStrip> {
-  Timer? _timer;
-
+class _MemberPulseStripState extends State<MemberPulseStrip>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 45), (_) {
-      if (mounted) setState(() {});
-    });
+    WidgetsBinding.instance.addObserver(this);
+    _refresh();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Coming back from the home screen, another app, or a locked
+    // phone counts as a new visit. Nothing else does.
+    if (state == AppLifecycleState.resumed) _refresh();
+  }
+
+  Future<void> _refresh() async {
+    await MemberPulse.newVisit();
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final String n = MemberPulse.formatted();
+    final String n = MemberPulse.formattedValue;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -158,7 +229,7 @@ class _MemberPulseStripState extends State<MemberPulseStrip> {
 
 /// A slowly breathing gold dot - the "live" tell.
 class _Pulse extends StatefulWidget {
-  const _Pulse({this.size = 8});
+  const _Pulse({required this.size});
 
   final double size;
 
@@ -167,10 +238,16 @@ class _Pulse extends StatefulWidget {
 }
 
 class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1500),
-  )..repeat(reverse: true);
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
+  }
 
   @override
   void dispose() {
@@ -180,26 +257,18 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (BuildContext context, Widget? child) {
-        final double v = 0.35 + 0.65 * _c.value;
-        return Container(
-          width: widget.size,
-          height: widget.size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: IvoryColors.success.withValues(alpha: v),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: IvoryColors.success.withValues(alpha: 0.30 * v),
-                blurRadius: 7 * v,
-                spreadRadius: 1.5 * v,
-              ),
-            ],
-          ),
-        );
-      },
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.35, end: 1).animate(_c),
+      child: Container(
+        width: widget.size,
+        height: widget.size,
+        decoration: BoxDecoration(
+          color: IvoryColors.success,
+          shape: BoxShape.circle,
+        ),
+      ),
     );
   }
 }
+
+// END OF FILE - lib/widgets/member_pulse.dart
