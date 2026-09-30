@@ -4,6 +4,7 @@ import '../models/ivory_post.dart';
 import '../services/content_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/ivory_logo.dart';
+import '../widgets/live_banner.dart';
 import '../widgets/member_pulse.dart';
 import '../widgets/post_actions.dart';
 import '../widgets/post_card.dart';
@@ -180,6 +181,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _trust(Icons.verified_user_outlined, 'Consensual & lawful'),
         const SizedBox(height: 18),
         const MemberPulseStrip(),
+        const SizedBox(height: 18),
+        // Nothing at all unless a broadcast is actually on air.
+        const LiveBanner(),
       ],
     );
   }
@@ -391,3 +395,5 @@ class _BannerStrip extends StatelessWidget {
     );
   }
 }
+
+// END OF FILE - lib/screens/home_screen.dart
