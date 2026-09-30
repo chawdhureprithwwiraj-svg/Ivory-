@@ -61,6 +61,8 @@ GATED = [
     ('agora_rtc_engine', [
         'lib/core/agora_config.dart',
         'lib/services/live_service.dart',
+        'lib/screens/live_screen.dart',
+        'lib/widgets/live_banner.dart',
     ]),
     ('video_player', [
         'lib/widgets/ivory_media_view.dart',
@@ -82,6 +84,9 @@ GATED = [
 # These end with a marker line, so a paste cut short is caught in seconds.
 MARKED = [
     'lib/services/live_service.dart',
+    'lib/screens/live_screen.dart',
+    'lib/widgets/live_banner.dart',
+    'lib/screens/home_screen.dart',
     'lib/widgets/ivory_media_view.dart',
     'lib/widgets/post_artwork.dart',
     'lib/widgets/post_card.dart',
