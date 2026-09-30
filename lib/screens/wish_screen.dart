@@ -27,7 +27,11 @@ IconData wishIcon(String name) {
 }
 
 class WishScreen extends StatefulWidget {
-  const WishScreen({super.key});
+  const WishScreen({super.key, this.onOpenTab});
+
+  /// Lets the call sheet send a member to the Premium tab when their
+  /// minutes have run out, or when they want to change tier.
+  final void Function(String tab)? onOpenTab;
 
   @override
   State<WishScreen> createState() => _WishScreenState();
@@ -236,13 +240,30 @@ class _WishScreenState extends State<WishScreen> {
           borderRadius: BorderRadius.circular(20),
           onTap: () => _openWishForm(c),
           child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: IvoryTheme.card(),
+            padding: EdgeInsets.all(c.highlight ? 18 : 16),
+            // The two call wishes are the offer everything else
+            // supports, so they wear the gold border and a warmer
+            // fill rather than the plain card.
+            decoration: c.highlight
+                ? BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: <Color>[
+                        Color(0xFFFFFCF2),
+                        Color(0xFFFCEBCB),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: IvoryColors.gold, width: 1.6),
+                    boxShadow: IvoryTheme.softShadow(blur: 16, y: 6),
+                  )
+                : IvoryTheme.card(),
             child: Row(
               children: <Widget>[
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: c.highlight ? 56 : 50,
+                  height: c.highlight ? 56 : 50,
                   decoration: BoxDecoration(
                     gradient: IvoryColors.goldGradient,
                     borderRadius: BorderRadius.circular(15),
@@ -255,12 +276,32 @@ class _WishScreenState extends State<WishScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
+                      if (c.highlight) ...<Widget>[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: IvoryColors.burgundy,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            c.isVideoCall ? 'LIVE WITH ME' : 'MY VOICE, YOURS',
+                            style: const TextStyle(
+                              color: IvoryColors.cream,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.3,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                      ],
                       Text(
                         c.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: IvoryColors.burgundy,
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
+                          fontSize: c.highlight ? 17 : 15.5,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                       if (c.tagline != null) ...<Widget>[
@@ -394,7 +435,10 @@ class _WishScreenState extends State<WishScreen> {
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (_) => CallWishSheet(category: c),
+        builder: (_) => CallWishSheet(
+          category: c,
+          onOpenTab: widget.onOpenTab,
+        ),
       );
       return;
     }
