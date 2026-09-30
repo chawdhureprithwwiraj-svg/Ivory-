@@ -9,6 +9,9 @@ class WishCategory {
     required this.deliveryDays,
     this.tagline,
     this.icon = 'auto_awesome',
+    this.callKind,
+    this.minutes,
+    this.highlight = false,
   });
 
   final int id;
@@ -18,7 +21,25 @@ class WishCategory {
   final int basePriceInr;
   final int deliveryDays;
 
+  /// 'audio' or 'video' when this wish IS a call. Null for everything
+  /// else - a written story, a voice note, a letter.
+  final String? callKind;
+
+  /// How long the call runs, in minutes. Editable in the database.
+  final int? minutes;
+
+  /// Set on the two call wishes so the Wish tab gives them the gold
+  /// serif-italic treatment instead of plain grey body text.
+  final bool highlight;
+
+  bool get isCall => callKind == 'audio' || callKind == 'video';
+  bool get isVideoCall => callKind == 'video';
+
   String get priceLabel => '₹$basePriceInr onwards';
+
+  String get callLabel => isCall
+      ? '${minutes ?? 30} minutes of ${isVideoCall ? 'video' : 'audio'}'
+      : '';
 
   factory WishCategory.fromMap(Map<String, dynamic> m) => WishCategory(
         id: (m['id'] as num).toInt(),
@@ -27,6 +48,9 @@ class WishCategory {
         icon: (m['icon'] as String?) ?? 'auto_awesome',
         basePriceInr: ((m['base_price_inr'] as num?) ?? 999).toInt(),
         deliveryDays: ((m['delivery_days'] as num?) ?? 3).toInt(),
+        callKind: m['call_kind'] as String?,
+        minutes: (m['minutes'] as num?)?.toInt(),
+        highlight: (m['highlight'] as bool?) ?? false,
       );
 }
 
