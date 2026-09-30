@@ -23,9 +23,17 @@ import '../theme/ivory_theme.dart';
 /// happens inside Ivory.
 /// ============================================================
 class CallWishSheet extends StatefulWidget {
-  const CallWishSheet({super.key, required this.category});
+  const CallWishSheet({
+    super.key,
+    required this.category,
+    this.onOpenTab,
+  });
 
   final WishCategory category;
+
+  /// Sends the member to the Premium tab to renew, upgrade or change
+  /// tier - the other way out when the minutes have gone.
+  final void Function(String tab)? onOpenTab;
 
   @override
   State<CallWishSheet> createState() => _CallWishSheetState();
@@ -127,6 +135,14 @@ class _CallWishSheetState extends State<CallWishSheet> {
       ),
     );
     _load();
+  }
+
+  String _dmy(DateTime d) {
+    const List<String> m = <String>[
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${d.day} ${m[d.month - 1]} ${d.year}';
   }
 
   @override
@@ -300,9 +316,38 @@ class _CallWishSheetState extends State<CallWishSheet> {
             if (_balance.resetsAt != null) ...<Widget>[
               const SizedBox(height: 9),
               Text(
-                'Renews on ${_balance.resetsAt!.day}/'
-                '${_balance.resetsAt!.month}/${_balance.resetsAt!.year}',
-                style: TextStyle(fontSize: 12, color: IvoryColors.textFaint),
+                'Your cycle renews on ${_dmy(_balance.resetsAt!)} - counted '
+                'from the day you joined this tier, not the calendar month. '
+                'Minutes do not carry over.',
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.45,
+                  color: IvoryColors.textFaint,
+                ),
+              ),
+            ],
+            if (_balance.noShows > 0) ...<Widget>[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: IvoryColors.surfaceWarm,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: IvoryColors.amber, width: 1),
+                ),
+                child: Text(
+                  _balance.noShows == 1
+                      ? 'One session was missed this cycle. Missing a second '
+                          'is still free - after that, a missed session uses '
+                          'its minutes.'
+                      : 'Two sessions have been missed this cycle. The next '
+                          'one that is missed will use its minutes.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.45,
+                    color: IvoryColors.textSoft,
+                  ),
+                ),
               ),
             ],
           ] else
@@ -413,6 +458,21 @@ class _CallWishSheetState extends State<CallWishSheet> {
           icon: const Icon(Icons.event_available_rounded, size: 19),
           label: Text(_link?.headline ?? 'Pick a time'),
         ),
+        if (!canAskFree) ...<Widget>[
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.onOpenTab?.call('premium');
+            },
+            icon: const Icon(Icons.diamond_outlined, size: 19),
+            label: Text(
+              included
+                  ? 'Renew, upgrade or change my tier'
+                  : 'See the tiers that include calls',
+            ),
+          ),
+        ],
         if (included && !canAskFree) ...<Widget>[
           const SizedBox(height: 12),
           Text(
