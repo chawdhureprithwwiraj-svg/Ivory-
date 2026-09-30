@@ -78,7 +78,7 @@ class _MainShellState extends State<MainShell> {
     final List<Widget> pages = <Widget>[
       HomeScreen(onOpenTab: _openTab),
       const ExploreScreen(),
-      const WishScreen(),
+      WishScreen(onOpenTab: _openTab),
       const PremiumScreen(),
       InboxScreen(onOpenTab: _openTab),
       ProfileScreen(onOpenTab: _openTab),
@@ -250,3 +250,5 @@ class _Badged extends StatelessWidget {
     );
   }
 }
+
+// END OF FILE - lib/screens/main_shell.dart
