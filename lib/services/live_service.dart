@@ -104,6 +104,8 @@ class CallBalance {
     required this.period,
     this.resetsAt,
     this.tierLevel = 0,
+    this.noShows = 0,
+    this.cycleStart,
   });
 
   final String kind;
@@ -114,19 +116,29 @@ class CallBalance {
   final DateTime? resetsAt;
   final int tierLevel;
 
+  /// Missed sessions already on record in this cycle. Two are
+  /// forgiven; the third costs its minutes.
+  final int noShows;
+
+  /// The cycle runs from the day this member's paid tier began -
+  /// never from the first of the month.
+  final DateTime? cycleStart;
+
   bool get isIncluded => allowed > 0;
   double get fraction => allowed == 0 ? 0 : (used / allowed).clamp(0.0, 1.0);
 
+  /// The cycle is counted from the member's own joining date, so the
+  /// wording never implies a calendar month.
   String get periodLabel {
     switch (period) {
       case 'day':
-        return 'today';
+        return 'in this 24 hours';
       case 'week':
-        return 'this week';
+        return 'in this 7-day cycle';
       case 'year':
-        return 'this year';
+        return 'in this year';
       default:
-        return 'this month';
+        return 'in this 30-day cycle';
     }
   }
 
@@ -146,6 +158,8 @@ class CallBalance {
         period: (m['period'] as String?) ?? 'month',
         resetsAt: DateTime.tryParse((m['resets_at'] as String?) ?? ''),
         tierLevel: ((m['tier_level'] as num?) ?? 0).toInt(),
+        noShows: ((m['no_shows'] as num?) ?? 0).toInt(),
+        cycleStart: DateTime.tryParse((m['cycle_start'] as String?) ?? ''),
       );
 }
 
@@ -430,6 +444,12 @@ class LiveService {
       'call_id_in': callId,
       'accept_in': accept,
     });
+  }
+
+  /// Closes a session nobody joined. Forgiven twice per cycle.
+  Future<void> markMissed(int callId) async {
+    await _db.rpc<dynamic>('mark_call_missed',
+        params: <String, dynamic>{'call_id_in': callId});
   }
 
   Future<void> endCall(int callId) async {
