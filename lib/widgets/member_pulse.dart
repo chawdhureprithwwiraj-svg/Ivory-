@@ -20,11 +20,16 @@ import '../theme/ivory_theme.dart';
 ///    actually read.
 ///
 /// 2. IT NEVER MOVES WHILE YOU ARE LOOKING AT IT.
-///    The number is fixed for one visit. Leave the app and come
-///    back - even a minute later, even without signing out - and
-///    it has risen. It can never go down within a day, because the
-///    last number shown is remembered and the next one is always
-///    higher.
+///    The number is fixed for one visit and cannot go down within a
+///    day: the last number shown is remembered, and the next visit
+///    is always higher.
+///
+///    A visit is a real return, not a glance away. Taking a
+///    screenshot, checking a message, or flicking to another app for
+///    a few seconds changes nothing - the counter only moves once
+///    you have been away, or been here, for at least a few minutes.
+///    A counter that ticked every time you blinked would announce
+///    itself as fake.
 /// ============================================================
 class MemberPulse {
   MemberPulse._();
@@ -37,6 +42,12 @@ class MemberPulse {
 
   static const String _kDay = 'ivory_pulse_day';
   static const String _kValue = 'ivory_pulse_value';
+  static const String _kAt = 'ivory_pulse_at';
+
+  /// How settled things must be before a return counts as a new
+  /// visit. Short enough to feel alive, long enough to never look
+  /// mechanical.
+  static const Duration _cooldown = Duration(minutes: 4);
 
   /// The number for this visit. Computed once, then held.
   static int? _current;
@@ -108,6 +119,18 @@ class MemberPulse {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final int lastDay = prefs.getInt(_kDay) ?? -1;
       final int lastValue = prefs.getInt(_kValue) ?? 0;
+      final int lastAt = prefs.getInt(_kAt) ?? 0;
+
+      final int sinceMs = DateTime.now().millisecondsSinceEpoch - lastAt;
+
+      // Still inside the quiet window? Then this is the same visit,
+      // however many times the app has been in and out of view.
+      if (lastDay == day &&
+          lastValue > 0 &&
+          sinceMs < _cooldown.inMilliseconds) {
+        _current = lastValue;
+        return;
+      }
 
       if (lastDay == day && next <= lastValue) {
         // The clock has barely moved, but this is a new visit: nudge
@@ -118,6 +141,7 @@ class MemberPulse {
 
       await prefs.setInt(_kDay, day);
       await prefs.setInt(_kValue, next);
+      await prefs.setInt(_kAt, DateTime.now().millisecondsSinceEpoch);
     } catch (_) {
       // Storage is a nicety here, never a requirement.
     }
