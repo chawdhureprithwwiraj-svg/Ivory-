@@ -101,6 +101,14 @@ class IvoryPost {
         thumb.directUrl(supabasePublicBase: supabasePublicBase) ??
             thumb.youtubeThumbnail;
     if (fromThumb != null) return fromThumb;
+
+    // An image post with no separate cover is its own cover: show the
+    // picture itself in the feed instead of an empty placeholder.
+    if (type == PostType.image) {
+      final String? own =
+          media.directUrl(supabasePublicBase: supabasePublicBase);
+      if (own != null) return own;
+    }
     return media.youtubeThumbnail;
   }
 
