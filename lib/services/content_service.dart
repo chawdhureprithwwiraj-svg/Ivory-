@@ -48,7 +48,7 @@ class ContentService {
         .from('poll_results')
         .select()
         .eq('post_id', postId)
-        .order('sort_order');
+        .order('sort_order', ascending: true);
     return rows
         .map((dynamic r) => PollOption.fromMap(r as Map<String, dynamic>))
         .toList();
@@ -93,7 +93,9 @@ class ContentService {
         .from('subscription_tiers')
         .select()
         .eq('is_active', true)
-        .order('level');
+        .order('level', ascending: true);
     return rows.cast<Map<String, dynamic>>();
   }
 }
+
+// END OF FILE - lib/services/content_service.dart
