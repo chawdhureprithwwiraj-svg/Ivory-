@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../models/live_models.dart';
+import '../services/auth_service.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/live_chat.dart';
 
 /// ============================================================
 /// IVORY - THE LIVE ROOM
@@ -228,7 +230,21 @@ class _LiveScreenState extends State<LiveScreen> {
           child: Column(
             children: <Widget>[
               _bar(context),
-              Expanded(child: Center(child: _stage())),
+              // A broadcast gives the stage the top half and the
+              // members' words the rest. A 1:1 call has no chat -
+              // you are already talking.
+              if (widget.mode == LiveMode.call)
+                Expanded(child: Center(child: _stage()))
+              else ...<Widget>[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: _stage(),
+                ),
+                if (_joined && _error == null)
+                  Expanded(child: LiveChat(sessionId: widget.sessionId))
+                else
+                  const Expanded(child: SizedBox.shrink()),
+              ],
               _controls(),
             ],
           ),
@@ -264,15 +280,29 @@ class _LiveScreenState extends State<LiveScreen> {
             const SizedBox(width: 10),
           ],
           Expanded(
-            child: Text(
-              widget.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: IvoryColors.ivory,
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  widget.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: IvoryColors.ivory,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (widget.mode == LiveMode.host && _joined)
+                  Text(
+                    'Only you see this count',
+                    style: TextStyle(
+                      color: IvoryColors.cream.withValues(alpha: 0.6),
+                      fontSize: 11,
+                    ),
+                  ),
+              ],
             ),
           ),
           IconButton(
@@ -319,7 +349,9 @@ class _LiveScreenState extends State<LiveScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: AspectRatio(
-        aspectRatio: 9 / 16,
+        // A broadcast shares the screen with the chat rail, so its
+        // frame is wider; a call keeps the full 9:16 portrait stage.
+        aspectRatio: widget.mode == LiveMode.call ? 9 / 16 : 4 / 5,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Stack(
