@@ -235,7 +235,9 @@ class PostArtworkState extends State<PostArtwork> {
                       border: Border.all(color: IvoryColors.hairlineStrong),
                     ),
                     child: Text(
-                      post.tierName != null
+                      post.isForSale
+                          ? 'Open for Rs.${post.priceInr}'
+                          : post.tierName != null
                           ? '${post.tierName} members'
                           : 'Members only',
                       style: const TextStyle(
