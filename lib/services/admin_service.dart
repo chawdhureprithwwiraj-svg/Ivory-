@@ -166,6 +166,21 @@ class AdminService {
   /// Creates the post (and its poll options) in one database call. The
   /// existing announce trigger then writes the notification and queues
   /// the device push, so publishing really is one tap.
+  /// The two dials a post can carry: what it costs on its own, and
+  /// the tier that opens it without paying. Setting a price of 0
+  /// clears both and hands the post back to the tier rule.
+  Future<void> setPostPrice({
+    required int postId,
+    required int priceInr,
+    int? freeFromTier,
+  }) async {
+    await _db.rpc<dynamic>('set_post_price', params: <String, dynamic>{
+      'post_id_in': postId,
+      'price_in': priceInr,
+      'free_from_in': priceInr > 0 ? freeFromTier : null,
+    });
+  }
+
   Future<int> publishPost({
     required String type,
     required String title,
