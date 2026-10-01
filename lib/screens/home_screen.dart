@@ -358,12 +358,12 @@ class _HomeScreenState extends State<HomeScreen> {
             Icon(Icons.auto_stories_outlined,
                 size: 42, color: IvoryColors.amber),
             const SizedBox(height: 12),
-            Text('No stories yet',
+            Text('The first story is coming',
                 style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 8),
             Text(
-              'Run ivory_backend_v2.sql in Supabase to load the samples, or '
-              'publish your first post from the admin console.',
+              'Nothing has been shared here yet. Turn on notifications and '
+              'you will know the moment it is.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
