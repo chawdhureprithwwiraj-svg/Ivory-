@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/live_models.dart';
@@ -33,15 +35,21 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
   String? _note;
 
   List<LiveSession> _sessions = <LiveSession>[];
+  Timer? _clock;
 
   @override
   void initState() {
     super.initState();
     _load();
+    // The on-air card counts up while you are broadcasting.
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _onAir != null) setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _clock?.cancel();
     _title.dispose();
     _subtitle.dispose();
     _price.dispose();
@@ -178,9 +186,7 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
           ),
           const SizedBox(height: 4),
           Text(
-            s.viewerCount == 1
-                ? '1 member watching'
-                : '${s.viewerCount} members watching',
+            '${_elapsed(s)}  -  ${s.viewerCount} watching, only you',
             style: TextStyle(
               color: IvoryColors.burgundy.withValues(alpha: 0.78),
               fontSize: 13,
@@ -313,6 +319,18 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
         ],
       ),
     );
+  }
+
+  String _elapsed(LiveSession s) {
+    final DateTime? start = s.startedAt;
+    if (start == null) return 'on air';
+    final Duration d = DateTime.now().difference(start);
+    final String h = d.inHours > 0 ? '${d.inHours}:' : '';
+    final String m = (d.inMinutes % 60)
+        .toString()
+        .padLeft(d.inHours > 0 ? 2 : 1, '0');
+    final String sec = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return 'on air $h$m:$sec';
   }
 
   Widget _historyRow(LiveSession s) {
