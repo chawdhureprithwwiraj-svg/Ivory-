@@ -263,7 +263,7 @@ class LiveService {
     final List<dynamic> rows = await _db
         .from('live_public')
         .select()
-        .order('status')
+        .order('status', ascending: true)
         .order('started_at', ascending: false)
         .limit(30);
     return rows
