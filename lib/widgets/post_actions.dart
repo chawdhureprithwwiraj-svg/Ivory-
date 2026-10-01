@@ -6,14 +6,33 @@ import '../models/media_ref.dart';
 import '../services/content_service.dart';
 import '../theme/ivory_theme.dart';
 import 'ivory_media_view.dart';
+import 'post_unlock_sheet.dart';
 
-/// Everything that happens when a story card is tapped. Shared by the
-/// Home and Explore tabs so the behaviour is identical in both.
+/// Everything that happens when a story card is tapped, shared by
+/// Home and Explore. A locked post with a price of its own opens the
+/// buying sheet instead of the members-only panel.
 class PostActions {
   PostActions._();
 
   static Future<void> open(BuildContext context, IvoryPost post) async {
     if (post.isLocked) {
+      // Locked, but with its own price? Then it is a door, not a wall.
+      if (post.isPurchasable) {
+        final bool? bought = await showModalBottomSheet<bool>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => PostUnlockSheet(post: post),
+        );
+        if (bought == true && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('I will verify it shortly and it will open.'),
+            ),
+          );
+        }
+        return;
+      }
       _sheet(context, _LockedBody(post: post));
       return;
     }
@@ -322,9 +341,12 @@ class _LockedBody extends StatelessWidget {
         const SizedBox(height: 10),
         Center(
           child: Text(
-            post.tierName != null
-                ? 'Available to ${post.tierName} members'
-                : 'Available to members',
+            post.isForSale
+                ? 'Rs.${post.priceInr} to open, or free from '
+                    '${post.tierName ?? 'the higher tiers'}'
+                : post.tierName != null
+                    ? 'Available to ${post.tierName} members'
+                    : 'Available to members',
             style: TextStyle(fontSize: 14.5, color: IvoryColors.textSoft),
           ),
         ),
