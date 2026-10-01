@@ -196,10 +196,29 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: <Widget>[
                             Center(
                               child: IvoryEyebrow(
-                                _isSignUp ? 'Create account' : 'Welcome back',
+                                _isSignUp ? 'Create account' : 'Sign in',
                                 icon: _isSignUp
                                     ? Icons.person_add_alt
                                     : Icons.lock_open,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            // The first thing anyone reads. It has to
+                            // promise, not greet.
+                            Text(
+                              _isSignUp
+                                  ? 'You are about to enter a New World of '
+                                      'Real Connection which you have always '
+                                      'Craved for! Finally found it!'
+                                  : 'Welcome back to your private world.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: IvoryTheme.displayFont,
+                                fontSize: _isSignUp ? 15.5 : 14.5,
+                                height: 1.5,
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.w600,
+                                color: IvoryColors.plum,
                               ),
                             ),
                             const SizedBox(height: 20),
