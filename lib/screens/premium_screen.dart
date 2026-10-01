@@ -404,12 +404,12 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
-                    'MOST INTIMATE',
+                    'THE INNERMOST CIRCLE',
                     style: TextStyle(
                       color: IvoryColors.burgundy,
-                      fontSize: 9.5,
+                      fontSize: 9,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
+                      letterSpacing: 1,
                     ),
                   ),
                 ),
@@ -484,3 +484,5 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 }
+
+// END OF FILE - lib/screens/premium_screen.dart
