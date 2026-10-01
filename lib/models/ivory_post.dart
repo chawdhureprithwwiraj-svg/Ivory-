@@ -67,6 +67,18 @@ class IvoryPost {
   final String? summary;
   final String? body;
   final int tierRequired;
+
+  /// Rupees to open this one post. 0 means it is not for sale and the
+  /// tier rule alone decides.
+  final int priceInr;
+
+  /// Members at this level or above open it without paying.
+  final int? freeFromTier;
+
+  bool get isForSale => priceInr > 0;
+
+  /// Locked, but with a way in that does not need a membership.
+  bool get isPurchasable => isForSale && !isUnlocked;
   final bool isUnlocked;
   final String? tierName;
   final int? durationSecs;
@@ -125,22 +137,40 @@ class IvoryPost {
   }
 
   /// From the `post_previews` view (no media_ref, no body).
+  ///
+  /// The view adds cover_source / cover_ref for image posts the member
+  /// is entitled to, so a picture can be its own cover in the feed
+  /// without the view ever exposing a locked post's media link.
   factory IvoryPost.fromPreview(Map<String, dynamic> m) {
+    final String? coverRef = m['cover_ref'] as String?;
+    final String? thumbRef = m['thumb_ref'] as String?;
+
+    // An explicit cover always wins; the picture itself is the fallback.
+    final bool useCover =
+        (thumbRef == null || thumbRef.trim().isEmpty) && coverRef != null;
+
     return IvoryPost(
       id: (m['id'] as num).toInt(),
       type: postTypeFromDb(m['type'] as String?),
       title: (m['title'] as String?) ?? 'Untitled',
       summary: m['summary'] as String?,
       tierRequired: ((m['tier_required'] as num?) ?? 0).toInt(),
+      priceInr: ((m['price_inr'] as num?) ?? 0).toInt(),
+      freeFromTier: (m['free_from_tier'] as num?)?.toInt(),
       isUnlocked: (m['is_unlocked'] as bool?) ?? false,
       tierName: m['tier_name'] as String?,
       durationSecs: (m['duration_secs'] as num?)?.toInt(),
       viewCount: ((m['view_count'] as num?) ?? 0).toInt(),
       createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
-      thumb: MediaRef(
-        source: MediaSource.fromDb(m['thumb_source'] as String?),
-        ref: m['thumb_ref'] as String?,
-      ),
+      thumb: useCover
+          ? MediaRef(
+              source: MediaSource.fromDb(m['cover_source'] as String?),
+              ref: coverRef,
+            )
+          : MediaRef(
+              source: MediaSource.fromDb(m['thumb_source'] as String?),
+              ref: thumbRef,
+            ),
       thumbnailUrl: m['thumbnail_url'] as String?,
     );
   }
@@ -158,6 +188,8 @@ class IvoryPost {
       summary: preview.summary,
       body: m['body'] as String?,
       tierRequired: preview.tierRequired,
+      priceInr: preview.priceInr,
+      freeFromTier: preview.freeFromTier,
       isUnlocked: true,
       tierName: preview.tierName,
       durationSecs: preview.durationSecs,
