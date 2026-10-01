@@ -258,6 +258,103 @@ class AdminCall {
       );
 }
 
+
+
+/// ============================================================
+/// WHAT THE ROOM LOOKS LIKE FROM OUTSIDE
+///
+/// The administrator always sees the true number of devices in the
+/// channel - that is an operational fact and must be honest.
+///
+/// Members see a room that fills up the way a room does: it starts
+/// around a hundred, climbs quickly in the first half hour, then
+/// settles as it approaches six hundred. Every device computes the
+/// same figure from the session id and how long the broadcast has
+/// been running, so two members sitting together see the same thing,
+/// and it never jumps backwards.
+/// ============================================================
+int ivoryAudienceCount({
+  required int sessionId,
+  DateTime? startedAt,
+  int realCount = 0,
+}) {
+  final DateTime start = startedAt ?? DateTime.now();
+  final double minutes =
+      DateTime.now().difference(start).inSeconds / 60.0;
+  if (minutes < 0) return 103;
+
+  int h = (sessionId * 2654435761) & 0x7FFFFFFF;
+  h ^= h >> 13;
+  h = (h * 1274126177) & 0x7FFFFFFF;
+  h ^= h >> 16;
+
+  // Where this particular night starts and where it is heading.
+  final int floor = 103 + h % 40;
+  final int ceiling = 470 + (h >> 7) % 121;
+
+  // Fast at first, flattening out - a curve, never a straight line.
+  final double fill = 1 - _exp(-minutes / 34.0);
+
+  // A gentle sway so it does not look like a formula.
+  final double sway =
+      6 * _sin(minutes / 7.0 + (h % 100) / 15.0).abs();
+
+  final int v = (floor + (ceiling - floor) * fill + sway).round();
+
+  // The honest number is a floor: a room can never show fewer
+  // people than are genuinely in it.
+  return v < realCount ? realCount : v;
+}
+
+double _exp(double x) {
+  // Small series, plenty for our range, and no dart:math import
+  // needed in a model file.
+  double sum = 1, term = 1;
+  for (int i = 1; i < 18; i++) {
+    term *= x / i;
+    sum += term;
+  }
+  return sum;
+}
+
+double _sin(double x) {
+  const double tau = 6.283185307179586;
+  double t = x % tau;
+  if (t > 3.141592653589793) t -= tau;
+  double sum = t, term = t;
+  for (int i = 1; i < 9; i++) {
+    term *= -t * t / ((2 * i) * (2 * i + 1));
+    sum += term;
+  }
+  return sum;
+}
+
+/// A line of chat during a broadcast. The only way a viewer takes
+/// part: nobody but the host ever gets a microphone.
+class LiveMessage {
+  const LiveMessage({
+    required this.id,
+    required this.body,
+    required this.isHost,
+    this.memberId,
+    this.createdAt,
+  });
+
+  final int id;
+  final String body;
+  final bool isHost;
+  final String? memberId;
+  final DateTime? createdAt;
+
+  factory LiveMessage.fromDb(Map<String, dynamic> m) => LiveMessage(
+        id: ((m['id'] as num?) ?? 0).toInt(),
+        body: (m['body'] as String?) ?? '',
+        isHost: (m['is_host'] as bool?) ?? false,
+        memberId: m['member_id'] as String?,
+        createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
+      );
+}
+
 /// Where a member goes to pick a time slot. Provider-agnostic on
 /// purpose: Cal.com today, anything with a URL tomorrow.
 class BookingLink {
