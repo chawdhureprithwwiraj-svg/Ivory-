@@ -275,6 +275,54 @@ class LiveService {
     return 'anytime';
   }
 
+
+  // ---------------------------------------------------------------
+  // Live chat - how a viewer takes part
+  // ---------------------------------------------------------------
+
+  Future<List<LiveMessage>> fetchMessages(int sessionId) async {
+    final List<dynamic> rows = await _db
+        .from('live_messages')
+        .select()
+        .eq('session_id', sessionId)
+        .order('created_at', ascending: true)
+        .limit(200);
+    return rows
+        .map((dynamic r) => LiveMessage.fromDb(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Postgres checks entitlement again here, so a member who is not
+  /// in the room cannot write into it.
+  Future<void> sendMessage(int sessionId, String body) async {
+    await _db.rpc<dynamic>('send_live_message', params: <String, dynamic>{
+      'session_id_in': sessionId,
+      'body_in': body,
+    });
+  }
+
+  RealtimeChannel watchMessages(
+    int sessionId,
+    void Function(LiveMessage) onMessage,
+  ) {
+    final RealtimeChannel channel = _db.channel('ivory-chat-$sessionId');
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'live_messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'session_id',
+            value: sessionId,
+          ),
+          callback: (PostgresChangePayload payload) =>
+              onMessage(LiveMessage.fromDb(payload.newRecord)),
+        )
+        .subscribe();
+    return channel;
+  }
+
   // ---------------------------------------------------------------
   // Booking links
   // ---------------------------------------------------------------
