@@ -4,6 +4,7 @@ import '../models/media_ref.dart';
 import '../services/admin_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
+import '../widgets/admin_post_chips.dart';
 import 'admin_library_list.dart';
 
 /// ADMIN STUDIO - THE COMPOSER
@@ -36,6 +37,12 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
   String _type = 'blog';
   int _tier = 0;
+
+  /// Rupees to open this one post. Empty or 0 = not for sale.
+  final TextEditingController _price = TextEditingController();
+
+  /// The tier that opens a priced post for free. Null = nobody.
+  int? _freeFrom;
   bool _publishNow = true;
 
   PickedMedia? _picked;
@@ -57,6 +64,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
   @override
   void dispose() {
+    _price.dispose();
     _title.dispose();
     _summary.dispose();
     _body.dispose();
@@ -206,7 +214,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
       setState(() => _busyLabel = 'Publishing...');
       final int? mins = int.tryParse(_minutes.text.trim());
 
-      await AdminService.instance.publishPost(
+      final int newId = await AdminService.instance.publishPost(
         type: _type,
         title: _title.text.trim(),
         summary: _summary.text,
@@ -220,6 +228,17 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
         pollOptions: _type == 'poll' ? poll : null,
         isPublished: _publishNow,
       );
+
+      // The price is set straight after, so publish_post stays the
+      // one function that creates a post.
+      final int price = int.tryParse(_price.text.trim()) ?? 0;
+      if (price > 0) {
+        await AdminService.instance.setPostPrice(
+          postId: newId,
+          priceInr: price,
+          freeFromTier: _freeFrom,
+        );
+      }
 
       if (!mounted) return;
       _reset();
@@ -253,6 +272,8 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
       _thumb = null;
       _uploadedThumbUrl = null;
       _tier = 0;
+      _price.clear();
+      _freeFrom = null;
       _publishNow = true;
       _libraryStamp++;
     });
@@ -282,7 +303,14 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
           const SizedBox(height: 20),
           const AdminLabel('WHAT ARE YOU POSTING'),
           const SizedBox(height: 10),
-          Wrap(spacing: 8, runSpacing: 8, children: _typeChips()),
+          Wrap(spacing: 8, runSpacing: 8, children: postTypeChips(
+              selected: _type,
+              onTap: (String v) => setState(() {
+                _type = v;
+                _picked = null;
+                _uploadedUrl = null;
+              }),
+            )),
           const SizedBox(height: 20),
           TextFormField(
             controller: _title,
@@ -331,7 +359,44 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
           const SizedBox(height: 22),
           const AdminLabel('WHO CAN OPEN IT'),
           const SizedBox(height: 10),
-          Wrap(spacing: 8, runSpacing: 8, children: _tierChips()),
+          Wrap(spacing: 8, runSpacing: 8, children: postTierChips(
+            selected: _tier,
+            tiers: _tiers,
+            onTap: (int v) => setState(() => _tier = v),
+          )),
+          const SizedBox(height: 22),
+          const AdminLabel('OR SELL IT ON ITS OWN'),
+          const SizedBox(height: 6),
+          Text(
+            'Give it a price and everyone sees a lock - free members and '
+            'paying members alike - until they buy it or reach the tier '
+            'you choose below. Leave it empty to use the tier rule above.',
+            style: TextStyle(
+              fontSize: 12.5,
+              height: 1.45,
+              color: IvoryColors.textFaint,
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _price,
+            keyboardType: TextInputType.number,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              labelText: 'Price in rupees (optional)',
+              hintText: 'e.g. 299',
+            ),
+          ),
+          if ((int.tryParse(_price.text.trim()) ?? 0) > 0) ...<Widget>[
+            const SizedBox(height: 14),
+            const AdminLabel('WHO GETS IT WITHOUT PAYING'),
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 8, children: postFreeFromChips(
+              selected: _freeFrom,
+              tiers: _tiers,
+              onTap: (int? v) => setState(() => _freeFrom = v),
+            )),
+          ],
           const SizedBox(height: 18),
           _publishSwitch(),
           const SizedBox(height: 22),
@@ -352,50 +417,8 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
   // ------------------------------------------------------------ fragments
 
-  List<Widget> _typeChips() {
-    const List<List<Object>> specs = <List<Object>>[
-      <Object>['blog', 'Story', Icons.auto_stories_outlined],
-      <Object>['audio', 'Audio', Icons.headphones_outlined],
-      <Object>['video', 'Video', Icons.play_circle_outline],
-      <Object>['image', 'Image', Icons.image_outlined],
-      <Object>['poll', 'Poll', Icons.how_to_vote_outlined],
-    ];
-    return specs.map((List<Object> s) {
-      final String value = s[0] as String;
-      return AdminSelectChip(
-        label: s[1] as String,
-        icon: s[2] as IconData,
-        selected: _type == value,
-        onTap: () => setState(() {
-          _type = value;
-          _picked = null;
-          _uploadedUrl = null;
-        }),
-      );
-    }).toList();
-  }
-
-  List<Widget> _tierChips() {
-    final List<Widget> chips = <Widget>[
-      AdminSelectChip(
-        label: 'Free for everyone',
-        icon: Icons.lock_open,
-        selected: _tier == 0,
-        onTap: () => setState(() => _tier = 0),
-      ),
-    ];
-    for (final Map<String, dynamic> t in _tiers) {
-      final int level = ((t['level'] as num?) ?? 0).toInt();
-      final int price = ((t['price_inr'] as num?) ?? 0).toInt();
-      chips.add(AdminSelectChip(
-        label: '${(t['name'] as String?) ?? 'Tier'} \u00b7 \u20B9$price',
-        icon: Icons.lock_outline,
-        selected: _tier == level,
-        onTap: () => setState(() => _tier = level),
-      ));
-    }
-    return chips;
-  }
+  /// Which tiers skip the price. "Nobody" means every member pays,
+  /// however much they already subscribe for.
 
   List<Widget> _pollSection() {
     final List<Widget> rows = <Widget>[
