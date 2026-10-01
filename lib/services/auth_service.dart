@@ -45,6 +45,13 @@ class AuthService {
       _client.auth.resetPasswordForEmail(email.trim());
 
   /// Loads the signed-in user's profile row, including their role.
+  /// The last profile we loaded. Lets small widgets - the live
+  /// banner, the viewer count - ask whether this is the admin
+  /// without another round trip.
+  IvoryProfile? cachedProfile;
+
+  bool get isAdminCached => cachedProfile?.isAdmin ?? false;
+
   Future<IvoryProfile?> loadProfile() async {
     final User? user = currentUser;
     if (user == null) return null;
@@ -56,7 +63,9 @@ class AuthService {
         .maybeSingle();
 
     if (row == null) return null;
-    return IvoryProfile.fromMap(row);
+    final IvoryProfile profile = IvoryProfile.fromMap(row);
+    cachedProfile = profile;
+    return profile;
   }
 
   Future<void> updateDisplayName(String displayName) async {
@@ -92,3 +101,5 @@ class AuthService {
     return 'Something went wrong. Please check your connection and retry.';
   }
 }
+
+// END OF FILE - lib/services/auth_service.dart
