@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../screens/live_screen.dart';
 import '../models/live_models.dart';
+import '../services/auth_service.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 
@@ -86,6 +88,21 @@ class _LiveBannerState extends State<LiveBanner>
     _load();
   }
 
+  /// You see the truth. Members see a room filling up.
+  String _watchingLabel(LiveSession s) {
+    if (AuthService.instance.isAdminCached) {
+      return s.viewerCount == 1
+          ? '1 member watching - only you see this'
+          : '${s.viewerCount} members watching - only you see this';
+    }
+    final int n = ivoryAudienceCount(
+      sessionId: s.id,
+      startedAt: s.startedAt,
+      realCount: s.viewerCount,
+    );
+    return '$n members watching';
+  }
+
   @override
   Widget build(BuildContext context) {
     final LiveSession? s = _session;
@@ -117,6 +134,12 @@ class _LiveBannerState extends State<LiveBanner>
                 ),
               ),
               const SizedBox(width: 11),
+              // A teaser, not a window. No frame of the broadcast is
+              // ever sent to a device that has not earned it - this
+              // is a frosted shimmer, so an outsider learns only that
+              // something is happening.
+              _FrostedTeaser(live: s.isLive),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,12 +164,10 @@ class _LiveBannerState extends State<LiveBanner>
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    if (s.viewerCount > 0) ...<Widget>[
+                    ...<Widget>[
                       const SizedBox(height: 2),
                       Text(
-                        s.viewerCount == 1
-                            ? '1 member watching'
-                            : '${s.viewerCount} members watching',
+                        _watchingLabel(s),
                         style: TextStyle(
                           color: IvoryColors.burgundy.withValues(alpha: 0.75),
                           fontSize: 12,
@@ -176,6 +197,81 @@ class _LiveBannerState extends State<LiveBanner>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+/// A deliberately useless preview. It carries no video: it is a
+/// blurred, drifting wash of Ivory's own colours. Anyone outside the
+/// room can tell that something is live and nothing more - no faces,
+/// no detail, nothing to zoom into, and not a single Agora minute
+/// spent on a member who is not entitled.
+class _FrostedTeaser extends StatefulWidget {
+  const _FrostedTeaser({required this.live});
+
+  final bool live;
+
+  @override
+  State<_FrostedTeaser> createState() => _FrostedTeaserState();
+}
+
+class _FrostedTeaserState extends State<_FrostedTeaser>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 7),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 46,
+        height: 46,
+        child: Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            AnimatedBuilder(
+              animation: _c,
+              builder: (BuildContext context, Widget? _) {
+                final double t = _c.value;
+                return DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment(-1 + 2 * t, -1),
+                      end: Alignment(1 - 2 * t, 1),
+                      colors: const <Color>[
+                        IvoryColors.plum,
+                        IvoryColors.peach,
+                        IvoryColors.burgundy,
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+              child: const SizedBox.expand(),
+            ),
+            Center(
+              child: Icon(
+                Icons.graphic_eq_rounded,
+                size: 19,
+                color: IvoryColors.cream.withValues(alpha: 0.75),
+              ),
+            ),
+          ],
         ),
       ),
     );
