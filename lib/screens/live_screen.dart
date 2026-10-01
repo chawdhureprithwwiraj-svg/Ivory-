@@ -4,6 +4,7 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../models/live_models.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 
