@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../screens/live_screen.dart';
+import '../models/live_models.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 
