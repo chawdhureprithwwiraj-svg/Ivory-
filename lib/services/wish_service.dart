@@ -16,7 +16,7 @@ class WishService {
         .from('wish_categories')
         .select()
         .eq('is_active', true)
-        .order('sort_order');
+        .order('sort_order', ascending: true);
     return rows
         .map((dynamic r) => WishCategory.fromMap(r as Map<String, dynamic>))
         .toList();
@@ -80,3 +80,5 @@ class WishService {
     await _db.from('custom_requests').update(patch).eq('id', wishId);
   }
 }
+
+// END OF FILE - lib/services/wish_service.dart
