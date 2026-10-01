@@ -69,6 +69,7 @@ GATED = [
         'lib/screens/admin_calls_tab.dart',
         'lib/screens/admin_live_tab.dart',
         'lib/widgets/live_chat.dart',
+        'lib/screens/admin_members_tab.dart',
     ]),
     ('video_player', [
         'lib/widgets/ivory_media_view.dart',
@@ -89,6 +90,7 @@ GATED = [
 
 # These end with a marker line, so a paste cut short is caught in seconds.
 MARKED = [
+    'lib/screens/admin_members_tab.dart',
     'lib/models/live_models.dart',
     'lib/screens/admin_live_tab.dart',
     'lib/widgets/live_chat.dart',
