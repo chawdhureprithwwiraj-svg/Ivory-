@@ -4,6 +4,7 @@ import '../theme/ivory_theme.dart';
 import 'admin_broadcast_tab.dart';
 import 'admin_calls_tab.dart';
 import 'admin_live_tab.dart';
+import 'admin_members_tab.dart';
 import 'admin_create_tab.dart';
 import 'admin_payments_tab.dart';
 import 'admin_tiers_tab.dart';
@@ -20,7 +21,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 7, vsync: this);
+  late final TabController _tabs = TabController(length: 8, vsync: this);
 
   @override
   void dispose() {
@@ -47,6 +48,7 @@ class _AdminScreenState extends State<AdminScreen>
           tabAlignment: TabAlignment.start,
           tabs: const <Widget>[
             Tab(text: 'CREATE'),
+            Tab(text: 'MEMBERS'),
             Tab(text: 'CALLS'),
             Tab(text: 'LIVE'),
             Tab(text: 'BROADCAST'),
@@ -63,6 +65,7 @@ class _AdminScreenState extends State<AdminScreen>
             controller: _tabs,
             children: const <Widget>[
               AdminCreateTab(),
+              AdminMembersTab(),
               AdminCallsTab(),
               AdminLiveTab(),
               AdminBroadcastTab(),
