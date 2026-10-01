@@ -36,11 +36,31 @@ class ContentService {
   /// Full post including the media link. Returns null when the database
   /// refuses access, which is exactly what should happen for a locked
   /// post - the check is server-side and cannot be bypassed.
+  /// Buying a single post: the member sends the money over UPI and
+  /// submits the reference. Postgres refuses a reference that has
+  /// been used before, so one payment can never open two posts.
+  Future<void> submitPostPayment({
+    required int postId,
+    required String utr,
+    String? screenshotUrl,
+  }) async {
+    await _db.rpc<dynamic>('submit_post_payment', params: <String, dynamic>{
+      'post_id_in': postId,
+      'utr_in': utr.trim(),
+      'shot_in': screenshotUrl,
+    });
+  }
+
+  /// The only place a media link is handed out. open_post() checks
+  /// the tier, the price and whether this member bought it, and
+  /// returns nothing at all if none of those apply.
   Future<IvoryPost?> fetchFullPost(int id) async {
-    final Map<String, dynamic>? row =
-        await _db.from('posts').select().eq('id', id).maybeSingle();
-    if (row == null) return null;
-    return IvoryPost.fromFull(row);
+    final dynamic res = await _db
+        .rpc<dynamic>('open_post', params: <String, dynamic>{'post_id_in': id});
+    if (res is List && res.isNotEmpty) {
+      return IvoryPost.fromFull(res.first as Map<String, dynamic>);
+    }
+    return null;
   }
 
   Future<List<PollOption>> fetchPollOptions(int postId) async {
