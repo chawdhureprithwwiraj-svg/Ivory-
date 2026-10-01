@@ -50,6 +50,8 @@ class IvoryPost {
     required this.title,
     required this.tierRequired,
     required this.isUnlocked,
+    this.priceInr = 0,
+    this.freeFromTier,
     this.summary,
     this.body,
     this.tierName,
