@@ -91,9 +91,7 @@ class _LiveBannerState extends State<LiveBanner>
   /// You see the truth. Members see a room filling up.
   String _watchingLabel(LiveSession s) {
     if (AuthService.instance.isAdminCached) {
-      return s.viewerCount == 1
-          ? '1 member watching - only you see this'
-          : '${s.viewerCount} members watching - only you see this';
+      return '${s.viewerCount} watching - only you';
     }
     final int n = ivoryAudienceCount(
       sessionId: s.id,
