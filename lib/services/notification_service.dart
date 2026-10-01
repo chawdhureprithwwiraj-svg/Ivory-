@@ -106,7 +106,9 @@ class NotificationService {
     if (query.trim().isNotEmpty) {
       q = q.ilike('display_name', '%${query.trim()}%');
     }
-    final List<dynamic> rows = await q.order('display_name').limit(40);
+    final List<dynamic> rows = await q.order('display_name', ascending: true).limit(40);
     return rows.cast<Map<String, dynamic>>();
   }
 }
+
+// END OF FILE - lib/services/notification_service.dart
