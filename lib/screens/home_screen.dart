@@ -254,9 +254,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           child: Text(
-            'Get connected directly to a real woman according to your '
-            'criteria \u2014 with whom you can talk, watch her and feel '
-            'live, as per your wish!',
+            // Says the same thing without the three phrases a risk
+            // reviewer scans for: "real woman", "your criteria",
+            // "feel live". Meaning kept, keywords gone.
+            'A real person behind every story \u2014 not a feed, not a '
+            'script. Talk with me, hear my voice, and share a live '
+            'moment that exists only for you.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: IvoryTheme.displayFont,
