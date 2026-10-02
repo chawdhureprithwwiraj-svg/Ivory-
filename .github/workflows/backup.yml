@@ -53,17 +53,60 @@ jobs:
       - name: Dump
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          REGION: ${{ secrets.SUPABASE_REGION }}
         run: |
           set -o pipefail
+
+          # Supabase gives out two kinds of connection string. The
+          # "Direct connection" one (db.<ref>.supabase.co) resolves
+          # to IPv6 only, and GitHub runners have no IPv6 - that is
+          # the "Network is unreachable" failure. The pooler is IPv4.
+          #
+          # Rather than make you copy the right one, this rewrites a
+          # direct URL into the pooler form automatically.
+          python3 - <<'PYEOF' > /tmp/url.txt
+          import os, re
+          from urllib.parse import urlparse, quote
+
+          raw = os.environ['DB_URL'].strip()
+          region = (os.environ.get('REGION') or 'ap-south-1').strip()
+          p = urlparse(raw)
+          host = p.hostname or ''
+          m = re.match(r'^db\.([a-z0-9]+)\.supabase\.co$', host)
+          if m:
+              ref = m.group(1)
+              pw = quote(p.password or '', safe='')
+              raw = ('postgresql://postgres.' + ref + ':' + pw +
+                     '@aws-0-' + region + '.pooler.supabase.com:5432/postgres')
+              print('REWROTE', file=__import__('sys').stderr)
+          print(raw)
+          PYEOF
+
+          URL=$(cat /tmp/url.txt)
+          PW=$(python3 -c "import sys;from urllib.parse import urlparse;print(urlparse(sys.argv[1]).password or '')" "$URL")
+          [ -n "$PW" ] && echo "::add-mask::$PW"
+          HOST=$(python3 -c "import sys;from urllib.parse import urlparse;print(urlparse(sys.argv[1]).hostname or '')" "$URL")
+          echo "Connecting to host: $HOST"
+
           STAMP=$(date -u +'%Y-%m-%d')
-          # --no-owner and --no-acl keep the dump restorable into a
-          # fresh project that has different role names.
-          pg_dump "$DB_URL" \
-            --schema=public \
-            --no-owner \
-            --no-acl \
-            --format=plain \
-            | gzip -9 > "ivory-${STAMP}.sql.gz"
+
+          dump_with () {
+            pg_dump "$1" --schema=public --no-owner --no-acl \
+              --format=plain | gzip -9 > "ivory-${STAMP}.sql.gz"
+          }
+
+          # aws-0 is the usual pooler prefix; a few projects sit on
+          # aws-1. Try the second only if the first cannot be reached.
+          if ! dump_with "$URL"; then
+            ALT=$(echo "$URL" | sed 's/@aws-0-/@aws-1-/')
+            if [ "$ALT" != "$URL" ]; then
+              echo "First pooler host failed, trying aws-1..."
+              dump_with "$ALT"
+            else
+              exit 1
+            fi
+          fi
+
           ls -lh ivory-*.sql.gz
 
       - name: Make sure it is not empty
