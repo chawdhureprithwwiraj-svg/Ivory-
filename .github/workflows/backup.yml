@@ -1,0 +1,103 @@
+name: Nightly Ivory backup
+
+# WHY THIS EXISTS
+# Every member, payment, wish, subscription and message in Ivory
+# lives in one free-tier Supabase database. The free plan has no
+# point-in-time recovery: if that project is deleted, suspended or
+# corrupted, there is nothing to restore from.
+#
+# This takes a full SQL dump every night and keeps it as a GitHub
+# artifact for 90 days. It costs nothing, needs no server, and the
+# file it produces can rebuild the entire database from scratch.
+#
+# ONE SECRET TO ADD (you do this yourself, never share it):
+#   Repo -> Settings -> Secrets and variables -> Actions -> New secret
+#   Name:  SUPABASE_DB_URL
+#   Value: Supabase dashboard -> Project Settings -> Database ->
+#          Connection string -> URI (session mode, port 5432),
+#          with [YOUR-PASSWORD] replaced by the real password.
+
+on:
+  schedule:
+    # 03:30 UTC = 09:00 IST, after the night is over.
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    name: Dump the database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Install a matching Postgres client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_dump --version
+
+      - name: Check the secret is present
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "::error::SUPABASE_DB_URL is not set. Add it in Settings -> Secrets -> Actions."
+            exit 1
+          fi
+          echo "Secret found."
+
+      - name: Dump
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -o pipefail
+          STAMP=$(date -u +'%Y-%m-%d')
+          # --no-owner and --no-acl keep the dump restorable into a
+          # fresh project that has different role names.
+          pg_dump "$DB_URL" \
+            --schema=public \
+            --no-owner \
+            --no-acl \
+            --format=plain \
+            | gzip -9 > "ivory-${STAMP}.sql.gz"
+          ls -lh ivory-*.sql.gz
+
+      - name: Make sure it is not empty
+        run: |
+          SIZE=$(stat -c%s ivory-*.sql.gz)
+          echo "Dump size: ${SIZE} bytes"
+          if [ "$SIZE" -lt 10000 ]; then
+            echo "::error::The dump is suspiciously small. Check the connection string."
+            exit 1
+          fi
+          echo "--- first lines ---"
+          zcat ivory-*.sql.gz | head -20
+
+      - name: Keep it for 90 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: ivory-backup-${{ github.run_number }}
+          path: ivory-*.sql.gz
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Ivory backup"
+            echo ""
+            echo "Taken: $(date -u +'%d %b %Y %H:%M UTC')"
+            echo ""
+            echo "Download it from the Artifacts section of this run."
+            echo ""
+            echo "NOTE: this is the database only. Files in Supabase"
+            echo "Storage (uploaded images, audio, video) are NOT in"
+            echo "this dump - keep your own copies of those."
+          } >> $GITHUB_STEP_SUMMARY
+
+# END OF FILE - .github/workflows/backup.yml
