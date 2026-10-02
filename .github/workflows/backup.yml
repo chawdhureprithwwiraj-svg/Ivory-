@@ -35,12 +35,24 @@ jobs:
     steps:
       - name: Install a matching Postgres client
         run: |
+          # Supabase runs Postgres 17. pg_dump refuses to dump a
+          # server newer than itself, and Ubuntu ships 16 by default,
+          # so the PGDG client must be installed AND called by its
+          # full path - /usr/bin/pg_dump stays at 16 either way.
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-common
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
-          pg_dump --version
+
+          PGDUMP=$(ls -1 /usr/lib/postgresql/*/bin/pg_dump 2>/dev/null \
+                   | sort -V | tail -1)
+          if [ -z "$PGDUMP" ]; then
+            PGDUMP=$(command -v pg_dump)
+          fi
+          echo "PGDUMP=$PGDUMP" >> $GITHUB_ENV
+          echo "Using: $PGDUMP"
+          "$PGDUMP" --version
 
       - name: Check the secret is present
         run: |
@@ -91,17 +103,25 @@ jobs:
           STAMP=$(date -u +'%Y-%m-%d')
 
           dump_with () {
-            pg_dump "$1" --schema=public --no-owner --no-acl \
+            "${PGDUMP:-pg_dump}" "$1" --schema=public --no-owner --no-acl \
               --format=plain | gzip -9 > "ivory-${STAMP}.sql.gz"
           }
 
           # aws-0 is the usual pooler prefix; a few projects sit on
           # aws-1. Try the second only if the first cannot be reached.
-          if ! dump_with "$URL"; then
-            ALT=$(echo "$URL" | sed 's/@aws-0-/@aws-1-/')
-            if [ "$ALT" != "$URL" ]; then
-              echo "First pooler host failed, trying aws-1..."
-              dump_with "$ALT"
+          if ! dump_with "$URL" 2> /tmp/err.txt; then
+            cat /tmp/err.txt
+            # Only a genuine connection failure is worth retrying on
+            # the other pooler prefix. A version or password error
+            # would fail there too, and the real message gets lost.
+            if grep -qi "could not translate\|Network is unreachable\|Connection refused\|timeout" /tmp/err.txt; then
+              ALT=$(echo "$URL" | sed 's/@aws-0-/@aws-1-/')
+              if [ "$ALT" != "$URL" ]; then
+                echo "Host unreachable, trying aws-1..."
+                dump_with "$ALT"
+              else
+                exit 1
+              fi
             else
               exit 1
             fi
