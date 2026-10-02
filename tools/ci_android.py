@@ -92,6 +92,11 @@ GATED = [
 
 # These end with a marker line, so a paste cut short is caught in seconds.
 MARKED = [
+    'lib/services/compliance_service.dart',
+    'lib/screens/legal_screen.dart',
+    'lib/screens/admin_reports_tab.dart',
+    'lib/widgets/report_sheet.dart',
+    'lib/screens/login_screen.dart',
     'lib/widgets/post_unlock_sheet.dart',
     'lib/widgets/admin_post_chips.dart',
     'lib/screens/admin_create_tab.dart',
@@ -131,6 +136,19 @@ def write(path, text):
 
 # ----------------------------------------------------------------- verify
 
+# The compliance sprint arrives as one set whose files import each
+# other. Until the first of them appears, none is required; once it
+# does, all of them are.
+COMPLIANCE_SET = [
+    'lib/services/compliance_service.dart',
+    'lib/widgets/report_sheet.dart',
+    'lib/widgets/age_gate.dart',
+    'lib/widgets/ivory_field.dart',
+    'lib/screens/legal_screen.dart',
+    'lib/screens/admin_reports_tab.dart',
+]
+
+
 def cmd_verify():
     problems = 0
     pubspec = read('pubspec.yaml') if os.path.exists('pubspec.yaml') else ''
@@ -143,6 +161,13 @@ def cmd_verify():
                   % marker)
         else:
             print('%s not installed yet - skipping its files.' % marker)
+
+    if any(os.path.exists(f) for f in COMPLIANCE_SET):
+        needed.extend(COMPLIANCE_SET)
+        print('compliance sprint detected - all of its files are '
+              'required.')
+    else:
+        print('compliance sprint not installed yet - skipping its files.')
 
     for f in needed:
         if os.path.exists(f):
