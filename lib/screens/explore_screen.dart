@@ -104,7 +104,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   textInputAction: TextInputAction.search,
                   onSubmitted: (_) => _load(),
                   decoration: InputDecoration(
-                    hintText: 'Florence, silk, rain, desire...',
+                    hintText: 'Florence, silk, rain, midnight...',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _search.text.isEmpty
                         ? null
