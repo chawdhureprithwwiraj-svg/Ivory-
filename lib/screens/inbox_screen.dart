@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/ivory_notification.dart';
 import '../services/notification_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/report_sheet.dart';
 
 /// Sanctuary Inbox - announcements, new drops, wish updates.
 class InboxScreen extends StatefulWidget {
@@ -156,6 +157,11 @@ class _InboxScreenState extends State<InboxScreen> {
                 (IvoryNotification n) => _NotificationTile(
                   item: n,
                   onTap: () => _open(n),
+                  onLongPress: () => showReportSheet(
+                    context,
+                    preset: 'content',
+                    onOpenTab: widget.onOpenTab,
+                  ),
                 ),
               ),
           ],
@@ -166,10 +172,15 @@ class _InboxScreenState extends State<InboxScreen> {
 }
 
 class _NotificationTile extends StatelessWidget {
-  const _NotificationTile({required this.item, required this.onTap});
+  const _NotificationTile({
+    required this.item,
+    required this.onTap,
+    this.onLongPress,
+  });
 
   final IvoryNotification item;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -181,6 +192,7 @@ class _NotificationTile extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
           onTap: onTap,
+          onLongPress: onLongPress,
           child: Container(
             padding: const EdgeInsets.fromLTRB(15, 15, 15, 15),
             decoration: IvoryTheme.card(highlighted: unread, radius: 18),
@@ -390,3 +402,5 @@ class _Empty extends StatelessWidget {
     );
   }
 }
+
+// END OF FILE - lib/screens/inbox_screen.dart
