@@ -67,9 +67,9 @@ class ContentService {
       if (row['media_bucket'] == 'vault' &&
           ref != null && !ref.startsWith('http')) {
         try {
-          final signed =
+          final String signed =
               await _db.storage.from('vault').createSignedUrl(ref, 3600);
-          if (signed.signedUrl != null) row['media_ref'] = signed.signedUrl;
+          if (signed.isNotEmpty) row['media_ref'] = signed;
         } catch (_) {
           // Not entitled or storage hiccup: playback shows the
           // normal locked message instead of a URL.
