@@ -190,6 +190,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
           folder: _type == 'image'
               ? 'images'
               : (_type == 'audio' ? 'audio' : 'video'),
+          private: _type != 'image',
         );
         _uploadedUrl = mediaRef;
       }
