@@ -193,7 +193,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
               children: <InlineSpan>[
                 const TextSpan(text: 'Be the '),
                 TextSpan(
-                  text: 'King \u{1F451} of your own circle',
+                  text: 'First to read, first to hear \u{1F451}',
                   style: const TextStyle(
                     fontFamily: IvoryTheme.displayFont,
                     fontSize: 17,
