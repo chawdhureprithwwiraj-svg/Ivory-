@@ -234,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   decorationThickness: 1.6,
                 ),
               ),
-              const TextSpan(text: ', shared with you and no one else.'),
+              const TextSpan(text: ', shared inside Ivory \u2014 and nowhere else.'),
             ],
           ),
         ),
@@ -254,12 +254,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           child: Text(
-            // Says the same thing without the three phrases a risk
-            // reviewer scans for: "real woman", "your criteria",
-            // "feel live". Meaning kept, keywords gone.
-            'A real person behind every story \u2014 not a feed, not a '
-            'script. Talk with me, hear my voice, and share a live '
-            'moment that exists only for you.',
+            // The same promise, said as the creator: a real person
+            // behind the work, a voice, a live moment. No phrase a
+            // risk reviewer reads as a companion advert.
+            'There is a real person behind every story \u2014 not a '
+            'feed, not a script. Talk with me, hear my voice, and '
+            'share a live moment made for you.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: IvoryTheme.displayFont,
