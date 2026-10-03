@@ -8,6 +8,7 @@ import '../models/live_models.dart';
 import '../services/auth_service.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/house_consent.dart';
 import '../widgets/live_chat.dart';
 
 /// ============================================================
@@ -76,6 +77,14 @@ class _LiveScreenState extends State<LiveScreen> {
   }
 
   Future<void> _boot() async {
+    // A call begins with the house promise, never with a camera.
+    if (widget.mode == LiveMode.call) {
+      final bool ok = await askBetweenUs(context);
+      if (!ok) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
+    }
     try {
       // 1. Permissions. Audio-only never asks for the camera.
       final List<Permission> needed = <Permission>[
