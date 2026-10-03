@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/ivory_profile.dart';
+import 'legal_screen.dart';
 import '../models/payment.dart';
 import '../services/auth_service.dart';
 import '../services/payment_service.dart';
@@ -9,6 +10,7 @@ import '../services/push_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/member_pulse.dart';
 import '../widgets/premium_badge.dart';
+import '../widgets/report_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.onOpenTab});
@@ -262,6 +264,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _row(Icons.mail_outline, 'Sanctuary Inbox',
                   () => widget.onOpenTab?.call('inbox')),
 
+              const SizedBox(height: 12),
+              Center(
+                child: Column(
+                  children: <Widget>[
+                    GestureDetector(
+                      onTap: () => showReportSheet(context,
+                          onOpenTab: widget.onOpenTab),
+                      child: Text(
+                        "something's not right?",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: IvoryColors.textFaint,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const LegalScreen(),
+                        ),
+                      ),
+                      child: Text(
+                        'privacy, safety & terms',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: IvoryColors.textFaint,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 18),
               const Center(child: MemberPulseStrip(compact: true)),
 
@@ -377,3 +413,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       );
 }
+
+// END OF FILE - lib/screens/profile_screen.dart
