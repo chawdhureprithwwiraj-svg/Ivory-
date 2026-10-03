@@ -217,7 +217,7 @@ class _WishScreenState extends State<WishScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Virtual only · Consensual · Private',
+                  'Online only · By appointment · Private',
                   style: TextStyle(
                     color: IvoryColors.cream.withValues(alpha: 0.7),
                     fontSize: 11.8,
