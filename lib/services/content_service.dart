@@ -58,7 +58,24 @@ class ContentService {
     final dynamic res = await _db
         .rpc<dynamic>('open_post', params: <String, dynamic>{'post_id_in': id});
     if (res is List && res.isNotEmpty) {
-      return IvoryPost.fromFull(res.first as Map<String, dynamic>);
+      final Map<String, dynamic> row = res.first as Map<String, dynamic>;
+      // Vault media is private: swap the raw path for a one-hour
+      // signed URL. The vault's storage policy re-checks
+      // can_open_post(), so signing only ever succeeds for a member
+      // who may open the post.
+      final String? ref = row['media_ref'] as String?;
+      if (row['media_bucket'] == 'vault' &&
+          ref != null && !ref.startsWith('http')) {
+        try {
+          final signed =
+              await _db.storage.from('vault').createSignedUrl(ref, 3600);
+          if (signed.signedUrl != null) row['media_ref'] = signed.signedUrl;
+        } catch (_) {
+          // Not entitled or storage hiccup: playback shows the
+          // normal locked message instead of a URL.
+        }
+      }
+      return IvoryPost.fromFull(row);
     }
     return null;
   }
