@@ -218,3 +218,5 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 }
+
+// END OF FILE - lib/screens/explore_screen.dart
