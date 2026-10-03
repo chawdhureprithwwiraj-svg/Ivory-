@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/ivory_field.dart';
 import '../widgets/ivory_logo.dart';
 
 /// Sign in / create account, in the Ivory Golden Edition style.
@@ -83,6 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     FocusScope.of(context).unfocus();
 
     setState(() {
@@ -98,6 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
           displayName:
               _nameCtrl.text.isEmpty ? 'Anonymous Reader' : _nameCtrl.text,
         );
+
         if (!mounted) return;
         if (!AuthService.instance.isSignedIn) {
           setState(() {
@@ -206,10 +209,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             // The first thing anyone reads. It has to
                             // promise, not greet.
                             Text(
+                              // Warm, promising, and clean: it sells
+                              // the library and the voice, never a
+                              // relationship.
                               _isSignUp
-                                  ? 'You are about to enter a New World of '
-                                      'Real Connection which you have always '
-                                      'Craved for! Finally found it!'
+                                  ? 'Behind this door: real stories, a '
+                                      'real voice, and a quiet place to '
+                                      'keep them.'
                                   : 'Welcome back to your private world.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
@@ -223,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 20),
                             if (_isSignUp) ...<Widget>[
-                              _IvoryField(
+                              IvoryField(
                                 controller: _nameCtrl,
                                 label: 'Display name',
                                 hint: 'How others will see you',
@@ -238,7 +244,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 14),
                             ],
-                            _IvoryField(
+                            IvoryField(
                               controller: _emailCtrl,
                               label: 'Email',
                               hint: 'you@example.com',
@@ -254,7 +260,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       : null,
                             ),
                             const SizedBox(height: 14),
-                            _IvoryField(
+                            IvoryField(
                               controller: _passwordCtrl,
                               label: 'Password',
                               hint: 'At least 6 characters',
@@ -401,49 +407,4 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class _IvoryField extends StatelessWidget {
-  const _IvoryField({
-    required this.controller,
-    required this.label,
-    required this.icon,
-    this.hint,
-    this.obscure = false,
-    this.keyboardType,
-    this.validator,
-    this.suffix,
-    this.autofillHints,
-    this.onSubmitted,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final String? hint;
-  final IconData icon;
-  final bool obscure;
-  final TextInputType? keyboardType;
-  final String? Function(String?)? validator;
-  final Widget? suffix;
-  final List<String>? autofillHints;
-  final void Function(String)? onSubmitted;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscure,
-      keyboardType: keyboardType,
-      validator: validator,
-      autofillHints: autofillHints,
-      onFieldSubmitted: onSubmitted,
-      textInputAction:
-          onSubmitted != null ? TextInputAction.done : TextInputAction.next,
-      style: const TextStyle(color: IvoryColors.burgundy, fontSize: 15),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon, size: 20),
-        suffixIcon: suffix,
-      ),
-    );
-  }
-}
+// END OF FILE - lib/screens/login_screen.dart
