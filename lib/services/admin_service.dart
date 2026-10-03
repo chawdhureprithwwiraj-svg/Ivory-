@@ -80,19 +80,23 @@ class AdminService {
   // =================================================================
 
   /// Uploads into the public "media" bucket and returns the finished
-  /// public URL. The URL is stored as the post's media_ref with source
-  /// "supabase", so nothing else in the app needs to know about buckets.
+  /// public URL - unless [private] is set, in which case the file goes
+  /// to the private "vault" bucket and the raw path is returned. A
+  /// playable signed URL for vault files is handed out later by
+  /// open_post(), and only to a member who may open the post.
   ///
   /// [folder] keeps the bucket tidy: images/, audio/, video/, thumbs/.
   Future<String> upload(
     PickedMedia media, {
     String folder = 'uploads',
+    bool private = false,
   }) async {
+    final String bucket = private ? 'vault' : mediaBucket;
     final String safe = _safeName(media.name);
     final String path =
         '$folder/${DateTime.now().millisecondsSinceEpoch}_$safe';
 
-    await _db.storage.from(mediaBucket).uploadBinary(
+    await _db.storage.from(bucket).uploadBinary(
           path,
           media.bytes,
           fileOptions: FileOptions(
@@ -101,7 +105,7 @@ class AdminService {
           ),
         );
 
-    return _db.storage.from(mediaBucket).getPublicUrl(path);
+    return private ? path : _db.storage.from(bucket).getPublicUrl(path);
   }
 
   static String _safeName(String name) {
