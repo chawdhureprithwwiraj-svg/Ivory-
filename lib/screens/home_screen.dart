@@ -178,7 +178,6 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 20),
         _freeForever(),
         const SizedBox(height: 12),
-        _trust(Icons.verified_user_outlined, 'Consensual & lawful'),
         const SizedBox(height: 18),
         const MemberPulseStrip(),
         const SizedBox(height: 18),
@@ -317,20 +316,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  Widget _trust(IconData icon, String label) => Center(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(icon, size: 14, color: IvoryColors.success),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(fontSize: 11.8, color: IvoryColors.textSoft),
-            ),
-          ],
-        ),
-      );
 
   Widget _errorBox() => Container(
         padding: const EdgeInsets.all(20),
