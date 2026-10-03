@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/ivory_field.dart';
 import '../widgets/ivory_logo.dart';
+import '../widgets/house_consent.dart';
 
 /// Sign in / create account, in the Ivory Golden Edition style.
 ///
@@ -29,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _busy = false;
   bool _obscure = true;
   bool _remember = true;
+  bool _adult = false;
   String? _message;
   bool _messageIsError = true;
 
@@ -85,6 +88,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_isSignUp && !_adult) {
+      setState(() {
+        _messageIsError = true;
+        _message = 'Tick the house promise first, then create the account.';
+      });
+      return;
+    }
+
     FocusScope.of(context).unfocus();
 
     setState(() {
@@ -100,6 +111,17 @@ class _LoginScreenState extends State<LoginScreen> {
           displayName:
               _nameCtrl.text.isEmpty ? 'Anonymous Reader' : _nameCtrl.text,
         );
+
+        // The tick is recorded even before email confirmation, through
+        // the narrow security-definer door in Postgres.
+        try {
+          await Supabase.instance.client.rpc<dynamic>(
+            'record_signup_consent',
+            params: <String, dynamic>{'email_in': _emailCtrl.text.trim()},
+          );
+        } catch (_) {
+          // The promise was ticked; a recorder hiccup is not fatal.
+        }
 
         if (!mounted) return;
         if (!AuthService.instance.isSignedIn) {
@@ -287,6 +309,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ? 'Password must be at least 6 characters'
                                       : null,
                             ),
+
+                            // ---- the house promise (sign-up only) ----
+                            if (_isSignUp) ...<Widget>[
+                              const SizedBox(height: 16),
+                              AdultPromiseTile(
+                                value: _adult,
+                                onChanged: (bool v) =>
+                                    setState(() => _adult = v),
+                              ),
+                            ],
 
                             // ---- remember me ----
                             const SizedBox(height: 6),
