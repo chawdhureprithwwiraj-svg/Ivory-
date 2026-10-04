@@ -127,7 +127,7 @@ class _StoryDoorBandState extends State<StoryDoorBand> {
             width: double.infinity,
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(
+                side: BorderSide(
                     color: IvoryColors.hairlineStrong, width: 1.2),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
