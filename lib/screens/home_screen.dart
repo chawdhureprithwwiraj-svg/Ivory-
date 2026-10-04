@@ -6,6 +6,7 @@ import '../theme/ivory_theme.dart';
 import '../widgets/ivory_logo.dart';
 import '../widgets/live_banner.dart';
 import '../widgets/member_pulse.dart';
+import '../widgets/story_door.dart';
 import '../widgets/post_actions.dart';
 import '../widgets/post_card.dart';
 
@@ -177,7 +178,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 20),
         _freeForever(),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
+        const StoryDoorBand(),
         const SizedBox(height: 18),
         const MemberPulseStrip(),
         const SizedBox(height: 18),
