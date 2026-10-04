@@ -6,6 +6,7 @@ import '../models/ivory_post.dart';
 import '../models/payment.dart';
 import '../services/content_service.dart';
 import '../services/payment_service.dart';
+import '../services/razorpay_service.dart';
 import '../theme/ivory_theme.dart';
 
 /// ============================================================
@@ -36,9 +37,14 @@ class _PostUnlockSheetState extends State<PostUnlockSheet> {
   String? _message;
   bool _done = false;
 
+  String _mode = 'upi';
+
   @override
   void initState() {
     super.initState();
+    RazorpayService.instance.fetchMode().then((String m) {
+      if (mounted) setState(() => _mode = m);
+    });
     _load();
   }
 
@@ -154,7 +160,16 @@ class _PostUnlockSheetState extends State<PostUnlockSheet> {
                 ),
               ),
               const SizedBox(height: 20),
-              if (_done) ..._thanks(context) else ..._form(context, p, ready),
+              if (_done)
+                ..._thanks(context)
+              else if (_mode == 'razorpay') ...<Widget>[
+                RazorpayPayPanel(
+                  purpose: 'post_unlock',
+                  postId: p.id,
+                  label: p.title,
+                ),
+              ] else
+                ..._form(context, p, ready),
             ],
           ),
         ),
