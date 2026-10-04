@@ -117,6 +117,22 @@ class PostActions {
 
 String _clean(String title) => title.replaceFirst('[SAMPLE] ', '');
 
+Widget _doorStamp(IvoryPost post) =>
+    post.doorCredit == null
+        ? const SizedBox.shrink()
+        : Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              'FROM THE STORY DOOR · story by ${post.doorCredit}',
+              style: TextStyle(
+                fontSize: 10.5,
+                letterSpacing: 1.1,
+                fontWeight: FontWeight.w800,
+                color: IvoryColors.plum,
+              ),
+            ),
+          );
+
 Widget _giftRow(BuildContext context, IvoryPost post) => Padding(
       padding: const EdgeInsets.only(top: 26),
       child: Center(
@@ -146,6 +162,7 @@ class _ReaderBody extends StatelessWidget {
       children: <Widget>[
         const IvoryEyebrow('Written story', icon: Icons.auto_stories),
         const SizedBox(height: 10),
+        _doorStamp(post),
         Text(_clean(post.title),
             style: Theme.of(context).textTheme.headlineLarge),
         const SizedBox(height: 8),
@@ -190,6 +207,7 @@ class _MediaBody extends StatelessWidget {
       children: <Widget>[
         IvoryEyebrow(post.type.label, icon: PostCardIcons.of(post.type)),
         const SizedBox(height: 10),
+        _doorStamp(post),
         Text(_clean(post.title),
             style: Theme.of(context).textTheme.headlineLarge),
         if (post.summary != null) ...<Widget>[
