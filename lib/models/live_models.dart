@@ -329,6 +329,76 @@ double _sin(double x) {
   return sum;
 }
 
+/// One item in the gift catalogue. Editable in the database, so a
+/// rose can become a candle without a rebuild.
+class Gift {
+  const Gift({
+    required this.id,
+    required this.name,
+    required this.emoji,
+    required this.priceInr,
+    this.line,
+  });
+
+  final int id;
+  final String name;
+  final String emoji;
+  final int priceInr;
+  final String? line;
+
+  factory Gift.fromDb(Map<String, dynamic> m) => Gift(
+        id: (m['id'] as num).toInt(),
+        name: (m['name'] as String?) ?? 'A gift',
+        emoji: (m['emoji'] as String?) ?? '\u{1F90D}',
+        priceInr: ((m['price_inr'] as num?) ?? 0).toInt(),
+        line: m['line'] as String?,
+      );
+}
+
+/// A gift that was actually sent. Pending until the reference is
+/// verified, then it turns gold.
+class GiftSend {
+  const GiftSend({
+    required this.id,
+    required this.name,
+    required this.emoji,
+    required this.amountInr,
+    required this.status,
+    this.sender,
+    this.email,
+    this.note,
+    this.utr,
+    this.createdAt,
+  });
+
+  final int id;
+  final String name;
+  final String emoji;
+  final int amountInr;
+  final String status;
+  final String? sender;
+  final String? email;
+  final String? note;
+  final String? utr;
+  final DateTime? createdAt;
+
+  bool get isConfirmed => status == 'confirmed';
+  bool get isPending => status == 'pending';
+
+  factory GiftSend.fromDb(Map<String, dynamic> m) => GiftSend(
+        id: (m['id'] as num).toInt(),
+        name: (m['name'] as String?) ?? 'A gift',
+        emoji: (m['emoji'] as String?) ?? '\u{1F90D}',
+        amountInr: ((m['amount_inr'] as num?) ?? 0).toInt(),
+        status: (m['status'] as String?) ?? 'pending',
+        sender: m['sender'] as String?,
+        email: m['email'] as String?,
+        note: m['note'] as String?,
+        utr: m['utr'] as String?,
+        createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
+      );
+}
+
 /// A line of chat during a broadcast. The only way a viewer takes
 /// part: nobody but the host ever gets a microphone.
 class LiveMessage {
