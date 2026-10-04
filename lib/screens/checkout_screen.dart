@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/payment.dart';
 import '../services/payment_service.dart';
+import '../services/razorpay_service.dart';
 import '../theme/ivory_theme.dart';
 
 /// The UPI checkout.
@@ -41,6 +42,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   IvoryPayment? _pending;
   File? _proof;
   bool _loading = true;
+  String _mode = 'upi';
   bool _submitting = false;
   bool _done = false;
   String? _error;
@@ -50,6 +52,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     _load();
+    RazorpayService.instance.fetchMode().then((String m) {
+      if (mounted) setState(() => _mode = m);
+    });
   }
 
   @override
@@ -202,6 +207,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         _submittedCard()
                       else if (_pending != null)
                         _pendingCard(_pending!)
+                      else if (_mode == 'razorpay')
+                        RazorpayPayPanel(
+                          purpose: 'subscription',
+                          tierId: widget.tierId,
+                          label: widget.tierName,
+                        )
                       else ...<Widget>[
                         _stepOne(),
                         const SizedBox(height: 16),
@@ -607,3 +618,5 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 }
+
+// END OF FILE - lib/screens/checkout_screen.dart
