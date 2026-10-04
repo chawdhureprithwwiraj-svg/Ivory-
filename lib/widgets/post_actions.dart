@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/ivory_post.dart';
 import '../models/media_ref.dart';
 import '../services/content_service.dart';
+import 'gift_sheet.dart';
 import '../theme/ivory_theme.dart';
 import 'ivory_media_view.dart';
 import 'post_unlock_sheet.dart';
@@ -116,6 +117,20 @@ class PostActions {
 
 String _clean(String title) => title.replaceFirst('[SAMPLE] ', '');
 
+Widget _giftRow(BuildContext context, IvoryPost post) => Padding(
+      padding: const EdgeInsets.only(top: 26),
+      child: Center(
+        child: TextButton.icon(
+          onPressed: () => showGiftSheet(context, postId: post.id),
+          icon: const Text('💌', style: TextStyle(fontSize: 15)),
+          label: Text(
+            'send a gift',
+            style: TextStyle(color: IvoryColors.textFaint, fontSize: 12.5),
+          ),
+        ),
+      ),
+    );
+
 // =====================================================================
 // Written story
 // =====================================================================
@@ -148,6 +163,7 @@ class _ReaderBody extends StatelessWidget {
             color: IvoryColors.burgundy,
           ),
         ),
+        _giftRow(context, post),
       ],
     );
   }
@@ -277,6 +293,7 @@ class _MediaBody extends StatelessWidget {
             ],
           ),
         ],
+        _giftRow(context, post),
       ],
     );
   }
@@ -542,3 +559,5 @@ class _PollBodyState extends State<_PollBody> {
     );
   }
 }
+
+// END OF FILE - lib/widgets/post_actions.dart
