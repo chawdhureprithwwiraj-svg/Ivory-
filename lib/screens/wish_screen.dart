@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/wish.dart';
 import '../services/wish_service.dart';
+import '../services/razorpay_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/call_wish_sheet.dart';
 import 'wish_form.dart';
@@ -42,11 +43,15 @@ class _WishScreenState extends State<WishScreen> {
   List<Wish> _mine = <Wish>[];
   bool _loading = true;
   String? _error;
+  String _mode = 'upi';
 
   @override
   void initState() {
     super.initState();
     _load();
+    RazorpayService.instance.fetchMode().then((String m) {
+      if (mounted) setState(() => _mode = m);
+    });
   }
 
   Future<void> _load() async {
@@ -419,6 +424,14 @@ class _WishScreenState extends State<WishScreen> {
                   fontSize: 13.5,
                   height: 1.45,
                 ),
+              ),
+            ],
+            if (w.status == 'accepted' && _mode == 'razorpay') ...<Widget>[
+              const SizedBox(height: 12),
+              RazorpayPayPanel(
+                purpose: 'custom_request',
+                customRequestId: w.id,
+                label: w.title,
               ),
             ],
           ],
