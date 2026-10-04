@@ -61,6 +61,7 @@ class IvoryPost {
     this.media = const MediaRef(source: MediaSource.none, ref: null),
     this.thumb = const MediaRef(source: MediaSource.none, ref: null),
     this.thumbnailUrl,
+    this.doorCredit,
   });
 
   final int id;
@@ -89,6 +90,9 @@ class IvoryPost {
   final MediaRef media;
   final MediaRef thumb;
   final String? thumbnailUrl;
+
+  /// Stamped on posts born at the Story Door.
+  final String? doorCredit;
 
   bool get isPremium => tierRequired > 0;
   bool get isLocked => isPremium && !isUnlocked;
@@ -203,6 +207,7 @@ class IvoryPost {
       ),
       thumb: preview.thumb,
       thumbnailUrl: preview.thumbnailUrl,
+      doorCredit: m['door_credit'] as String?,
     );
   }
 }
@@ -225,3 +230,5 @@ class PollOption {
         votes: ((m['votes'] as num?) ?? 0).toInt(),
       );
 }
+
+// END OF FILE - lib/models/ivory_post.dart
