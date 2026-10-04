@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/media_ref.dart';
 import '../services/admin_service.dart';
@@ -40,6 +41,9 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
   /// Rupees to open this one post. Empty or 0 = not for sale.
   final TextEditingController _price = TextEditingController();
+
+  /// A story born at the door wears this credit.
+  final TextEditingController _doorCredit = TextEditingController();
 
   /// The tier that opens a priced post for free. Null = nobody.
   int? _freeFrom;
@@ -232,6 +236,14 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
       // The price is set straight after, so publish_post stays the
       // one function that creates a post.
+      final String door = _doorCredit.text.trim();
+      if (door.isNotEmpty) {
+        await Supabase.instance.client
+            .from('posts')
+            .update(<String, dynamic>{'door_credit': door})
+            .eq('id', newId);
+      }
+
       final int price = int.tryParse(_price.text.trim()) ?? 0;
       if (price > 0) {
         await AdminService.instance.setPostPrice(
@@ -274,6 +286,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
       _uploadedThumbUrl = null;
       _tier = 0;
       _price.clear();
+      _doorCredit.clear();
       _freeFrom = null;
       _publishNow = true;
       _libraryStamp++;
@@ -386,6 +399,16 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
             decoration: const InputDecoration(
               labelText: 'Price in rupees (optional)',
               hintText: 'e.g. 299',
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _doorCredit,
+            maxLength: 40,
+            decoration: const InputDecoration(
+              counterText: '',
+              labelText: 'Story door credit (optional)',
+              hintText: 'Stamps "FROM THE STORY DOOR - story by ..."',
             ),
           ),
           if ((int.tryParse(_price.text.trim()) ?? 0) > 0) ...<Widget>[
