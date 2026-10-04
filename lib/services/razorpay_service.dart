@@ -40,6 +40,8 @@ class RazorpayPayPanel extends StatefulWidget {
     this.tierId,
     this.postId,
     this.customRequestId,
+    this.giftSendId,
+    this.onUnlocked,
     required this.label,
   });
 
@@ -47,6 +49,8 @@ class RazorpayPayPanel extends StatefulWidget {
   final int? tierId;
   final int? postId;
   final int? customRequestId;
+  final int? giftSendId;
+  final VoidCallback? onUnlocked;
   final String label;
 
   @override
@@ -112,6 +116,7 @@ class _RazorpayPayPanelState extends State<RazorpayPayPanel> {
           _busy = false;
           _done = true;
         });
+        widget.onUnlocked?.call();
       } else {
         setState(() {
           _busy = false;
@@ -144,6 +149,7 @@ class _RazorpayPayPanelState extends State<RazorpayPayPanel> {
           'tier_id': widget.tierId,
           'post_id': widget.postId,
           'custom_request_id': widget.customRequestId,
+          'gift_send_id': widget.giftSendId,
         },
       );
       if (fr.status != 200) {
