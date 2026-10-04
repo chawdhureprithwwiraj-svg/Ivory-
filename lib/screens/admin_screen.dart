@@ -10,6 +10,7 @@ import 'admin_create_tab.dart';
 import 'admin_payments_tab.dart';
 import 'admin_tiers_tab.dart';
 import 'admin_wishes_tab.dart';
+import 'admin_stories_tab.dart';
 
 /// The mobile admin console. Every action is re-checked by the database,
 /// so a member who somehow reaches this screen can do nothing.
@@ -22,7 +23,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 9, vsync: this);
+  late final TabController _tabs = TabController(length: 10, vsync: this);
 
   @override
   void dispose() {
@@ -56,6 +57,7 @@ class _AdminScreenState extends State<AdminScreen>
             Tab(text: 'BROADCAST'),
             Tab(text: 'TIERS'),
             Tab(text: 'WISHES'),
+            Tab(text: 'STORIES'),
             Tab(text: 'PAYMENTS'),
           ],
         ),
@@ -74,6 +76,7 @@ class _AdminScreenState extends State<AdminScreen>
               AdminBroadcastTab(),
               AdminTiersTab(),
               AdminWishesTab(),
+              AdminStoriesTab(),
               AdminPaymentsTab(),
             ],
           ),
