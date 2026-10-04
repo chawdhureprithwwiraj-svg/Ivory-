@@ -9,6 +9,7 @@ import '../services/auth_service.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/house_consent.dart';
+import '../widgets/gift_sheet.dart';
 import '../widgets/live_chat.dart';
 
 /// ============================================================
@@ -287,6 +288,17 @@ class _LiveScreenState extends State<LiveScreen> {
               ),
             ),
             const SizedBox(width: 10),
+          ],
+          if (_joined && _error == null &&
+              widget.mode != LiveMode.host) ...<Widget>[
+            IconButton(
+              tooltip: 'Send a gift',
+              padding: EdgeInsets.zero,
+              icon: const Text('💌', style: TextStyle(fontSize: 18)),
+              onPressed: () =>
+                  showGiftSheet(context, sessionId: widget.sessionId),
+            ),
+            const SizedBox(width: 2),
           ],
           Expanded(
             child: Column(
