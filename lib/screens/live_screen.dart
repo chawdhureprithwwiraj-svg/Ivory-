@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/live_models.dart';
 import '../services/auth_service.dart';
@@ -11,6 +12,7 @@ import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/house_consent.dart';
 import '../widgets/gift_sheet.dart';
+import '../widgets/gift_moment.dart';
 import '../widgets/live_chat.dart';
 
 /// Edge and database errors arrive wrapped in transport noise.
@@ -70,6 +72,8 @@ class _LiveScreenState extends State<LiveScreen> {
   String _status = 'Connecting you...';
   String? _error;
   bool _joined = false;
+  bool _ended = false;
+  RealtimeChannel? _statusChannel;
   int? _remoteUid;
   bool _micOn = true;
   bool _camOn = true;
@@ -84,6 +88,20 @@ class _LiveScreenState extends State<LiveScreen> {
   @override
   void initState() {
     super.initState();
+    _statusChannel = LiveService.instance.watchStatus(
+      widget.sessionId,
+      (String st) {
+        if (st == 'ended' &&
+            widget.mode != LiveMode.host &&
+            mounted &&
+            !_ended) {
+          setState(() => _ended = true);
+          Future<void>.delayed(const Duration(seconds: 4), () {
+            if (mounted) Navigator.of(context).pop();
+          });
+        }
+      },
+    );
     _boot();
   }
 
@@ -227,6 +245,8 @@ class _LiveScreenState extends State<LiveScreen> {
 
   @override
   void dispose() {
+    final RealtimeChannel? sc = _statusChannel;
+    if (sc != null) LiveService.instance.stopWatching(sc);
     _leave();
     super.dispose();
   }
@@ -261,7 +281,14 @@ class _LiveScreenState extends State<LiveScreen> {
                   child: _stage(),
                 ),
                 if (_joined && _error == null)
-                  Expanded(child: LiveChat(sessionId: widget.sessionId))
+                  Expanded(
+                    child: LiveChat(
+                      sessionId: widget.sessionId,
+                      onGift: (String emoji, String label, String? from) =>
+                          GiftMoment.show(context,
+                              emoji: emoji, name: label, from: from),
+                    ),
+                  )
                 else
                   const Expanded(child: SizedBox.shrink()),
               ],
@@ -346,6 +373,8 @@ class _LiveScreenState extends State<LiveScreen> {
   }
 
   Widget _stage() {
+    if (_ended)
+      return _message('The broadcast has ended. Thank you for being here.');
     if (_error != null) return _message(_error!, isError: true);
 
     final RtcEngine? engine = _engine;
