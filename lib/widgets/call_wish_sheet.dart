@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../models/wish.dart';
 import '../screens/live_screen.dart';
@@ -42,7 +41,6 @@ class CallWishSheet extends StatefulWidget {
 
 class _CallWishSheetState extends State<CallWishSheet> {
   CallBalance _balance = CallBalance.none;
-  BookingLink? _link;
   List<CallRequest> _mine = <CallRequest>[];
   bool _loading = true;
   bool _busy = false;
@@ -60,12 +58,10 @@ class _CallWishSheetState extends State<CallWishSheet> {
   Future<void> _load() async {
     try {
       final CallBalance b = await LiveService.instance.balance(_kind);
-      final BookingLink? l = await LiveService.instance.bookingLink(_kind);
       final List<CallRequest> all = await LiveService.instance.myCalls();
       if (!mounted) return;
       setState(() {
         _balance = b;
-        _link = l;
         _mine = all
             .where((CallRequest c) =>
                 c.kind == _kind &&
@@ -82,16 +78,6 @@ class _CallWishSheetState extends State<CallWishSheet> {
         _message = e.toString().replaceFirst('Exception: ', '');
       });
     }
-  }
-
-  Future<void> _openBooking() async {
-    final String? url = _link?.url;
-    if (url == null) {
-      setState(() => _message =
-          'The booking page is not published yet. Ask again shortly.');
-      return;
-    }
-    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
   Future<void> _request({required bool paid}) async {
@@ -137,6 +123,10 @@ class _CallWishSheetState extends State<CallWishSheet> {
     );
     _load();
   }
+
+  String _when(DateTime d) =>
+      '${d.day}/${d.month}, ${d.hour.toString().padLeft(2, '0')}'
+      ':${d.minute.toString().padLeft(2, '0')}';
 
   String _dmy(DateTime d) {
     const List<String> m = <String>[
@@ -317,9 +307,12 @@ class _CallWishSheetState extends State<CallWishSheet> {
             if (_balance.resetsAt != null) ...<Widget>[
               const SizedBox(height: 9),
               Text(
-                'Your cycle renews on ${_dmy(_balance.resetsAt!)} - counted '
-                'from the day you joined this tier, not the calendar month. '
-                'Minutes do not carry over.',
+                _balance.period == 'membership'
+                    ? 'This cycle ends when your membership ends. Minutes '
+                        'do not carry over.'
+                    : 'Your cycle renews on ${_dmy(_balance.resetsAt!)} - '
+                        'counted from the day you joined this tier, not '
+                        'the calendar month. Minutes do not carry over.',
                 style: TextStyle(
                   fontSize: 12,
                   height: 1.45,
@@ -411,6 +404,15 @@ class _CallWishSheetState extends State<CallWishSheet> {
                   '${c.priceInr > 0 ? ' - Rs.${c.priceInr}' : ' - included'}',
                   style: TextStyle(fontSize: 12.5, color: IvoryColors.textSoft),
                 ),
+                if (c.canJoin && c.requestedFor != null)
+                  Text(
+                    'Agreed for ${_when(c.requestedFor!)} - JOIN wakes up a '
+                    'little before.',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: IvoryColors.plum),
+                  ),
               ],
             ),
           ),
@@ -434,8 +436,8 @@ class _CallWishSheetState extends State<CallWishSheet> {
         _sectionLabel('How it works'),
         _step(1, 'Ask for the session', 'I am told straight away and confirm '
             'it from my side.'),
-        _step(2, 'Pick a time', 'My calendar opens with only the hours I am '
-            'genuinely free.'),
+        _step(2, 'We agree on a time', 'I confirm it and set the time from '
+            'my side - you are told at once.'),
         _step(3, 'Come back to Ivory', 'At that time, open this sheet and tap '
             'JOIN. The call happens here, never on another app.'),
         const SizedBox(height: 18),
@@ -453,12 +455,6 @@ class _CallWishSheetState extends State<CallWishSheet> {
             icon: Icons.auto_awesome,
             onPressed: _busy ? null : () => _request(paid: true),
           ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: _openBooking,
-          icon: const Icon(Icons.event_available_rounded, size: 19),
-          label: Text(_link?.headline ?? 'Pick a time'),
-        ),
         if (!canAskFree) ...<Widget>[
           const SizedBox(height: 10),
           OutlinedButton.icon(
