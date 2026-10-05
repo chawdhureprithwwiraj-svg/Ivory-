@@ -8,6 +8,11 @@ import '../models/live_models.dart';
 import '../services/auth_service.dart';
 import '../services/live_service.dart';
 
+import '../theme/ivory_theme.dart';
+import '../widgets/house_consent.dart';
+import '../widgets/gift_sheet.dart';
+import '../widgets/live_chat.dart';
+
 /// Edge and database errors arrive wrapped in transport noise.
 /// Keep only the sentence the house actually wrote.
 String _cleanErr(Object e) {
@@ -16,10 +21,6 @@ String _cleanErr(Object e) {
   if (m != null) return m.group(1)!;
   return raw.replaceFirst('Exception: ', '');
 }
-import '../theme/ivory_theme.dart';
-import '../widgets/house_consent.dart';
-import '../widgets/gift_sheet.dart';
-import '../widgets/live_chat.dart';
 
 /// ============================================================
 /// IVORY - THE LIVE ROOM
