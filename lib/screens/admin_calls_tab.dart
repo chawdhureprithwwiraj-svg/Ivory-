@@ -61,14 +61,50 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
   }
 
   Future<void> _accept(AdminCall c) async {
-    final DateTime? when = await _pickTime(c);
-    if (when == null) return;
-    final DateTime? until = await _pickWindowEnd(when);
     try {
       await LiveService.instance.respondToCall(c.id, accept: true);
-      await LiveService.instance.setCallTime(c.id, when,
-          windowEnd: until);
-      _say('Accepted. ${c.displayName} has been told.');
+      _say('Accepted. ${c.displayName} will now pick their slot on '
+          'your cal.com calendar.');
+    } catch (e) {
+      _say(e.toString().replaceFirst('Exception: ', ''));
+    }
+    _load();
+  }
+
+  /// The member is in the room: offer them more minutes at a price
+  /// you set. Only wish-payers ever see it on their screen.
+  Future<void> _offerExtension(AdminCall c) async {
+    final TextEditingController price = TextEditingController();
+    final int? amount = await showDialog<int>(
+      context: context,
+      builder: (BuildContext d) => AlertDialog(
+        backgroundColor: IvoryColors.surface,
+        title: const Text('Offer more time',
+            style: TextStyle(color: IvoryColors.burgundy)),
+        content: TextField(
+          controller: price,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Price for the extension (Rs.)',
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(d),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(d, int.tryParse(price.text.trim())),
+            child: const Text('OFFER'),
+          ),
+        ],
+      ),
+    );
+    if (amount == null || amount <= 0) return;
+    try {
+      await LiveService.instance.offerExtension(c.id, amount);
+      _say('Offered. They will see it on their call screen.');
     } catch (e) {
       _say(e.toString().replaceFirst('Exception: ', ''));
     }
@@ -112,50 +148,6 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
     if (time == null) return null;
 
     return DateTime(day.year, day.month, day.day, time.hour, time.minute);
-  }
-
-  /// Optionally offer a window: any time between X and Y.
-  Future<DateTime?> _pickWindowEnd(DateTime start) async {
-    final bool? want = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext c) => AlertDialog(
-        backgroundColor: IvoryColors.surface,
-        title: const Text('A single time, or a window?',
-            style: TextStyle(color: IvoryColors.burgundy)),
-        content: const Text(
-            'A window lets the member join at any moment between the two '
-            'times you set - kinder on their day.',
-            style: TextStyle(fontSize: 13.5)),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('SINGLE TIME'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('OFFER A WINDOW'),
-          ),
-        ],
-      ),
-    );
-    if (want != true || !mounted) return null;
-    final DateTime? day = await showDatePicker(
-      context: context,
-      initialDate: start,
-      firstDate: start,
-      lastDate: start.add(const Duration(days: 60)),
-      helpText: 'Window ends on?',
-    );
-    if (day == null || !mounted) return null;
-    final TimeOfDay? time = await showTimePicker(
-      context: context,
-      initialTime: const TimeOfDay(hour: 22, minute: 0),
-      helpText: 'Window ends at?',
-    );
-    if (time == null || !mounted) return null;
-    final DateTime end =
-        DateTime(day.year, day.month, day.day, time.hour, time.minute);
-    return end.isAfter(start) ? end : null;
   }
 
   Future<bool> _confirm(String title, String body) async {
@@ -371,7 +363,9 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
           Text(
             c.requestedFor != null
                 ? 'Agreed for ${_when(c.requestedFor!)}'
-                : 'No time agreed yet',
+                : c.status == 'accepted'
+                    ? 'Waiting for them to pick a slot on cal.com'
+                    : 'No time agreed yet',
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
@@ -409,6 +403,16 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
                   ),
                 ),
               ],
+            ),
+          ],
+          if (c.status == 'active' && !c.extensionPaid) ...<Widget>[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => _offerExtension(c),
+              icon: const Icon(Icons.hourglass_bottom_rounded, size: 17),
+              label: Text(c.extensionPrice == null
+                  ? 'OFFER EXTENSION'
+                  : 'EXTENSION OFFERED AT RS.${c.extensionPrice}'),
             ),
           ],
           if (joinable) ...<Widget>[
