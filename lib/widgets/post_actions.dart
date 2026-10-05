@@ -3,6 +3,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/ivory_post.dart';
 import '../models/media_ref.dart';
+import '../screens/main_shell.dart';
+import '../services/auth_service.dart';
 import '../services/content_service.dart';
 import 'gift_sheet.dart';
 import '../theme/ivory_theme.dart';
@@ -413,6 +415,15 @@ class _LockedBody extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 18),
+        IvoryGradientButton(
+          label: 'SEE THE PLANS',
+          icon: Icons.workspace_premium_rounded,
+          onPressed: () {
+            Navigator.of(context).pop();
+            MainShell.openTab('premium');
+          },
+        ),
       ],
     );
   }
@@ -432,8 +443,13 @@ class _PollBody extends StatefulWidget {
 
 class _PollBodyState extends State<_PollBody> {
   List<PollOption> _options = <PollOption>[];
+  Map<int, List<String>> _voters = <int, List<String>>{};
   int? _myVote;
   bool _loading = true;
+
+  /// Members see only percentages. The house sees the counts and
+  /// exactly who voted for what.
+  final bool _house = AuthService.instance.isAdminCached;
 
   @override
   void initState() {
@@ -445,10 +461,15 @@ class _PollBodyState extends State<_PollBody> {
     final List<PollOption> o =
         await ContentService.instance.fetchPollOptions(widget.post.id);
     final int? mine = await ContentService.instance.myVote(widget.post.id);
+    final Map<int, List<String>> voters =
+        AuthService.instance.isAdminCached
+            ? await ContentService.instance.fetchPollVoters(widget.post.id)
+            : <int, List<String>>{};
     if (!mounted) return;
     setState(() {
       _options = o;
       _myVote = mine;
+      _voters = voters;
       _loading = false;
     });
   }
@@ -488,94 +509,82 @@ class _PollBodyState extends State<_PollBody> {
         else
           ..._options.map((PollOption o) {
             final bool mine = _myVote == o.id;
-            final double pct = total == 0 ? 0 : o.votes / total;
+            final int pct =
+                total == 0 ? 0 : (o.votes * 100 / total).round();
+            final List<String> voters = _voters[o.id] ?? <String>[];
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 10),
               child: InkWell(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 onTap: () => _vote(o.id),
                 child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: IvoryColors.surface,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: mine
                           ? IvoryColors.gold
                           : IvoryColors.hairlineStrong,
-                      width: mine ? 2 : 1,
+                      width: mine ? 1.6 : 1,
                     ),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      FractionallySizedBox(
-                        widthFactor: pct.clamp(0.0, 1.0),
-                        child: Container(
-                          height: 56,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: <Color>[
-                                IvoryColors.amber.withValues(alpha: 0.45),
-                                IvoryColors.peach.withValues(alpha: 0.35),
-                              ],
+                      Row(
+                        children: <Widget>[
+                          Text(
+                            mine ? '\u2713  ' : '\u2022  ',
+                            style: const TextStyle(
+                              color: IvoryColors.burgundy,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              o.label,
+                              style: TextStyle(
+                                color: mine
+                                    ? IvoryColors.burgundy
+                                    : IvoryColors.textSoft,
+                                fontSize: 14.5,
+                                fontWeight:
+                                    mine ? FontWeight.w800 : FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _house ? '${o.votes}  \u00b7  $pct%' : '$pct%',
+                            style: const TextStyle(
+                              color: IvoryColors.burgundy,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_house && voters.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, left: 22),
+                          child: Text(
+                            'Voted: ${voters.join(', ')}',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontStyle: FontStyle.italic,
+                              color: IvoryColors.textFaint,
                             ),
                           ),
                         ),
-                      ),
-                      SizedBox(
-                        height: 56,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 15),
-                          child: Row(
-                            children: <Widget>[
-                              Icon(
-                                mine
-                                    ? Icons.check_circle
-                                    : Icons.radio_button_unchecked,
-                                size: 19,
-                                color: mine
-                                    ? IvoryColors.burgundy
-                                    : IvoryColors.textFaint,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  o.label,
-                                  style: TextStyle(
-                                    color: IvoryColors.burgundy,
-                                    fontSize: 14.5,
-                                    fontWeight: mine
-                                        ? FontWeight.w800
-                                        : FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '${(pct * 100).round()}%',
-                                style: const TextStyle(
-                                  color: IvoryColors.burgundy,
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
               ),
             );
           }),
-        const SizedBox(height: 6),
-        Text(
-          total == 1 ? '1 vote' : '$total votes',
-          style: TextStyle(fontSize: 12.5, color: IvoryColors.textFaint),
-        ),
-      ],
-    );
-  }
-}
-
-// END OF FILE - lib/widgets/post_actions.dart
+        if (_house) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(
+            total == 1 ? '1 vote' : '$tot
