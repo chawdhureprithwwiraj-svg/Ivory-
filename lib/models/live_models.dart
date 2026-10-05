@@ -129,6 +129,8 @@ class CallBalance {
         return 'in this 7-day cycle';
       case 'year':
         return 'in this year';
+      case 'membership':
+        return 'while this membership lasts';
       default:
         return 'in this 30-day cycle';
     }
