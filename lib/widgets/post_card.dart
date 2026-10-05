@@ -331,6 +331,12 @@ class _StatePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<int>? at = post.allowedTiers;
+    final String lockLabel = at == null
+        ? 'TIER ${post.tierRequired}'
+        : at.isEmpty
+            ? 'PAY TO OPEN'
+            : 'TIER ' + at.join(' · ');
     if (post.isLocked) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -344,7 +350,7 @@ class _StatePill extends StatelessWidget {
             const Icon(Icons.lock, size: 11, color: IvoryColors.burgundy),
             const SizedBox(width: 4),
             Text(
-              'TIER ${post.tierRequired}',
+              lockLabel,
               style: const TextStyle(
                 color: IvoryColors.burgundy,
                 fontSize: 10,
