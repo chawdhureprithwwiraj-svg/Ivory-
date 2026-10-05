@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/live_models.dart';
 import '../services/live_service.dart';
@@ -28,8 +29,8 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
   final TextEditingController _subtitle = TextEditingController();
   final TextEditingController _price = TextEditingController(text: '499');
 
-  /// 0 means every member, including free ones.
-  int _minTier = 0;
+  /// Exact tiers that may watch. Empty = nobody, all pay.
+  Set<int> _who = <int>{0, 1, 2, 3, 4};
   bool _payPerView = false;
   bool _busy = false;
   String? _note;
@@ -93,10 +94,15 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
         subtitle: _subtitle.text.trim().isEmpty
             ? null
             : _subtitle.text.trim(),
-        access: _minTier == 0 ? 'all' : 'tier',
-        minTier: _minTier,
+        access: 'tier',
+        minTier: _who.isEmpty ? 9 : _who.reduce((a, b) => a < b ? a : b),
         priceInr: _payPerView ? (int.tryParse(_price.text.trim()) ?? 0) : 0,
       );
+      await Supabase.instance.client
+          .from('live_sessions')
+          .update(<String, dynamic>{
+        'allowed_tiers': (List<int>.from(_who)..sort()).toList(),
+      }).eq('id', id);
       if (!mounted) return;
       setState(() => _busy = false);
       await _load();
@@ -279,15 +285,14 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
             spacing: 8,
             runSpacing: 8,
             children: <Widget>[
-              for (int level = 0; level <= 4; level++)
-                AdminSelectChip(
-                  label: level == 0 ? 'Everyone' : 'Tier $level and above',
-                  icon: level == 0
-                      ? Icons.public_rounded
-                      : Icons.workspace_premium_rounded,
-                  selected: _minTier == level,
-                  onTap: () => setState(() => _minTier = level),
-                ),
+              ...audienceMixChips(
+                who: _who,
+                tiers: <Map<String, dynamic>>[
+                  for (int i = 1; i <= 4; i++)
+                    <String, dynamic>{'level': i, 'name': 'Tier $i'},
+                ],
+                onChange: (Set<int> v) => setState(() => _who = v),
+              ),
               AdminSelectChip(
                 label: 'Pay per view',
                 icon: Icons.currency_rupee_rounded,
@@ -298,8 +303,9 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            'The tier you pick is included. Pay per view adds a paid way '
-            'in for everyone below it - both at once, if you like.',
+            'Pick any mix - free members, one tier, several tiers, or '
+            'nobody at all. Pay per view adds a paid way in for everyone '
+            'not picked.',
             style: TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
           ),
           if (_payPerView) ...<Widget>[
