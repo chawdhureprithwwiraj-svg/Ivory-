@@ -244,10 +244,12 @@ class LiveService {
   }
 
   /// Writes the agreed slot and tells the member the door will open.
-  Future<void> setCallTime(int callId, DateTime when) async {
+  Future<void> setCallTime(int callId, DateTime when,
+      {DateTime? windowEnd}) async {
     await _db.rpc<dynamic>('set_call_time', params: <String, dynamic>{
       'call_id_in': callId,
       'when_in': when.toUtc().toIso8601String(),
+      'window_end_in': windowEnd?.toUtc().toIso8601String(),
     });
   }
 
@@ -318,6 +320,28 @@ class LiveService {
           ),
           callback: (PostgresChangePayload payload) =>
               onMessage(LiveMessage.fromDb(payload.newRecord)),
+        )
+        .subscribe();
+    return channel;
+  }
+
+  /// The room itself, closing: members learn the moment it ends.
+  RealtimeChannel watchStatus(
+      int sessionId, void Function(String) onStatus) {
+    final RealtimeChannel channel =
+        _db.channel('ivory-status-$sessionId');
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'live_sessions',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: sessionId,
+          ),
+          callback: (PostgresChangePayload p) =>
+              onStatus((p.newRecord['status'] as String?) ?? ''),
         )
         .subscribe();
     return channel;
