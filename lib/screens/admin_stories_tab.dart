@@ -141,10 +141,22 @@ class _AdminStoriesTabState extends State<AdminStoriesTab> {
           Row(
             children: <Widget>[
               Expanded(
-                child: Text(
-                  '${anon ? '🕊️' : '🪶'} $name',
-                  style: const TextStyle(
-                      fontSize: 13.5, fontWeight: FontWeight.w800),
+                child: Row(
+                  children: <Widget>[
+                    Transform.scale(
+                      scaleX: -1,
+                      child: Text(anon ? '🕊️' : '🪶',
+                          style: const TextStyle(fontSize: 13.5)),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                            fontSize: 13.5, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               _statusChip(status),
