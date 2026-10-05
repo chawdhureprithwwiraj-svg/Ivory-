@@ -68,7 +68,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
       if (ids.isNotEmpty) {
         final dynamic pros = await client
             .from('profiles')
-            .select('id,display_name,email')
+            .select('id,display_name')
             .inFilter('id', ids);
         members = <String, Map<String, dynamic>>{
           for (final dynamic p in (pros as List))
@@ -143,9 +143,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
   String _who(String id) {
     final Map<String, dynamic>? m = _members[id];
     if (m == null) return id.length > 8 ? id.substring(0, 8) : id;
-    return (m['display_name'] as String?) ??
-        (m['email'] as String?) ??
-        'A member';
+    return (m['display_name'] as String?) ?? 'A member';
   }
 
   @override
