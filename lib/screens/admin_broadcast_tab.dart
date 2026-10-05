@@ -24,6 +24,7 @@ class _AdminBroadcastTabState extends State<AdminBroadcastTab> {
   final TextEditingController _linkCtrl = TextEditingController();
 
   String _audience = 'all';
+  Set<int> _who = <int>{};
   String _kind = 'system';
   int _tierLevel = 1;
   String? _personId;
@@ -121,8 +122,9 @@ class _AdminBroadcastTabState extends State<AdminBroadcastTab> {
         title: _title.text.trim(),
         body: _body.text.trim(),
         audience: _audience,
+        tiers: _audience == 'tiers' ? (List<int>.from(_who)..sort()) : null,
         kind: _kind,
-        tierLevel: _audience == 'tier' ? _tierLevel : 0,
+        tierLevel: 0,
         userId: _audience == 'user' ? _personId : null,
         actionTab: 'feed',
         actionUrl: url,
@@ -271,11 +273,38 @@ class _AdminBroadcastTabState extends State<AdminBroadcastTab> {
             runSpacing: 8,
             children: <Widget>[
               _audienceChip('Everyone', 'all', Icons.groups_outlined),
-              _audienceChip('A tier and above', 'tier', Icons.lock_outline),
               _audienceChip('One member', 'user', Icons.person_outline),
             ],
           ),
-          if (_audience == 'tier') _tierStepper(),
+          const SizedBox(height: 14),
+          const AdminLabel('OR PICK EXACT TIERS'),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              for (int level = 0; level <= 4; level++)
+                AdminSelectChip(
+                  label: level == 0 ? 'Free members' : 'Tier $level',
+                  icon: level == 0
+                      ? Icons.public_rounded
+                      : Icons.workspace_premium_rounded,
+                  selected: _audience == 'tiers' && _who.contains(level),
+                  onTap: () => setState(() {
+                    if (_audience != 'tiers') {
+                      _audience = 'tiers';
+                      _who = <int>{};
+                    }
+                    if (_who.contains(level)) {
+                      _who.remove(level);
+                    } else {
+                      _who.add(level);
+                    }
+                    if (_who.isEmpty) _audience = 'all';
+                  }),
+                ),
+            ],
+          ),
           if (_audience == 'user') ...<Widget>[
             const SizedBox(height: 14),
             SizedBox(
