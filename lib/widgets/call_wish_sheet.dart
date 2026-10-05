@@ -75,7 +75,7 @@ class _CallWishSheetState extends State<CallWishSheet> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _message = e.toString().replaceFirst('Exception: ', '');
+        _message = _cleanErr(e);
       });
     }
   }
@@ -104,7 +104,7 @@ class _CallWishSheetState extends State<CallWishSheet> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _message = e.toString().replaceFirst('Exception: ', '');
+        _message = _cleanErr(e);
       });
     }
   }
@@ -406,8 +406,11 @@ class _CallWishSheetState extends State<CallWishSheet> {
                 ),
                 if (c.canJoin && c.requestedFor != null)
                   Text(
-                    'Agreed for ${_when(c.requestedFor!)} - JOIN wakes up a '
-                    'little before.',
+                    c.windowEnd == null
+                        ? 'Agreed for ${_when(c.requestedFor!)} - JOIN '
+                            'wakes up a little before.'
+                        : 'Window ${_when(c.requestedFor!)} to '
+                            '${_when(c.windowEnd!)} - join any time inside.',
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -543,4 +546,14 @@ class _CallWishSheetState extends State<CallWishSheet> {
   }
 }
 
+
+
+/// Postgres errors arrive wrapped in transport noise. Keep only the
+/// sentence the house wrote.
+String _cleanErr(Object e) {
+  final String raw = e.toString();
+  final RegExpMatch? m = RegExp(r'message: (.*), code:').firstMatch(raw);
+  if (m != null) return m.group(1)!;
+  return raw.replaceFirst('Exception: ', '');
+}
 // END OF FILE - lib/widgets/call_wish_sheet.dart
