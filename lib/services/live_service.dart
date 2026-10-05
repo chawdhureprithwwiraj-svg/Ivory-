@@ -412,6 +412,42 @@ class LiveService {
     });
   }
 
+  /// The member picked a slot on cal.com and is telling Ivory when.
+  Future<void> confirmBooking(int callId, DateTime when) async {
+    await _db.rpc<dynamic>('confirm_my_booking', params: <String, dynamic>{
+      'call_id_in': callId,
+      'when_in': when.toUtc().toIso8601String(),
+    });
+  }
+
+  /// One call row, fresh - used by the extension prompt mid-call.
+  Future<CallRequest?> fetchCall(int callId) async {
+    final List<dynamic> rows = await _db
+        .from('call_requests')
+        .select()
+        .eq('id', callId)
+        .limit(1);
+    if (rows.isEmpty) return null;
+    return CallRequest.fromDb(rows.first as Map<String, dynamic>);
+  }
+
+  /// Admin offers the member more minutes at a price.
+  Future<void> offerExtension(int callId, int priceInr) async {
+    await _db.rpc<dynamic>('offer_extension', params: <String, dynamic>{
+      'call_id_in': callId,
+      'price_in': priceInr,
+    });
+  }
+
+  /// The member's UTR for an extension (UPI mode).
+  Future<void> submitExtensionPayment(int callId, String utr) async {
+    await _db.rpc<dynamic>('submit_call_extension_payment',
+        params: <String, dynamic>{
+          'call_id_in': callId,
+          'utr_in': utr,
+        });
+  }
+
   // ---------------------------------------------------------------
   // Booking links
   // ---------------------------------------------------------------
