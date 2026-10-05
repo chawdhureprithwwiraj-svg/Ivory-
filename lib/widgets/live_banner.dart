@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'live_pass_sheet.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../screens/live_screen.dart';
@@ -329,7 +330,7 @@ class _LockedSheet extends StatelessWidget {
           const SizedBox(height: 10),
           Center(
             child: Text(
-              session.isPayPerView
+              session.priceInr > 0
                   ? 'This session is Rs.${session.priceInr} to join.'
                   : 'Live sessions are part of the '
                       '${session.tierName ?? 'premium'} membership.',
@@ -342,6 +343,23 @@ class _LockedSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 22),
+          if (session.priceInr > 0) ...<Widget>[
+            IvoryGradientButton(
+              label: 'JOIN FOR RS.${session.priceInr}',
+              icon: Icons.currency_rupee_rounded,
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => LivePassSheet(
+                  sessionId: session.id,
+                  title: session.title,
+                  priceInr: session.priceInr,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           IvoryGradientButton(
             label: 'SEE THE PLANS',
             icon: Icons.diamond_outlined,
