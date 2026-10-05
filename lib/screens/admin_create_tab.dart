@@ -8,15 +8,8 @@ import '../widgets/admin_bits.dart';
 import '../widgets/admin_post_chips.dart';
 import 'admin_library_list.dart';
 
-/// ADMIN STUDIO - THE COMPOSER
-///
-/// Drop an audiobook, a voice note, a video, an image, a written story
-/// or a poll into Ivory from the phone. Media is either uploaded into
-/// Supabase Storage or pointed at any provider by link, because a post
-/// only ever stores a source plus an opaque reference.
-///
-/// Publishing also fires the announcement and the device push, because
-/// the database trigger does that for every new post.
+/// ADMIN STUDIO - THE COMPOSER. Media uploads to Storage or points
+/// at any provider by link; publishing fires the announcement + push.
 class AdminCreateTab extends StatefulWidget {
   const AdminCreateTab({super.key});
 
@@ -37,7 +30,9 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
   ];
 
   String _type = 'blog';
-  int _tier = 0;
+
+  /// Exact tiers that may open it. Empty = nobody, all pay.
+  Set<int> _who = <int>{0, 1, 2, 3, 4};
 
   /// Rupees to open this one post. Empty or 0 = not for sale.
   final TextEditingController _price = TextEditingController();
@@ -228,7 +223,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
         mediaRef: mediaRef,
         thumbSource: thumbSource,
         thumbRef: thumbRef,
-        tierRequired: _tier,
+        tierRequired: _who.isEmpty ? 9 : _who.reduce((a, b) => a < b ? a : b),
         durationSecs: mins == null ? null : mins * 60,
         pollOptions: _type == 'poll' ? poll : null,
         isPublished: _publishNow,
@@ -236,6 +231,12 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
       // The price is set straight after, so publish_post stays the
       // one function that creates a post.
+      await Supabase.instance.client
+          .from('posts')
+          .update(<String, dynamic>{
+        'allowed_tiers': (List<int>.from(_who)..sort()).toList(),
+      }).eq('id', newId);
+
       final String door = _doorCredit.text.trim();
       if (door.isNotEmpty) {
         await Supabase.instance.client
@@ -284,7 +285,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
       _uploadedUrl = null;
       _thumb = null;
       _uploadedThumbUrl = null;
-      _tier = 0;
+      _who = <int>{0, 1, 2, 3, 4};
       _price.clear();
       _doorCredit.clear();
       _freeFrom = null;
@@ -373,11 +374,21 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
           const SizedBox(height: 22),
           const AdminLabel('WHO CAN OPEN IT'),
           const SizedBox(height: 10),
-          Wrap(spacing: 8, runSpacing: 8, children: postTierChips(
-            selected: _tier,
-            tiers: _tiers,
-            onTap: (int v) => setState(() => _tier = v),
-          )),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: audienceMixChips(
+              who: _who,
+              tiers: _tiers,
+              onChange: (Set<int> v) => setState(() => _who = v),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Pick any mix - free members, one tier, several tiers, or '
+            'nobody at all so everyone pays.',
+            style: TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
+          ),
           const SizedBox(height: 22),
           const AdminLabel('OR SELL IT ON ITS OWN'),
           const SizedBox(height: 6),
