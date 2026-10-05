@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/live_models.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
+import 'report_sheet.dart';
 
 /// ============================================================
 /// IVORY - THE LIVE RAIL
@@ -16,9 +17,12 @@ import '../theme/ivory_theme.dart';
 /// appears on every device at once without anyone refreshing.
 /// ============================================================
 class LiveChat extends StatefulWidget {
-  const LiveChat({super.key, required this.sessionId});
+  const LiveChat({super.key, required this.sessionId, this.onGift});
 
   final int sessionId;
+
+  /// A gift line landed in the stream - the room celebrates.
+  final void Function(String emoji, String label, String? from)? onGift;
 
   @override
   State<LiveChat> createState() => _LiveChatState();
@@ -47,6 +51,11 @@ class _LiveChatState extends State<LiveChat> {
             _messages.add(m);
           }
         });
+        final RegExpMatch? g =
+            RegExp('^(\\S+)\\s{2}sent\\s(.+)').firstMatch(m.body);
+        if (!m.isHost && g != null) {
+          widget.onGift?.call(g.group(1)!, g.group(2)!, m.senderName);
+        }
         _toBottom();
       },
     );
@@ -146,9 +155,77 @@ class _LiveChatState extends State<LiveChat> {
   }
 
   Widget _bubble(LiveMessage m) {
+    if (m.isHost) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: GestureDetector(
+          onLongPress: () => showModalBottomSheet<bool>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => ReportSheet(
+              targetKind: 'message',
+              targetId: m.id.toString(),
+              headline: m.body,
+            ),
+          ),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(15, 11, 15, 12),
+            decoration: BoxDecoration(
+              gradient: IvoryColors.deepGradient,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                  color: IvoryColors.hairlineStrong, width: 0.9),
+              boxShadow: IvoryTheme.softShadow(blur: 14, y: 5),
+            ),
+            child: RichText(
+              text: TextSpan(
+                children: <TextSpan>[
+                  TextSpan(
+                    text: 'Ivory  ',
+                    style: TextStyle(
+                      fontFamily: IvoryTheme.displayFont,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13.5,
+                      color: IvoryColors.gold,
+                    ),
+                  ),
+                  TextSpan(
+                    text: m.body,
+                    style: TextStyle(
+                      fontFamily: IvoryTheme.displayFont,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15.5,
+                      height: 1.5,
+                      color: IvoryColors.cream,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
+      child: GestureDetector(
+        // Long-press anything a member wrote to report it. The IT
+        // Rules require this route to exist for member content.
+        onLongPress: () => showModalBottomSheet<bool>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => ReportSheet(
+            targetKind: 'message',
+            targetId: m.id.toString(),
+            headline: m.body,
+          ),
+        ),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Container(
@@ -156,7 +233,7 @@ class _LiveChatState extends State<LiveChat> {
             width: 7,
             height: 7,
             decoration: BoxDecoration(
-              color: m.isHost ? IvoryColors.gold : IvoryColors.peach,
+              color: IvoryColors.peach,
               shape: BoxShape.circle,
             ),
           ),
@@ -171,13 +248,11 @@ class _LiveChatState extends State<LiveChat> {
                 ),
                 children: <TextSpan>[
                   TextSpan(
-                    text: m.isHost ? 'Ivory  ' : 'A member  ',
-                    style: TextStyle(
+                    text: "${m.senderName ?? 'A member'}  ",
+                    style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 12.5,
-                      color: m.isHost
-                          ? IvoryColors.gold
-                          : IvoryColors.peach,
+                      color: IvoryColors.peach,
                     ),
                   ),
                   TextSpan(text: m.body),
@@ -186,6 +261,7 @@ class _LiveChatState extends State<LiveChat> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
