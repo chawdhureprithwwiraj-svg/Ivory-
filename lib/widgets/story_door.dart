@@ -280,7 +280,7 @@ class _DoorSheetState extends State<_DoorSheet> {
                 const SizedBox(height: 14),
                 TextField(
                   controller: _body,
-                  maxLength: 1200,
+                  maxLength: 7000,
                   maxLines: 7,
                   style: const TextStyle(fontSize: 14, height: 1.5),
                   decoration: const InputDecoration(
