@@ -7,6 +7,15 @@ import 'package:permission_handler/permission_handler.dart';
 import '../models/live_models.dart';
 import '../services/auth_service.dart';
 import '../services/live_service.dart';
+
+/// Edge and database errors arrive wrapped in transport noise.
+/// Keep only the sentence the house actually wrote.
+String _cleanErr(Object e) {
+  final String raw = e.toString();
+  final RegExpMatch? m = RegExp(r'\{error: (.*)\}').firstMatch(raw);
+  if (m != null) return m.group(1)!;
+  return raw.replaceFirst('Exception: ', '');
+}
 import '../theme/ivory_theme.dart';
 import '../widgets/house_consent.dart';
 import '../widgets/gift_sheet.dart';
@@ -185,7 +194,7 @@ class _LiveScreenState extends State<LiveScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      setState(() => _error = _cleanErr(e));
     }
   }
 
