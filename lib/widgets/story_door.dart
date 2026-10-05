@@ -56,18 +56,19 @@ class _StoryDoorBandState extends State<StoryDoorBand> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              Expanded(
-                child: Text(
-                  'THE DOOR FOR YOUR STORY',
+              Text(
+                'THE DOOR FOR YOUR STORY',
                   style: TextStyle(
                     color: IvoryColors.burgundy,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.4,
                   ),
-                ),
               ),
               Transform.scale(
                 scaleX: -1,
