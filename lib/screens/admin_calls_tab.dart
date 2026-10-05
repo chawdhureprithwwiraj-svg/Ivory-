@@ -63,9 +63,11 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
   Future<void> _accept(AdminCall c) async {
     final DateTime? when = await _pickTime(c);
     if (when == null) return;
+    final DateTime? until = await _pickWindowEnd(when);
     try {
       await LiveService.instance.respondToCall(c.id, accept: true);
-      await LiveService.instance.setCallTime(c.id, when);
+      await LiveService.instance.setCallTime(c.id, when,
+          windowEnd: until);
       _say('Accepted. ${c.displayName} has been told.');
     } catch (e) {
       _say(e.toString().replaceFirst('Exception: ', ''));
@@ -110,6 +112,50 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
     if (time == null) return null;
 
     return DateTime(day.year, day.month, day.day, time.hour, time.minute);
+  }
+
+  /// Optionally offer a window: any time between X and Y.
+  Future<DateTime?> _pickWindowEnd(DateTime start) async {
+    final bool? want = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext c) => AlertDialog(
+        backgroundColor: IvoryColors.surface,
+        title: const Text('A single time, or a window?',
+            style: TextStyle(color: IvoryColors.burgundy)),
+        content: const Text(
+            'A window lets the member join at any moment between the two '
+            'times you set - kinder on their day.',
+            style: TextStyle(fontSize: 13.5)),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('SINGLE TIME'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('OFFER A WINDOW'),
+          ),
+        ],
+      ),
+    );
+    if (want != true || !mounted) return null;
+    final DateTime? day = await showDatePicker(
+      context: context,
+      initialDate: start,
+      firstDate: start,
+      lastDate: start.add(const Duration(days: 60)),
+      helpText: 'Window ends on?',
+    );
+    if (day == null || !mounted) return null;
+    final TimeOfDay? time = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 22, minute: 0),
+      helpText: 'Window ends at?',
+    );
+    if (time == null || !mounted) return null;
+    final DateTime end =
+        DateTime(day.year, day.month, day.day, time.hour, time.minute);
+    return end.isAfter(start) ? end : null;
   }
 
   Future<bool> _confirm(String title, String body) async {
