@@ -83,4 +83,47 @@ List<Widget> postFreeFromChips({
   return chips;
 }
 
+
+/// The exact-audience mix: nobody-all-pay, free members, any tiers.
+/// Used by CREATE, LIVE and anywhere the house picks who gets in.
+List<Widget> audienceMixChips({
+  required Set<int> who,
+  required List<Map<String, dynamic>> tiers,
+  required void Function(Set<int>) onChange,
+}) {
+  Set<int> toggle(Set<int> src, int v) {
+    final Set<int> next = Set<int>.from(src);
+    if (next.contains(v)) {
+      next.remove(v);
+    } else {
+      next.add(v);
+    }
+    return next;
+  }
+
+  return <Widget>[
+    AdminSelectChip(
+      label: 'Nobody - all pay',
+      icon: Icons.currency_rupee_rounded,
+      selected: who.isEmpty,
+      onTap: () => onChange(<int>{}),
+    ),
+    AdminSelectChip(
+      label: 'Free members',
+      icon: Icons.public_rounded,
+      selected: who.contains(0),
+      onTap: () => onChange(toggle(who, 0)),
+    ),
+    for (final Map<String, dynamic> t in tiers)
+      if ((t['level'] as num?)?.toInt() != null &&
+          (t['level'] as num).toInt() > 0)
+        AdminSelectChip(
+          label: (t['name'] as String?) ?? 'Tier',
+          icon: Icons.workspace_premium_rounded,
+          selected: who.contains((t['level'] as num).toInt()),
+          onTap: () => onChange(toggle(who, (t['level'] as num).toInt())),
+        ),
+  ];
+}
+
 // END OF FILE - lib/widgets/admin_post_chips.dart
