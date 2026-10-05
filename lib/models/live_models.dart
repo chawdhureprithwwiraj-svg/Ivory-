@@ -169,6 +169,8 @@ class CallRequest {
     this.requestedFor,
     this.windowEnd,
     this.createdAt,
+    this.extensionPrice,
+    this.extensionPaid = false,
   });
 
   final int id;
@@ -180,6 +182,8 @@ class CallRequest {
   final DateTime? requestedFor;
   final DateTime? windowEnd;
   final DateTime? createdAt;
+  final int? extensionPrice;
+  final bool extensionPaid;
 
   bool get isVideo => kind == 'video';
   bool get canJoin => status == 'accepted' || status == 'active';
@@ -211,6 +215,8 @@ class CallRequest {
         requestedFor: DateTime.tryParse((m['requested_for'] as String?) ?? ''),
         windowEnd: DateTime.tryParse((m['window_end'] as String?) ?? ''),
         createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
+        extensionPrice: (m['extension_price'] as num?)?.toInt(),
+        extensionPaid: (m['extension_paid'] as bool?) ?? false,
       );
 }
 
@@ -231,6 +237,8 @@ class AdminCall {
     this.charged = false,
     this.joinedMember = false,
     this.joinedHost = false,
+    this.extensionPrice,
+    this.extensionPaid = false,
   });
 
   final int id;
@@ -245,6 +253,8 @@ class AdminCall {
   final bool charged;
   final bool joinedMember;
   final bool joinedHost;
+  final int? extensionPrice;
+  final bool extensionPaid;
 
   factory AdminCall.fromDb(Map<String, dynamic> m) => AdminCall(
         id: (m['id'] as num).toInt(),
@@ -260,6 +270,8 @@ class AdminCall {
         charged: (m['charged'] as bool?) ?? false,
         joinedMember: (m['joined_member'] as bool?) ?? false,
         joinedHost: (m['joined_host'] as bool?) ?? false,
+        extensionPrice: (m['extension_price'] as num?)?.toInt(),
+        extensionPaid: (m['extension_paid'] as bool?) ?? false,
       );
 }
 
