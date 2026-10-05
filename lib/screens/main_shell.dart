@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/ivory_profile.dart';
 import '../services/auth_service.dart';
@@ -18,6 +19,10 @@ import 'wish_screen.dart';
 /// with a live unread badge and an admin crown for the owner.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
+
+  /// Any sheet, anywhere, can send the member to a tab - a locked
+  /// story sends them to Premium, a gift to the Wish, and so on.
+  static void Function(String tab)? onOpenTab;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -52,6 +57,7 @@ class _MainShellState extends State<MainShell> {
     _loadProfile();
     NotificationService.instance.start();
     PushService.instance.start();
+    MainShell.onOpenTab = _openTab;
   }
 
   Future<void> _loadProfile() async {
@@ -123,13 +129,13 @@ class _MainShellState extends State<MainShell> {
               ),
             ),
           IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await NotificationService.instance.stop();
-              await PushService.instance.stop();
-              await AuthService.instance.signOut();
-            },
+            tooltip: 'Share Ivory',
+            icon: const Icon(Icons.ios_share),
+            onPressed: () => Share.share(
+              'Ivory - private stories, live sessions and one-on-one '
+              'time with me, all in one quiet place. Come in through '
+              'the app.',
+            ),
           ),
           const SizedBox(width: 4),
         ],
