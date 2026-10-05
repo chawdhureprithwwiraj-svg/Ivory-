@@ -42,6 +42,7 @@ class RazorpayPayPanel extends StatefulWidget {
     this.customRequestId,
     this.giftSendId,
     this.sessionId,
+    this.callRequestId,
     this.onUnlocked,
     required this.label,
   });
@@ -52,6 +53,7 @@ class RazorpayPayPanel extends StatefulWidget {
   final int? customRequestId;
   final int? giftSendId;
   final int? sessionId;
+  final int? callRequestId;
   final VoidCallback? onUnlocked;
   final String label;
 
@@ -153,6 +155,7 @@ class _RazorpayPayPanelState extends State<RazorpayPayPanel> {
           'custom_request_id': widget.customRequestId,
           'gift_send_id': widget.giftSendId,
           'live_session_id': widget.sessionId,
+          'call_request_id': widget.callRequestId,
         },
       );
       if (fr.status != 200) {
