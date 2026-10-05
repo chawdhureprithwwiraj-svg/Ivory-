@@ -159,16 +159,7 @@ class _LiveChatState extends State<LiveChat> {
       return Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: GestureDetector(
-          onLongPress: () => showModalBottomSheet<bool>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => ReportSheet(
-              targetKind: 'message',
-              targetId: m.id.toString(),
-              headline: m.body,
-            ),
-          ),
+          onLongPress: () => showReportSheet(context, preset: 'content'),
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(15, 11, 15, 12),
@@ -215,16 +206,7 @@ class _LiveChatState extends State<LiveChat> {
       child: GestureDetector(
         // Long-press anything a member wrote to report it. The IT
         // Rules require this route to exist for member content.
-        onLongPress: () => showModalBottomSheet<bool>(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => ReportSheet(
-            targetKind: 'message',
-            targetId: m.id.toString(),
-            headline: m.body,
-          ),
-        ),
+        onLongPress: () => showReportSheet(context, preset: 'content'),
         child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
