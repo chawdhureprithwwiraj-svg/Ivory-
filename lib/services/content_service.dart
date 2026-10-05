@@ -75,16 +75,23 @@ class ContentService {
       // can_open_post(), so signing only ever succeeds for a member
       // who may open the post.
       final String? ref = row['media_ref'] as String?;
-      if (row['media_bucket'] == 'vault' &&
+      if (row['media_source'] == 'supabase' &&
           ref != null && !ref.startsWith('http')) {
-        try {
-          final String signed =
-              await _db.storage.from('vault').createSignedUrl(ref, 3600);
-          if (signed.isNotEmpty) row['media_ref'] = signed;
-        } catch (_) {
-          // Not entitled or storage hiccup: playback shows the
-          // normal locked message instead of a URL.
+        // Vault media is private, and some older posts kept the raw
+        // path with the bucket column still on 'media'. Sign from
+        // whichever bucket actually holds the file. The vault's
+        // storage policy re-checks can_open_post(), so signing only
+        // ever succeeds for a member who may open the post.
+        String? signed;
+        for (final String bucket in <String>['vault', 'media']) {
+          try {
+            signed = await _db.storage.from(bucket).createSignedUrl(ref, 3600);
+            break;
+          } catch (_) {
+            signed = null;
+          }
         }
+        if (signed != null && signed.isNotEmpty) row['media_ref'] = signed;
       }
       return IvoryPost.fromFull(row);
     }
@@ -100,6 +107,27 @@ class ContentService {
     return rows
         .map((dynamic r) => PollOption.fromMap(r as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Admin only: who voted what. optionId -> member names.
+  Future<Map<int, List<String>>> fetchPollVoters(int postId) async {
+    try {
+      final List<dynamic> rows = await _db
+          .rpc<dynamic>('poll_voters', params: <String, dynamic>{
+        'post_id_in': postId,
+      });
+      final Map<int, List<String>> out = <int, List<String>>{};
+      for (final dynamic r in rows) {
+        final Map<String, dynamic> m = r as Map<String, dynamic>;
+        out
+            .putIfAbsent((m['option_id'] as num).toInt(),
+                () => <String>[])
+            .add((m['member_name'] as String?) ?? 'A member');
+      }
+      return out;
+    } catch (_) {
+      return <int, List<String>>{};
+    }
   }
 
   /// One vote per person per poll. Voting again replaces the old choice.
