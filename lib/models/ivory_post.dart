@@ -62,6 +62,7 @@ class IvoryPost {
     this.thumb = const MediaRef(source: MediaSource.none, ref: null),
     this.thumbnailUrl,
     this.doorCredit,
+    this.allowedTiers,
   });
 
   final int id;
@@ -93,6 +94,9 @@ class IvoryPost {
 
   /// Stamped on posts born at the Story Door.
   final String? doorCredit;
+
+  /// The exact tiers the house chose. Null = the old ladder.
+  final List<int>? allowedTiers;
 
   bool get isPremium => tierRequired > 0;
   bool get isLocked => isPremium && !isUnlocked;
@@ -208,6 +212,9 @@ class IvoryPost {
       thumb: preview.thumb,
       thumbnailUrl: preview.thumbnailUrl,
       doorCredit: m['door_credit'] as String?,
+      allowedTiers: (m['allowed_tiers'] as List?)
+          ?.map((dynamic e) => (e as num).toInt())
+          .toList(),
     );
   }
 }
