@@ -35,6 +35,7 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
   String? _note;
 
   List<LiveSession> _sessions = <LiveSession>[];
+  List<GiftSend> _gifts = <GiftSend>[];
   Timer? _clock;
 
   @override
@@ -60,8 +61,13 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
     try {
       final List<LiveSession> rows =
           await LiveService.instance.fetchSessions();
+      final List<GiftSend> gifts =
+          await LiveService.instance.listGiftSends();
       if (!mounted) return;
-      setState(() => _sessions = rows);
+      setState(() {
+        _sessions = rows;
+        _gifts = gifts;
+      });
     } catch (_) {}
   }
 
@@ -87,8 +93,8 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
         subtitle: _subtitle.text.trim().isEmpty
             ? null
             : _subtitle.text.trim(),
-        access: _payPerView ? 'ppv' : 'tier',
-        minTier: _payPerView ? 0 : _minTier,
+        access: _minTier == 0 ? 'all' : 'tier',
+        minTier: _minTier,
         priceInr: _payPerView ? (int.tryParse(_price.text.trim()) ?? 0) : 0,
       );
       if (!mounted) return;
@@ -143,6 +149,11 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
         children: <Widget>[
           if (live != null) _onAirCard(live) else _setupCard(),
           const SizedBox(height: 22),
+          if (_gifts.isNotEmpty) ...<Widget>[
+            const AdminLabel('Gifts'),
+            ..._gifts.take(20).map(_giftRow),
+            const SizedBox(height: 18),
+          ],
           if (_sessions.length > (live == null ? 0 : 1)) ...<Widget>[
             const AdminLabel('Earlier broadcasts'),
             ..._sessions
@@ -274,19 +285,22 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
                   icon: level == 0
                       ? Icons.public_rounded
                       : Icons.workspace_premium_rounded,
-                  selected: !_payPerView && _minTier == level,
-                  onTap: () => setState(() {
-                    _payPerView = false;
-                    _minTier = level;
-                  }),
+                  selected: _minTier == level,
+                  onTap: () => setState(() => _minTier = level),
                 ),
               AdminSelectChip(
                 label: 'Pay per view',
                 icon: Icons.currency_rupee_rounded,
                 selected: _payPerView,
-                onTap: () => setState(() => _payPerView = true),
+                onTap: () => setState(() => _payPerView = !_payPerView),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'The tier you pick is included. Pay per view adds a paid way '
+            'in for everyone below it - both at once, if you like.',
+            style: TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
           ),
           if (_payPerView) ...<Widget>[
             const SizedBox(height: 16),
@@ -316,6 +330,72 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
             'gold banner appears on their Home screen.',
             style: TextStyle(fontSize: 12, color: IvoryColors.textFaint),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _giftRow(GiftSend g) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(13),
+      decoration: IvoryTheme.card(highlighted: g.isPending),
+      child: Row(
+        children: <Widget>[
+          Text(g.emoji, style: const TextStyle(fontSize: 24)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  '${g.name} - Rs.${g.amountInr}',
+                  style: const TextStyle(
+                    color: IvoryColors.burgundy,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  '${g.sender ?? 'A member'}'
+                  '${g.utr == null ? ' - no reference yet' : ' - ' + g.utr!}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: IvoryColors.textFaint,
+                  ),
+                ),
+                if (g.note != null && g.note!.trim().isNotEmpty)
+                  Text(
+                    '"${g.note}"',
+                    style: TextStyle(
+                      fontSize: 12.3,
+                      fontStyle: FontStyle.italic,
+                      color: IvoryColors.textSoft,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (g.isPending)
+            TextButton(
+              onPressed: () async {
+                await LiveService.instance.confirmGift(g.id);
+                _load();
+              },
+              child: const Text('CONFIRM'),
+            )
+          else
+            Icon(
+              g.isConfirmed
+                  ? Icons.verified_rounded
+                  : Icons.block_rounded,
+              size: 19,
+              color: g.isConfirmed
+                  ? IvoryColors.gold
+                  : IvoryColors.textFaint,
+            ),
         ],
       ),
     );
