@@ -167,6 +167,7 @@ class CallRequest {
     this.priceInr = 0,
     this.note,
     this.requestedFor,
+    this.windowEnd,
     this.createdAt,
   });
 
@@ -177,6 +178,7 @@ class CallRequest {
   final int priceInr;
   final String? note;
   final DateTime? requestedFor;
+  final DateTime? windowEnd;
   final DateTime? createdAt;
 
   bool get isVideo => kind == 'video';
@@ -207,6 +209,7 @@ class CallRequest {
         priceInr: ((m['price_inr'] as num?) ?? 0).toInt(),
         note: m['note'] as String?,
         requestedFor: DateTime.tryParse((m['requested_for'] as String?) ?? ''),
+        windowEnd: DateTime.tryParse((m['window_end'] as String?) ?? ''),
         createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
       );
 }
@@ -410,6 +413,7 @@ class LiveMessage {
     required this.isHost,
     this.memberId,
     this.createdAt,
+    this.senderName,
   });
 
   final int id;
@@ -417,6 +421,7 @@ class LiveMessage {
   final bool isHost;
   final String? memberId;
   final DateTime? createdAt;
+  final String? senderName;
 
   factory LiveMessage.fromDb(Map<String, dynamic> m) => LiveMessage(
         id: ((m['id'] as num?) ?? 0).toInt(),
@@ -424,6 +429,7 @@ class LiveMessage {
         isHost: (m['is_host'] as bool?) ?? false,
         memberId: m['member_id'] as String?,
         createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
+        senderName: m['sender_name'] as String?,
       );
 }
 
