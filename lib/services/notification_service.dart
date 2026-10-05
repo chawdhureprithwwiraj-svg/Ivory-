@@ -83,6 +83,7 @@ class NotificationService {
     String kind = 'system',
     int tierLevel = 0,
     String? userId,
+    List<int>? tiers,
     String? actionTab,
     String? actionUrl,
   }) async {
@@ -93,6 +94,7 @@ class NotificationService {
       'kind_in': kind,
       'tier_level_in': tierLevel,
       'user_id_in': userId,
+      'tiers_in': tiers,
       'post_id_in': null,
       'action_tab_in': actionTab,
       'action_url_in': actionUrl,
