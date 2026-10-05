@@ -50,7 +50,10 @@ class PostCard extends StatelessWidget {
       children: <Widget>[
         Stack(
           children: <Widget>[
-            PostArtwork(post: post, maxHeight: 470),
+            if (post.type == PostType.poll)
+              const SizedBox(height: 56)
+            else
+              PostArtwork(post: post, maxHeight: 470),
             Positioned(
               left: 14,
               top: 14,
@@ -150,7 +153,10 @@ class PostCard extends StatelessWidget {
       children: <Widget>[
         Stack(
           children: <Widget>[
-            PostArtwork(post: post, maxHeight: 360),
+            if (post.type == PostType.poll)
+              const SizedBox(height: 52)
+            else
+              PostArtwork(post: post, maxHeight: 360),
             Positioned(left: 12, top: 12, child: _TypePill(type: post.type)),
             Positioned(right: 12, top: 12, child: _StatePill(post: post)),
             if (post.durationLabel != null)
