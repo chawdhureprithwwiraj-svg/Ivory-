@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-
 import '../models/wish.dart';
 import '../screens/live_screen.dart';
 import '../models/live_models.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
+import 'call_book_flow.dart';
 
 /// ============================================================
 /// IVORY - BOOKING A 1:1 SESSION
@@ -108,6 +108,15 @@ class _CallWishSheetState extends State<CallWishSheet> {
       });
     }
   }
+
+  Future<void> _book(CallRequest c) => bookCallSlot(
+        context,
+        c,
+        say: (String m) {
+          if (mounted) setState(() => _message = m);
+        },
+        reload: _load,
+      );
 
   Future<void> _join(CallRequest c) async {
     await Navigator.of(context).push<void>(
@@ -404,7 +413,16 @@ class _CallWishSheetState extends State<CallWishSheet> {
                   '${c.priceInr > 0 ? ' - Rs.${c.priceInr}' : ' - included'}',
                   style: TextStyle(fontSize: 12.5, color: IvoryColors.textSoft),
                 ),
+                if (c.canJoin && c.requestedFor == null)
+                  const Text(
+                    'Confirmed - now pick your slot on the calendar.',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: IvoryColors.plum),
+                  ),
                 if (c.canJoin && c.requestedFor != null)
+                  Text(
                   Text(
                     c.windowEnd == null
                         ? 'Agreed for ${_when(c.requestedFor!)} - JOIN '
@@ -419,7 +437,12 @@ class _CallWishSheetState extends State<CallWishSheet> {
               ],
             ),
           ),
-          if (c.canJoin)
+          if (c.canJoin && c.requestedFor == null)
+            TextButton(
+              onPressed: () => _book(c),
+              child: const Text('BOOK TIME'),
+            )
+          else if (c.canJoin)
             TextButton(
               onPressed: () => _join(c),
               child: const Text('JOIN'),
@@ -439,10 +462,10 @@ class _CallWishSheetState extends State<CallWishSheet> {
         _sectionLabel('How it works'),
         _step(1, 'Ask for the session', 'I am told straight away and confirm '
             'it from my side.'),
-        _step(2, 'We agree on a time', 'I confirm it and set the time from '
-            'my side - you are told at once.'),
-        _step(3, 'Come back to Ivory', 'At that time, open this sheet and tap '
-            'JOIN. The call happens here, never on another app.'),
+        _step(2, 'You pick the time', 'Once I confirm, my calendar opens '
+            'for you - choose the slot that suits you.'),
+        _step(3, 'Come back to Ivory', 'At your booked time, open this sheet '
+            'and tap JOIN. The call happens here, never on another app.'),
         const SizedBox(height: 18),
         if (canAskFree)
           IvoryGradientButton(
@@ -557,3 +580,4 @@ String _cleanErr(Object e) {
   return raw.replaceFirst('Exception: ', '');
 }
 // END OF FILE - lib/widgets/call_wish_sheet.dart
+          
