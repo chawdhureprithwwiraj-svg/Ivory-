@@ -51,6 +51,17 @@ class ContentService {
     });
   }
 
+  Future<void> submitLivePassPayment({
+    required int sessionId,
+    required String utr,
+  }) async {
+    await _db.rpc<dynamic>('submit_live_pass_payment',
+        params: <String, dynamic>{
+          'session_id_in': sessionId,
+          'utr_in': utr.trim(),
+        });
+  }
+
   /// The only place a media link is handed out. open_post() checks
   /// the tier, the price and whether this member bought it, and
   /// returns nothing at all if none of those apply.
