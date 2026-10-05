@@ -100,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   else ...<Widget>[
                     if (_featured != null) ...<Widget>[
                       IvorySectionHeader(
-                        title: "Editor's Golden Reserve",
+                        title: "Ivory's Golden Reserve",
                         actionLabel: 'Featured',
                         icon: Icons.auto_awesome,
                         onAction: () => _go('explore'),
