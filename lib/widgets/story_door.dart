@@ -58,8 +58,6 @@ class _StoryDoorBandState extends State<StoryDoorBand> {
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Text('🪶', style: TextStyle(fontSize: 20)),
-              const SizedBox(width: 9),
               Expanded(
                 child: Text(
                   'THE DOOR FOR YOUR STORY',
@@ -70,6 +68,10 @@ class _StoryDoorBandState extends State<StoryDoorBand> {
                     letterSpacing: 1.4,
                   ),
                 ),
+              ),
+              Transform.scale(
+                scaleX: -1,
+                child: const Text('🪶', style: TextStyle(fontSize: 20)),
               ),
             ],
           ),
@@ -235,8 +237,11 @@ class _DoorSheetState extends State<_DoorSheet> {
               ),
               const SizedBox(height: 18),
               if (_done) ...<Widget>[
-                const Center(
-                    child: Text('🪶', style: TextStyle(fontSize: 44))),
+                Center(
+                    child: Transform.scale(
+                  scaleX: -1,
+                  child: const Text('🪶', style: TextStyle(fontSize: 44)),
+                )),
                 const SizedBox(height: 10),
                 Center(
                   child: Text(
