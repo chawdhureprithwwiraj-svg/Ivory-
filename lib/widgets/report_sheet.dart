@@ -292,8 +292,8 @@ class _ReportSheetState extends State<_ReportSheet> {
           const SizedBox(height: 8),
           Text(
             "This door is for problems - payments, safety, your data. "
-            "If you want to talk to me, that isn't a complaint, it's "
-            'the whole point of Ivory.',
+            "If you want to talk to me, that isn't a complaint, so "
+            'please select out of these options.',
             style: _soft,
           ),
           const SizedBox(height: 14),
