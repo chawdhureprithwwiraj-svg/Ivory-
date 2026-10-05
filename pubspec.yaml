@@ -17,6 +17,7 @@ dependencies:
   image_picker: ^1.1.2
   file_selector: ^1.1.0
   video_player: ^2.14.0
+  share_plus: ^10.1.4
   agora_rtc_engine: ^6.6.4
   # 13.x compiles against Android 17 preview APIs that the
   # current stable SDK does not ship. 12.x is the newest line
