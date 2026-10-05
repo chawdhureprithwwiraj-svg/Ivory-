@@ -13,6 +13,7 @@ import '../theme/ivory_theme.dart';
 import '../widgets/house_consent.dart';
 import '../widgets/gift_sheet.dart';
 import '../widgets/gift_moment.dart';
+import '../widgets/call_extension_prompt.dart';
 import '../widgets/live_chat.dart';
 
 /// Edge and database errors arrive wrapped in transport noise.
@@ -72,6 +73,8 @@ class _LiveScreenState extends State<LiveScreen> {
   String _status = 'Connecting you...';
   String? _error;
   bool _joined = false;
+  bool _extShown = false;
+  int _extTick = 0;
   bool _ended = false;
   RealtimeChannel? _statusChannel;
   int? _remoteUid;
@@ -222,6 +225,12 @@ class _LiveScreenState extends State<LiveScreen> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() => _elapsed += const Duration(seconds: 1));
+      _extTick++;
+      if (widget.mode == LiveMode.call && !_extShown && _joined &&
+          _remoteUid != null && _extTick % 15 == 0) {
+        CallExtensionPrompt.tick(context, callId: widget.sessionId,
+            elapsed: _elapsed, onShown: () => _extShown = true);
+      }
     });
   }
 
@@ -238,7 +247,9 @@ class _LiveScreenState extends State<LiveScreen> {
     if (widget.mode == LiveMode.watch) {
       await LiveService.instance.leaveLive(widget.sessionId);
     }
-    if (widget.mode == LiveMode.call) {
+    // The call ends only if the two of them actually spoke - an
+    // early bounce must never close the session.
+    if (widget.mode == LiveMode.call && _joined && _remoteUid != null) {
       await LiveService.instance.endCall(widget.sessionId);
     }
   }
