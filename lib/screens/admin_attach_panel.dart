@@ -34,7 +34,27 @@ class AdminAttachPanel extends StatefulWidget {
   State<AdminAttachPanel> createState() => AdminAttachPanelState();
 }
 
-class AdminAttachPanelState extends State<AdminAttachPanel> {
+class AdminAttachPanelState extends State<AdminAttachPanel>
+    with AutomaticKeepAliveClientMixin {
+  /// SPRINT 24d - THE CURE FOR THE VANISHING FILE.
+  ///
+  /// The CREATE form is a ListView. A ListView does NOT keep every row
+  /// alive just because the rows were written out by hand - it quietly
+  /// throws away any row that has scrolled far enough off screen, and
+  /// builds it again from scratch when it scrolls back. Everything that
+  /// row was remembering dies with it.
+  ///
+  /// That is exactly what happened: attach the 65.6 MB film at the top,
+  /// scroll down to PUBLISH NOW, and this panel is destroyed on the way.
+  /// By the time PUBLISH NOW is tapped the panel is a newborn that has
+  /// never seen a file. The title survived only because the title lives
+  /// on the parent, which never scrolls away.
+  ///
+  /// This one line tells the ListView: whatever else you recycle, never
+  /// recycle me.
+  @override
+  bool get wantKeepAlive => true;
+
   /// SPRINT 24d - THE LIFECYCLE PROBE.
   /// The chip vanishes on publish while the title survives, which means
   /// this panel's state was emptied without _reset() running. Only two
@@ -326,6 +346,9 @@ class AdminAttachPanelState extends State<AdminAttachPanel> {
 
   @override
   Widget build(BuildContext context) {
+    // Required by AutomaticKeepAliveClientMixin. Without this call the
+    // keep-alive is never registered and the panel dies again.
+    super.build(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: _mediaSection(),
