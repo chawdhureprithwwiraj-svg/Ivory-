@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/ivory_errors.dart';
+
 /// ============================================================
 /// IVORY - THE VAULT (CLOUDFLARE R2)
 ///
@@ -13,12 +15,34 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///
 /// Uploads stream straight from the file on disk, so a 1 GB video
 /// never sits in the phone's memory.
+///
+/// SPRINT 24b - every call into the edge function now reports what
+/// actually happened. Before this, `items()` and `remove()` threw
+/// raw and the manager swallowed it into an endless spinner, so a
+/// broken Vault looked identical to an empty one. It never will
+/// again: if the door jams, the house is told which door and why.
 /// ============================================================
+
 /// The Vault is at its 9 GB safety cap. The composer catches this
 /// and opens the Vault manager instead of a dead-end toast.
 class VaultFullError extends Error {
   VaultFullError(this.usedGb);
   final double usedGb;
+}
+
+/// The Vault refused, and this is exactly why. [detail] is written
+/// for the house, not for a member - show it in the admin console.
+class VaultError implements Exception {
+  VaultError(this.op, this.detail);
+
+  /// Which door: 'usage', 'list', 'put', 'delete', 'get'.
+  final String op;
+
+  /// The real reason, already made readable by adminDetail().
+  final String detail;
+
+  @override
+  String toString() => 'The Vault door jammed on "$op". $detail';
 }
 
 /// One object sitting in the Vault, as the manager shows it.
@@ -59,6 +83,63 @@ class VaultService {
     return 'application/octet-stream';
   }
 
+  /// One way in and out of the edge function, so every operation
+  /// fails the same readable way. Returns the decoded body.
+  ///
+  /// Throws [VaultFullError] when the cap is the reason, and
+  /// [VaultError] for everything else - never a bare exception.
+  Future<Map<String, dynamic>> _call(
+    String op,
+    Map<String, dynamic> body,
+  ) async {
+    dynamic fr;
+    try {
+      fr = await Supabase.instance.client.functions.invoke(
+        'r2-vault',
+        method: HttpMethod.post,
+        body: <String, dynamic>{'op': op, ...body},
+      );
+    } catch (e) {
+      // A thrown FunctionException carries the status and the body
+      // the function actually returned - that is the useful part.
+      if (e is FunctionException) {
+        final Object? d = e.details;
+        if (d is Map && d['error'] == 'vault_full') {
+          throw VaultFullError(((d['used'] as num?) ?? 0) / (1 << 30));
+        }
+        if (e.status == 404) {
+          throw VaultError(op,
+              'The r2-vault function is not deployed, or is deployed '
+              'under a different name. Supabase -> Edge Functions.');
+        }
+        if (e.status == 401 || e.status == 403) {
+          throw VaultError(op,
+              'r2-vault refused the call (HTTP ${e.status}). Check that '
+              '"Verify JWT with legacy secret" is switched OFF.');
+        }
+      }
+      throw VaultError(op, adminDetail(e));
+    }
+
+    final int status = (fr.status as int?) ?? 0;
+    final dynamic data = fr.data;
+
+    if (status != 200) {
+      if (data is Map && data['error'] == 'vault_full') {
+        throw VaultFullError(((data['used'] as num?) ?? 0) / (1 << 30));
+      }
+      final String why = data is Map
+          ? (data['error'] ?? data['message'] ?? data).toString()
+          : (data?.toString() ?? 'no reply');
+      throw VaultError(op, 'r2-vault answered HTTP $status: $why');
+    }
+
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    throw VaultError(op, 'r2-vault replied with ${data.runtimeType}, '
+        'not an object. Check the function returns JSON.');
+  }
+
   /// Streams [path] into the Vault. Returns the vault key to store
   /// on the post (media_source 'r2'). [onProgress] gets 0..1.
   Future<String> uploadVideo({
@@ -66,35 +147,31 @@ class VaultService {
     required String name,
     void Function(double progress)? onProgress,
   }) async {
-    final SupabaseClient client = Supabase.instance.client;
     final String safe = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
     final String stamp = DateTime.now().millisecondsSinceEpoch.toString();
     final String key = 'vault/${stamp}_$safe';
     final String ct = _contentType(safe);
 
     final File f = File(path);
+    if (!await f.exists()) {
+      throw VaultError('put',
+          'The phone has already cleared that video from its temporary '
+          'folder. Pick the film again and publish without leaving the '
+          'composer in between.');
+    }
     final int total = await f.length();
 
-    final dynamic fr = await client.functions.invoke(
-      'r2-vault',
-      method: HttpMethod.post,
-      body: <String, dynamic>{
-        'op': 'put',
-        'key': key,
-        'size': total,
-        'content_type': ct,
-      },
-    );
-    if (fr.status != 200) {
-      final dynamic d = fr.data;
-      if (d is Map && d['error'] == 'vault_full') {
-        throw VaultFullError(
-            ((d['used'] as num?) ?? 0) / (1024 * 1024 * 1024));
-      }
-      throw Exception(
-          (d is Map ? d['error'] as String? : null) ?? 'The Vault door jammed.');
+    final Map<String, dynamic> signed = await _call('put', <String, dynamic>{
+      'key': key,
+      'size': total,
+      'content_type': ct,
+    });
+
+    final String? url = signed['url'] as String?;
+    if (url == null || url.isEmpty) {
+      throw VaultError('put', 'r2-vault did not return an upload link. '
+          'Check the R2 secrets are set on the function.');
     }
-    final String url = (fr.data as Map<String, dynamic>)['url'] as String;
 
     int sent = 0;
     double last = 0;
@@ -102,8 +179,7 @@ class VaultService {
     final HttpClient hc = HttpClient();
     hc.connectionTimeout = const Duration(seconds: 30);
     try {
-      final HttpClientRequest req =
-          await hc.openUrl('PUT', Uri.parse(url));
+      final HttpClientRequest req = await hc.openUrl('PUT', Uri.parse(url));
       req.headers.set('Content-Type', ct);
       req.contentLength = total;
       req.persistentConnection = false;
@@ -121,8 +197,14 @@ class VaultService {
       final int code = res.statusCode;
       await res.drain<void>();
       if (code >= 300) {
-        throw Exception('The Vault refused the file (code $code).');
+        throw VaultError('put',
+            'R2 refused the film (HTTP $code). The signed link may have '
+            'expired - try publishing again straight after picking.');
       }
+    } on VaultError {
+      rethrow;
+    } catch (e) {
+      throw VaultError('put', adminDetail(e));
     } finally {
       hc.close(force: true);
     }
@@ -130,16 +212,11 @@ class VaultService {
   }
 
   /// How many bytes the Vault really holds, after the edge's own
-  /// sweep. Null on any hiccup - the UI then simply stays quiet.
+  /// sweep. Null on any hiccup - the caller then stays quiet.
   Future<int?> usedBytes() async {
     try {
-      final dynamic fr = await Supabase.instance.client.functions.invoke(
-        'r2-vault',
-        method: HttpMethod.post,
-        body: <String, dynamic>{'op': 'usage'},
-      );
-      if (fr.status != 200) return null;
-      return ((fr.data as Map<String, dynamic>)['used'] as num?)?.toInt();
+      final Map<String, dynamic> d = await _call('usage', <String, dynamic>{});
+      return (d['used'] as num?)?.toInt();
     } catch (_) {
       return null;
     }
@@ -148,52 +225,37 @@ class VaultService {
   /// Every object in the Vault, with the story (if any) that points
   /// at it. The manager shows this; nothing is ever removed without
   /// the house approving on screen.
+  ///
+  /// SPRINT 24b: this now THROWS on failure instead of returning an
+  /// empty list. An empty Vault and a broken Vault are not the same
+  /// thing and must never look the same.
   Future<List<VaultItem>> items() async {
-    final dynamic fr = await Supabase.instance.client.functions.invoke(
-      'r2-vault',
-      method: HttpMethod.post,
-      body: <String, dynamic>{'op': 'list'},
-    );
-    if (fr.status != 200) return <VaultItem>[];
-    final List<dynamic> rows =
-        (fr.data as Map<String, dynamic>)['items'] as List<dynamic>? ??
-            <dynamic>[];
-    return rows
-        .map((dynamic r) => VaultItem(
-              key: (r as Map<String, dynamic>)['key'] as String,
-              size: ((r['size'] as num?) ?? 0).toInt(),
-              modified: (r['modified'] as String?) ?? '',
-              postId: (r['post_id'] as num?)?.toInt(),
-              postTitle: r['post_title'] as String?,
-            ))
-        .toList();
+    final Map<String, dynamic> d = await _call('list', <String, dynamic>{});
+    final List<dynamic> rows = d['items'] as List<dynamic>? ?? <dynamic>[];
+    return rows.map((dynamic r) {
+      final Map<String, dynamic> m = Map<String, dynamic>.from(r as Map);
+      return VaultItem(
+        key: (m['key'] ?? '').toString(),
+        size: ((m['size'] as num?) ?? 0).toInt(),
+        modified: (m['modified'] as String?) ?? '',
+        postId: (m['post_id'] as num?)?.toInt(),
+        postTitle: m['post_title'] as String?,
+      );
+    }).toList();
   }
 
   /// Only ever called after the house taps delete and confirms.
   Future<void> remove(String key) async {
-    final dynamic fr = await Supabase.instance.client.functions.invoke(
-      'r2-vault',
-      method: HttpMethod.post,
-      body: <String, dynamic>{'op': 'delete', 'key': key},
-    );
-    if (fr.status != 200) {
-      final dynamic d = fr.data;
-      throw Exception((d is Map ? d['error'] as String? : null) ??
-          'The Vault refused to remove that file.');
-    }
+    await _call('delete', <String, dynamic>{'key': key});
   }
 
   /// A member-side signed GET for a vault post, straight from the
   /// edge (which re-checks can_open_post as that member).
   Future<String?> openUrl(int postId) async {
     try {
-      final dynamic fr = await Supabase.instance.client.functions.invoke(
-        'r2-vault',
-        method: HttpMethod.post,
-        body: <String, dynamic>{'op': 'get', 'post_id': postId},
-      );
-      if (fr.status != 200) return null;
-      return (fr.data as Map<String, dynamic>)['url'] as String?;
+      final Map<String, dynamic> d =
+          await _call('get', <String, dynamic>{'post_id': postId});
+      return d['url'] as String?;
     } catch (_) {
       return null;
     }
