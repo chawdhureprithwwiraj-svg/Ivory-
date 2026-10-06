@@ -113,9 +113,17 @@ class VaultService {
               'under a different name. Supabase -> Edge Functions.');
         }
         if (e.status == 401 || e.status == 403) {
-          throw VaultError(op,
-              'r2-vault refused the call (HTTP ${e.status}). Check that '
-              '"Verify JWT with legacy secret" is switched OFF.');
+          // Report what the function actually said. Guessing a cause
+          // here once sent the house to the wrong settings page.
+          final String said =
+              d is Map ? (d['error'] ?? '').toString().trim() : '';
+          throw VaultError(
+              op,
+              'r2-vault refused the call (HTTP ${e.status})'
+              '${said.isEmpty ? '' : ': "$said"'}. '
+              'If it names the house, the function is checking the wrong '
+              'admin column. Otherwise check that "Verify JWT with legacy '
+              'secret" is switched OFF on the function.');
         }
       }
       throw VaultError(op, adminDetail(e));
