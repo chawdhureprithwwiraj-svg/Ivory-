@@ -423,7 +423,6 @@ class _CallWishSheetState extends State<CallWishSheet> {
                   ),
                 if (c.canJoin && c.requestedFor != null)
                   Text(
-                  Text(
                     c.windowEnd == null
                         ? 'Agreed for ${_when(c.requestedFor!)} - JOIN '
                             'wakes up a little before.'
@@ -580,4 +579,3 @@ String _cleanErr(Object e) {
   return raw.replaceFirst('Exception: ', '');
 }
 // END OF FILE - lib/widgets/call_wish_sheet.dart
-          
