@@ -203,7 +203,6 @@ class _MediaBody extends StatelessWidget {
     // any direct https link. YouTube and Telegram still open outside.
     final String? playable = post.media.directUrl();
     final String? external = post.media.externalUrl;
-    final bool isTelegram = post.media.source == MediaSource.telegramChannel;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,16 +237,16 @@ class _MediaBody extends StatelessWidget {
                 Row(
                   children: <Widget>[
                     Icon(
-                      isTelegram
-                          ? Icons.send_rounded
-                          : Icons.play_circle_fill,
+                      playable != null
+                          ? Icons.play_circle_fill
+                          : Icons.open_in_new_rounded,
                       color: IvoryColors.amber,
                       size: 21,
                     ),
                     const SizedBox(width: 9),
                     Expanded(
                       child: Text(
-                        post.media.source.label,
+                        playable != null ? 'PLAYS IN IVORY' : 'OPENS OUTSIDE',
                         style: const TextStyle(
                           color: IvoryColors.plum,
                           fontSize: 12.5,
@@ -269,10 +268,8 @@ class _MediaBody extends StatelessWidget {
                 const SizedBox(height: 16),
                 if (external != null)
                   IvoryGradientButton(
-                    label: isTelegram ? 'OPEN IN TELEGRAM' : 'WATCH NOW',
-                    icon: isTelegram
-                        ? Icons.send_rounded
-                        : Icons.play_arrow,
+                    label: 'WATCH NOW',
+                    icon: Icons.play_arrow,
                     onPressed: () => PostActions.launch(context, external),
                   )
                 else
