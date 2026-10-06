@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../models/media_ref.dart';
 import '../services/admin_service.dart';
-import '../services/vault_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
 import '../widgets/admin_post_chips.dart';
 import 'admin_attach_panel.dart';
+import 'admin_publish_media.dart';
 import 'vault_manager.dart';
 import 'admin_library_list.dart';
 
@@ -121,9 +120,8 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     final bool needsMedia =
         _type == 'audio' || _type == 'video' || _type == 'image';
 
-    // SPRINT 24h - a poll has NO attach panel; build() puts the options
-    // editor in that slot, so the key is empty by design. Only consult
-    // the panel for post types that actually carry a file.
+    // SPRINT 24h - a poll has NO attach panel (the options editor takes
+    // that slot), so only consult it for types that carry a file.
     final AdminAttachPanelState? at = _attach.currentState;
 
     if (needsMedia) {
@@ -161,55 +159,16 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     });
 
     try {
-      String? mediaRef = at?.uploadedUrl;
-      MediaSource mediaSource = MediaSource.none;
-      bool vaulted = false;
-
-      if (at != null && at.vaultPath != null && mediaRef == null) {
-        setState(() => _busyLabel = 'Opening the Vault...');
-        mediaRef = await VaultService.instance.uploadVideo(
-          path: at.vaultPath!,
-          name: at.vaultName ?? 'video.mp4',
-          onProgress: (double p) {
-            if (mounted) {
-              setState(() =>
-                  _busyLabel = 'Vault ${(p * 100).round()}% - keep open');
-            }
-          },
-        );
-        vaulted = true;
-      }
-
-      if (at != null && at.picked != null && mediaRef == null) {
-        // Read it out before the closure.
-        final String size = at.picked!.sizeLabel;
-        setState(() => _busyLabel = 'Uploading $size...');
-        mediaRef = await AdminService.instance.upload(
-          at.picked!,
-          folder: _type == 'image'
-              ? 'images'
-              : (_type == 'audio' ? 'audio' : 'video'),
-          private: _type != 'image',
-        );
-        at.setUploadedUrl(mediaRef);
-      }
-      if (mediaRef != null) {
-        mediaSource = vaulted ? MediaSource.r2 : MediaSource.supabase;
-      } else if (hasLink && at != null) {
-        final MediaRef parsed = MediaRef.parse(at.link.text.trim());
-        mediaSource = parsed.source;
-        mediaRef = parsed.ref;
-      }
-
-      String? thumbRef = at?.uploadedThumbUrl;
-      MediaSource thumbSource = MediaSource.none;
-      if (at != null && at.thumb != null && thumbRef == null) {
-        setState(() => _busyLabel = 'Uploading the cover...');
-        thumbRef =
-            await AdminService.instance.upload(at.thumb!, folder: 'thumbs');
-        at.setUploadedThumbUrl(thumbRef);
-      }
-      if (thumbRef != null) thumbSource = MediaSource.supabase;
+      // SPRINT 24j - the whole "where does this file go" question now
+      // lives in admin_publish_media.dart. See that file for the rules.
+      final ResolvedMedia media = await resolvePublishMedia(
+        type: _type,
+        at: at,
+        hasLink: hasLink,
+        onStatus: (String label) {
+          if (mounted) setState(() => _busyLabel = label);
+        },
+      );
 
       setState(() => _busyLabel = 'Publishing...');
       final int? mins = int.tryParse(_minutes.text.trim());
@@ -219,10 +178,10 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
         title: _title.text.trim(),
         summary: _summary.text,
         body: _body.text,
-        mediaSource: mediaSource,
-        mediaRef: mediaRef,
-        thumbSource: thumbSource,
-        thumbRef: thumbRef,
+        mediaSource: media.source,
+        mediaRef: media.ref,
+        thumbSource: media.thumbSource,
+        thumbRef: media.thumbRef,
         tierRequired: _who.isEmpty ? 9 : _who.reduce((a, b) => a < b ? a : b),
         durationSecs: mins == null ? null : mins * 60,
         pollOptions: _type == 'poll' ? poll : null,
