@@ -285,30 +285,24 @@ class _MediaBody extends StatelessWidget {
           ),
 
         // ---- footer line ----
-        if (playable != null) ...<Widget>[
-          const SizedBox(height: 14),
-          Row(
-            children: <Widget>[
-              Icon(Icons.verified_rounded,
-                  size: 15, color: IvoryColors.gold),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  post.durationLabel != null
-                      ? 'Streaming inside Ivory - ${post.durationLabel}'
-                      : 'Streaming inside Ivory',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: IvoryColors.textFaint,
-                  ),
-                ),
-              ),
-              if (external != null)
-                TextButton(
-                  onPressed: () => PostActions.launch(context, external),
-                  child: const Text('Open externally'),
-                ),
-            ],
+        // SPRINT 24f - PRIVACY.
+        // This row used to end in an "Open externally" button that handed
+        // the member the raw storage address - the Supabase or Cloudflare
+        // R2 URL. One tap and they could see where Ivory keeps its files,
+        // which companies it depends on, and the shape of the back end.
+        // It is gone. So is the "Streaming inside Ivory" caption, which
+        // announced plumbing nobody asked to hear about.
+        //
+        // What remains is the only fact a member actually wants: how long
+        // the piece runs. Nothing here reveals an address.
+        if (playable != null && post.durationLabel != null) ...<Widget>[
+          const SizedBox(height: 12),
+          Text(
+            post.durationLabel!,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: IvoryColors.textFaint,
+            ),
           ),
         ],
         _giftRow(context, post),
