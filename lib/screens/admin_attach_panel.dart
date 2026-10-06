@@ -35,6 +35,18 @@ class AdminAttachPanel extends StatefulWidget {
 }
 
 class AdminAttachPanelState extends State<AdminAttachPanel> {
+  /// SPRINT 24d - THE LIFECYCLE PROBE.
+  /// The chip vanishes on publish while the title survives, which means
+  /// this panel's state was emptied without _reset() running. Only two
+  /// things can do that: clearForType(), or this State being destroyed
+  /// and rebuilt. These three counters tell us which, in one tap.
+  /// They cost nothing and come out once the cause is known.
+  static int inits = 0;
+  static int disposes = 0;
+  static int clears = 0;
+
+  static String get probe => 'init $inits / dispose $disposes / clear $clears';
+
   PickedMedia? picked;
   String? uploadedUrl;
   PickedMedia? thumb;
@@ -54,7 +66,14 @@ class AdminAttachPanelState extends State<AdminAttachPanel> {
   void setUploadedThumbUrl(String? v) =>
       setState(() => uploadedThumbUrl = v);
 
+  @override
+  void initState() {
+    super.initState();
+    inits++;
+  }
+
   void clearForType() {
+    clears++;
     setState(() {
       picked = null;
       uploadedUrl = null;
@@ -300,6 +319,7 @@ class AdminAttachPanelState extends State<AdminAttachPanel> {
 
   @override
   void dispose() {
+    disposes++;
     link.dispose();
     super.dispose();
   }
