@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/ivory_post.dart';
+import 'vault_service.dart';
 
 /// Reads the storytelling feed. All access rules are enforced by the
 /// database, so this layer never has to decide what a user may see.
@@ -75,6 +76,14 @@ class ContentService {
       // can_open_post(), so signing only ever succeeds for a member
       // who may open the post.
       final String? ref = row['media_ref'] as String?;
+      // Vault films live in Cloudflare R2: the edge signs a GET for
+      // this member (it re-checks can_open_post), and the in-app
+      // player streams the signed url.
+      if (row['media_source'] == 'r2' &&
+          ref != null && !ref.startsWith('http')) {
+        final String? signed = await VaultService.instance.openUrl(id);
+        if (signed != null && signed.isNotEmpty) row['media_ref'] = signed;
+      }
       if (row['media_source'] == 'supabase' &&
           ref != null && !ref.startsWith('http')) {
         // Vault media is private, and some older posts kept the raw
