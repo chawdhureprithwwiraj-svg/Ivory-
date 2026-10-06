@@ -96,8 +96,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
         SnackBar(
           content: Text(message),
           backgroundColor: bad ? IvoryColors.danger : IvoryColors.plum,
-          // A failure must sit still long enough to be read and
-          // photographed. Twelve seconds, and a way to dismiss it.
+          // Long enough to read and photograph.
           duration: Duration(seconds: bad ? 12 : 4),
           action: bad
               ? SnackBarAction(
@@ -122,27 +121,30 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     final bool needsMedia =
         _type == 'audio' || _type == 'video' || _type == 'image';
 
-    // SPRINT 24d - never assert the panel is alive. If the GlobalKey has
-    // no state, that IS the bug and it must say so rather than crash.
-    final AdminAttachPanelState? maybe = _attach.currentState;
-    if (maybe == null) {
-      _toast('The attach panel is not mounted '
-          '(${AdminAttachPanelState.probe}). Tell the agent this exact line.',
-          bad: true);
-      return;
-    }
-    final AdminAttachPanelState at = maybe;
-    final bool hasLink = at.hasLink;
+    // SPRINT 24h - a poll has NO attach panel; build() puts the options
+    // editor in that slot, so the key is empty by design. Only consult
+    // the panel for post types that actually carry a file.
+    final AdminAttachPanelState? at = _attach.currentState;
 
-    if (needsMedia && at.picked == null && at.vaultPath == null && !hasLink) {
-      // The old message was a guess dressed as a fact. Now it reports.
-      _toast(
-          'Nothing attached. type=$_type  picked=${at.picked != null}  '
-          'vault=${at.vaultPath != null}  link=$hasLink  '
-          'panel ${AdminAttachPanelState.probe}',
-          bad: true);
-      return;
+    if (needsMedia) {
+      if (at == null) {
+        _toast(
+            'The attach panel is not mounted '
+            '(${AdminAttachPanelState.probe}). Tell the agent this line.',
+            bad: true);
+        return;
+      }
+      if (at.picked == null && at.vaultPath == null && !at.hasLink) {
+        _toast(
+            'Nothing attached. type=$_type  picked=${at.picked != null}  '
+            'vault=${at.vaultPath != null}  link=${at.hasLink}  '
+            'panel ${AdminAttachPanelState.probe}',
+            bad: true);
+        return;
+      }
     }
+
+    final bool hasLink = at?.hasLink ?? false;
 
     final List<String> poll = _options
         .map((TextEditingController c) => c.text.trim())
@@ -159,11 +161,11 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     });
 
     try {
-      String? mediaRef = at.uploadedUrl;
+      String? mediaRef = at?.uploadedUrl;
       MediaSource mediaSource = MediaSource.none;
       bool vaulted = false;
 
-      if (at.vaultPath != null && mediaRef == null) {
+      if (at != null && at.vaultPath != null && mediaRef == null) {
         setState(() => _busyLabel = 'Opening the Vault...');
         mediaRef = await VaultService.instance.uploadVideo(
           path: at.vaultPath!,
@@ -178,8 +180,10 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
         vaulted = true;
       }
 
-      if (at.picked != null && mediaRef == null) {
-        setState(() => _busyLabel = 'Uploading ${at.picked!.sizeLabel}...');
+      if (at != null && at.picked != null && mediaRef == null) {
+        // Read it out before the closure.
+        final String size = at.picked!.sizeLabel;
+        setState(() => _busyLabel = 'Uploading $size...');
         mediaRef = await AdminService.instance.upload(
           at.picked!,
           folder: _type == 'image'
@@ -191,15 +195,15 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
       }
       if (mediaRef != null) {
         mediaSource = vaulted ? MediaSource.r2 : MediaSource.supabase;
-      } else if (hasLink) {
+      } else if (hasLink && at != null) {
         final MediaRef parsed = MediaRef.parse(at.link.text.trim());
         mediaSource = parsed.source;
         mediaRef = parsed.ref;
       }
 
-      String? thumbRef = at.uploadedThumbUrl;
+      String? thumbRef = at?.uploadedThumbUrl;
       MediaSource thumbSource = MediaSource.none;
-      if (at.thumb != null && thumbRef == null) {
+      if (at != null && at.thumb != null && thumbRef == null) {
         setState(() => _busyLabel = 'Uploading the cover...');
         thumbRef =
             await AdminService.instance.upload(at.thumb!, folder: 'thumbs');
