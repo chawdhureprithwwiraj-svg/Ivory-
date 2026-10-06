@@ -4,17 +4,22 @@ import '../models/ivory_post.dart';
 import '../services/auth_service.dart';
 import '../services/content_service.dart';
 import '../theme/ivory_theme.dart';
+import 'poll_bars.dart';
 
 /// ============================================================
-/// IVORY - THE POLL, PLAIN AND HONEST
+/// IVORY - THE POLL, IN FULL
 ///
-/// Text, options, percentages. Members see only the percentage;
-/// the house sees the counts and exactly who voted for what.
+/// SPRINT 24g. The voting logic below is unchanged and still
+/// trusted: it loads the options, remembers the member's answer,
+/// and keeps the honest split - members see percentages only,
+/// the house sees exact counts and every name. Only the
+/// appearance was rebuilt, into the badge-question-bars shape
+/// of a YouTube or Facebook community poll.
 /// ============================================================
 String _clean(String title) => title.replaceFirst('[SAMPLE] ', '');
 
 class PollBody extends StatefulWidget {
-  const PollBody({required this.post});
+  const PollBody({super.key, required this.post});
 
   final IvoryPost post;
 
@@ -64,22 +69,43 @@ class _PollBodyState extends State<PollBody> {
 
   @override
   Widget build(BuildContext context) {
-    final int total =
-        _options.fold<int>(0, (int s, PollOption o) => s + o.votes);
+    // The house always sees the standing. A member sees nothing
+    // until they have answered, so early numbers cannot nudge them.
+    final bool revealed = _house || _myVote != null;
+
+    final PollMaths m = PollMaths.of(<int, int>{
+      for (final PollOption o in _options) o.id: o.votes,
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const IvoryEyebrow('Your vote counts', icon: Icons.how_to_vote),
-        const SizedBox(height: 10),
-        Text(_clean(widget.post.title),
-            style: Theme.of(context).textTheme.headlineMedium),
+        const PollBadge(),
+        const SizedBox(height: 13),
+
+        // The question is the headline. It is the whole point of
+        // the card, so it is set like one.
+        Text(
+          _clean(widget.post.title),
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
         if (widget.post.summary != null) ...<Widget>[
-          const SizedBox(height: 9),
+          const SizedBox(height: 8),
           Text(widget.post.summary!,
               style: Theme.of(context).textTheme.bodyMedium),
         ],
-        const SizedBox(height: 22),
+        const SizedBox(height: 6),
+        Text(
+          _house
+              ? m.tally
+              : (_myVote != null
+                  ? 'You answered'
+                  : 'Tap an option - nobody sees your name'),
+          style: TextStyle(
+              fontSize: 12.5, color: IvoryColors.textFaint),
+        ),
+        const SizedBox(height: 15),
+
         if (_loading)
           const Center(
             child: Padding(
@@ -87,95 +113,63 @@ class _PollBodyState extends State<PollBody> {
               child: CircularProgressIndicator(color: IvoryColors.amber),
             ),
           )
-        else
+        else ...<Widget>[
           ..._options.map((PollOption o) {
-            final bool mine = _myVote == o.id;
-            final int pct =
-                total == 0 ? 0 : (o.votes * 100 / total).round();
+            final int pct = m.percents[o.id] ?? 0;
             final List<String> voters = _voters[o.id] ?? <String>[];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => _vote(o.id),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: mine
-                          ? IvoryColors.gold
-                          : IvoryColors.hairlineStrong,
-                      width: mine ? 1.6 : 1,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                PollOptionBar(
+                  label: o.label,
+                  percent: pct,
+                  revealed: revealed,
+                  votes: _house ? o.votes : null,
+                  mine: _myVote == o.id,
+                  lead: revealed && m.total > 0 && pct == m.best,
+                  onTap: () => _vote(o.id),
+                ),
+                if (_house && voters.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10, left: 4),
+                    child: Text(
+                      'Voted: ${voters.join(', ')}',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontStyle: FontStyle.italic,
+                        color: IvoryColors.textFaint,
+                      ),
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Text(
-                            mine ? '\u2713  ' : '\u2022  ',
-                            style: const TextStyle(
-                              color: IvoryColors.burgundy,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              o.label,
-                              style: TextStyle(
-                                color: mine
-                                    ? IvoryColors.burgundy
-                                    : IvoryColors.textSoft,
-                                fontSize: 14.5,
-                                fontWeight:
-                                    mine ? FontWeight.w800 : FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _house ? '${o.votes}  \u00b7  $pct%' : '$pct%',
-                            style: const TextStyle(
-                              color: IvoryColors.burgundy,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (_house && voters.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6, left: 22),
-                          child: Text(
-                            'Voted: ${voters.join(', ')}',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontStyle: FontStyle.italic,
-                              color: IvoryColors.textFaint,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
+              ],
             );
           }),
-        if (_house) ...<Widget>[
-          const SizedBox(height: 6),
-          Text(
-            total == 1 ? '1 vote' : '$total votes',
-            style: TextStyle(fontSize: 12.5, color: IvoryColors.textFaint),
-          ),
+          const SizedBox(height: 4),
+          if (revealed && !_house) PollTally(text: m.tally),
+          if (_house)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: IvoryColors.success.withValues(alpha: 0.12),
+                border: Border.all(
+                  color: IvoryColors.success.withValues(alpha: 0.4),
+                ),
+              ),
+              child: const Text(
+                'Only you see this. Exact counts, and the name behind '
+                'every vote. Members see percentages alone.',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.45,
+                  color: Color(0xFF4C6637),
+                ),
+              ),
+            ),
         ],
       ],
     );
   }
 }
-
 
 // END OF FILE - lib/widgets/post_poll.dart
