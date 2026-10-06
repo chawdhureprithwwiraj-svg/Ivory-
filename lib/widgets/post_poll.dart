@@ -22,7 +22,7 @@ class PollBody extends StatefulWidget {
   State<PollBody> createState() => _PollBodyState();
 }
 
-class _PollBodyState extends State<_PollBody> {
+class _PollBodyState extends State<PollBody> {
   List<PollOption> _options = <PollOption>[];
   Map<int, List<String>> _voters = <int, List<String>>{};
   int? _myVote;
