@@ -419,7 +419,7 @@ class _LockedBody extends StatelessWidget {
           icon: Icons.workspace_premium_rounded,
           onPressed: () {
             Navigator.of(context).pop();
-            MainShell.openTab('premium');
+            MainShell.onOpenTab?.call('premium');
           },
         ),
       ],
