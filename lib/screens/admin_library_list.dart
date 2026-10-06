@@ -110,8 +110,20 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
     final int id = ((p['id'] as num?) ?? 0).toInt();
     final bool live = p['is_published'] == true;
     final int tier = ((p['tier_required'] as num?) ?? 0).toInt();
-    final String tierName =
-        tier == 0 ? 'Free' : ((p['tier_name'] as String?) ?? 'Tier $tier');
+
+    // SPRINT 24i - a post sold on its own carries a price and a
+    // sentinel tier (9 = "Nobody - all pay"). Printing "Tier 9" told
+    // the house nothing. Show the price, which is the real rule.
+    final num? price = (p['price_inr'] ?? p['price']) as num?;
+    final bool priced = price != null && price > 0;
+
+    final String tierName = priced
+        ? 'Paid \u00b7 \u20b9${price.toInt()}'
+        : (tier == 0
+            ? 'Free'
+            : (tier >= 9
+                ? 'Everyone pays'
+                : ((p['tier_name'] as String?) ?? 'Tier $tier')));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
