@@ -298,34 +298,6 @@ class AdminAttachPanelState extends State<AdminAttachPanel> {
     ];
   }
 
-  Widget _publishSwitch() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: IvoryTheme.card(radius: 18),
-      child: SwitchListTile.adaptive(
-        contentPadding: EdgeInsets.zero,
-        activeColor: IvoryColors.gold,
-        value: _publishNow,
-        onChanged: (bool v) => setState(() => _publishNow = v),
-        title: const Text(
-          'Publish immediately',
-          style: TextStyle(
-            color: IvoryColors.burgundy,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        subtitle: Text(
-          _publishNow
-              ? 'Goes live and notifies every member.'
-              : 'Saved as a draft. Publish it later from the library.',
-          style: TextStyle(fontSize: 12, color: IvoryColors.textFaint),
-        ),
-      ),
-    );
-  }
-}
-
-
   @override
   void dispose() {
     link.dispose();
