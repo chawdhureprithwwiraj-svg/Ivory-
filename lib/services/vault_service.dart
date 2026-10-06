@@ -14,6 +14,37 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Uploads stream straight from the file on disk, so a 1 GB video
 /// never sits in the phone's memory.
 /// ============================================================
+/// The Vault is at its 9 GB safety cap. The composer catches this
+/// and opens the Vault manager instead of a dead-end toast.
+class VaultFullError extends Error {
+  VaultFullError(this.usedGb);
+  final double usedGb;
+}
+
+/// One object sitting in the Vault, as the manager shows it.
+class VaultItem {
+  const VaultItem({
+    required this.key,
+    required this.size,
+    required this.modified,
+    this.postId,
+    this.postTitle,
+  });
+
+  final String key;
+  final int size;
+  final String modified;
+  final int? postId;
+  final String? postTitle;
+
+  String get sizeLabel {
+    final double gb = size / (1024 * 1024 * 1024);
+    return gb >= 1
+        ? '${gb.toStringAsFixed(1)} GB'
+        : '${(size / (1024 * 1024)).round()} MB';
+  }
+}
+
 class VaultService {
   VaultService._();
   static final VaultService instance = VaultService._();
@@ -41,20 +72,30 @@ class VaultService {
     final String key = 'vault/${stamp}_$safe';
     final String ct = _contentType(safe);
 
+    final File f = File(path);
+    final int total = await f.length();
+
     final dynamic fr = await client.functions.invoke(
       'r2-vault',
       method: HttpMethod.post,
-      body: <String, dynamic>{'op': 'put', 'key': key, 'content_type': ct},
+      body: <String, dynamic>{
+        'op': 'put',
+        'key': key,
+        'size': total,
+        'content_type': ct,
+      },
     );
     if (fr.status != 200) {
       final dynamic d = fr.data;
+      if (d is Map && d['error'] == 'vault_full') {
+        throw VaultFullError(
+            ((d['used'] as num?) ?? 0) / (1024 * 1024 * 1024));
+      }
       throw Exception(
           (d is Map ? d['error'] as String? : null) ?? 'The Vault door jammed.');
     }
     final String url = (fr.data as Map<String, dynamic>)['url'] as String;
 
-    final File f = File(path);
-    final int total = await f.length();
     int sent = 0;
     double last = 0;
 
@@ -86,6 +127,60 @@ class VaultService {
       hc.close(force: true);
     }
     return key;
+  }
+
+  /// How many bytes the Vault really holds, after the edge's own
+  /// sweep. Null on any hiccup - the UI then simply stays quiet.
+  Future<int?> usedBytes() async {
+    try {
+      final dynamic fr = await Supabase.instance.client.functions.invoke(
+        'r2-vault',
+        method: HttpMethod.post,
+        body: <String, dynamic>{'op': 'usage'},
+      );
+      if (fr.status != 200) return null;
+      return ((fr.data as Map<String, dynamic>)['used'] as num?)?.toInt();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Every object in the Vault, with the story (if any) that points
+  /// at it. The manager shows this; nothing is ever removed without
+  /// the house approving on screen.
+  Future<List<VaultItem>> items() async {
+    final dynamic fr = await Supabase.instance.client.functions.invoke(
+      'r2-vault',
+      method: HttpMethod.post,
+      body: <String, dynamic>{'op': 'list'},
+    );
+    if (fr.status != 200) return <VaultItem>[];
+    final List<dynamic> rows =
+        (fr.data as Map<String, dynamic>)['items'] as List<dynamic>? ??
+            <dynamic>[];
+    return rows
+        .map((dynamic r) => VaultItem(
+              key: (r as Map<String, dynamic>)['key'] as String,
+              size: ((r['size'] as num?) ?? 0).toInt(),
+              modified: (r['modified'] as String?) ?? '',
+              postId: (r['post_id'] as num?)?.toInt(),
+              postTitle: r['post_title'] as String?,
+            ))
+        .toList();
+  }
+
+  /// Only ever called after the house taps delete and confirms.
+  Future<void> remove(String key) async {
+    final dynamic fr = await Supabase.instance.client.functions.invoke(
+      'r2-vault',
+      method: HttpMethod.post,
+      body: <String, dynamic>{'op': 'delete', 'key': key},
+    );
+    if (fr.status != 200) {
+      final dynamic d = fr.data;
+      throw Exception((d is Map ? d['error'] as String? : null) ??
+          'The Vault refused to remove that file.');
+    }
   }
 
   /// A member-side signed GET for a vault post, straight from the
