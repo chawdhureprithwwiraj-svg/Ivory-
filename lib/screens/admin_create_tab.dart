@@ -90,12 +90,25 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
   void _toast(String message, {bool bad = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: bad ? IvoryColors.danger : IvoryColors.plum,
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: bad ? IvoryColors.danger : IvoryColors.plum,
+          // A failure must sit still long enough to be read and
+          // photographed. Twelve seconds, and a way to dismiss it.
+          duration: Duration(seconds: bad ? 12 : 4),
+          action: bad
+              ? SnackBarAction(
+                  label: 'OK',
+                  textColor: IvoryColors.ivory,
+                  onPressed: () => ScaffoldMessenger.of(context)
+                      .hideCurrentSnackBar(),
+                )
+              : null,
+        ),
+      );
   }
 
 
@@ -108,10 +121,26 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
     final bool needsMedia =
         _type == 'audio' || _type == 'video' || _type == 'image';
-    final AdminAttachPanelState at = _attach.currentState!;
+
+    // SPRINT 24d - never assert the panel is alive. If the GlobalKey has
+    // no state, that IS the bug and it must say so rather than crash.
+    final AdminAttachPanelState? maybe = _attach.currentState;
+    if (maybe == null) {
+      _toast('The attach panel is not mounted '
+          '(${AdminAttachPanelState.probe}). Tell the agent this exact line.',
+          bad: true);
+      return;
+    }
+    final AdminAttachPanelState at = maybe;
     final bool hasLink = at.hasLink;
+
     if (needsMedia && at.picked == null && at.vaultPath == null && !hasLink) {
-      _toast('Attach a file or paste a link first.', bad: true);
+      // The old message was a guess dressed as a fact. Now it reports.
+      _toast(
+          'Nothing attached. type=$_type  picked=${at.picked != null}  '
+          'vault=${at.vaultPath != null}  link=$hasLink  '
+          'panel ${AdminAttachPanelState.probe}',
+          bad: true);
       return;
     }
 
