@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/ivory_post.dart';
 import '../theme/ivory_theme.dart';
+import 'poll_card.dart';
 import 'post_artwork.dart';
 
 /// A story card in the Ivory Golden Edition style: a near-white card
@@ -24,6 +25,13 @@ class PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // SPRINT 24i - a poll is not a post with a missing picture. It gets
+    // its own card: badge, question, and votable bars. Everything below
+    // this line is for posts that carry media.
+    if (post.type == PostType.poll) {
+      return PollCard(post: post, onTap: onTap);
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Material(
