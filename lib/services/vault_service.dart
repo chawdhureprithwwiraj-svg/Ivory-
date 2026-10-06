@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -207,6 +208,83 @@ class VaultService {
       if (code >= 300) {
         throw VaultError('put',
             'R2 refused the film (HTTP $code). The signed link may have '
+            'expired - try publishing again straight after picking.');
+      }
+    } on VaultError {
+      rethrow;
+    } catch (e) {
+      throw VaultError('put', adminDetail(e));
+    } finally {
+      hc.close(force: true);
+    }
+    return key;
+  }
+
+  /// SPRINT 24j - the same journey as uploadVideo, but for a file the
+  /// app already holds in memory (audio, and anything picked as bytes
+  /// rather than as a path). Supabase's free tier gives 1 GB of
+  /// storage and charges for egress; R2 gives 10 GB and charges
+  /// nothing to serve it. Voice notes belong here, not there.
+  ///
+  /// Returns the vault key to store on the post with media_source
+  /// 'r2'. open_post signs a GET for whoever is allowed to listen.
+  Future<String> uploadBytes({
+    required Uint8List bytes,
+    required String name,
+    void Function(double progress)? onProgress,
+  }) async {
+    final String safe = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final String stamp = DateTime.now().millisecondsSinceEpoch.toString();
+    final String key = 'vault/${stamp}_$safe';
+    final String ct = _contentType(safe);
+    final int total = bytes.length;
+
+    if (total == 0) {
+      throw VaultError('put', 'That file came back empty. Pick it again.');
+    }
+
+    final Map<String, dynamic> signed = await _call('put', <String, dynamic>{
+      'key': key,
+      'size': total,
+      'content_type': ct,
+    });
+
+    final String? url = signed['url'] as String?;
+    if (url == null || url.isEmpty) {
+      throw VaultError('put', 'r2-vault did not return an upload link. '
+          'Check the R2 secrets are set on the function.');
+    }
+
+    // Sent in slices so the progress line moves on a slow connection
+    // instead of sitting still and looking frozen.
+    const int slice = 256 * 1024;
+    final HttpClient hc = HttpClient();
+    hc.connectionTimeout = const Duration(seconds: 30);
+    try {
+      final HttpClientRequest req = await hc.openUrl('PUT', Uri.parse(url));
+      req.headers.set('Content-Type', ct);
+      req.contentLength = total;
+      req.persistentConnection = false;
+
+      int sent = 0;
+      double last = 0;
+      while (sent < total) {
+        final int end = (sent + slice) > total ? total : (sent + slice);
+        req.add(bytes.sublist(sent, end));
+        sent = end;
+        final double prog = sent / total;
+        if (prog - last >= 0.04 || sent == total) {
+          last = prog;
+          onProgress?.call(prog);
+        }
+      }
+
+      final HttpClientResponse res = await req.close();
+      final int code = res.statusCode;
+      await res.drain<void>();
+      if (code >= 300) {
+        throw VaultError('put',
+            'R2 refused the file (HTTP $code). The signed link may have '
             'expired - try publishing again straight after picking.');
       }
     } on VaultError {
