@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// ============================================================
 /// IVORY - HOW IVORY SPEAKS WHEN SOMETHING GOES WRONG
 ///
-/// A member must never meet a database. No "PostgresException",
+/// A member must never meet a database. No "PostgrestException",
 /// no "P0001", no "42703" - those are our problems, not theirs.
 ///
 /// Two voices live here:
@@ -25,7 +25,7 @@ String houseMessage(Object? e) {
 
   // Messages Ivory wrote herself in Postgres are already kind and
   // already in her voice - those we keep, they are meant to be read.
-  if (e is PostgresException) {
+  if (e is PostgrestException) {
     final String m = e.message.trim();
     final bool ours = e.code == 'P0001' && m.isNotEmpty && !_looksTechnical(m);
     if (ours) return m;
@@ -60,7 +60,7 @@ String houseMessage(Object? e) {
 String adminDetail(Object? e) {
   if (e == null) return 'Unknown error.';
 
-  if (e is PostgresException) {
+  if (e is PostgrestException) {
     final StringBuffer b = StringBuffer(e.message.trim());
     if (e.code != null) b.write('  [${e.code}]');
     if (e.details != null) b.write('\n${e.details}');
@@ -76,8 +76,6 @@ String adminDetail(Object? e) {
       final String t = d.toString().trim();
       if (t.isNotEmpty && t != 'null') b.write(': $t');
     }
-    final String? r = e.reasonPhrase;
-    if (r != null && r.trim().isNotEmpty) b.write(' - $r');
     return b.toString();
   }
 
