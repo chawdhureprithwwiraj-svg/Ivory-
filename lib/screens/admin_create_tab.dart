@@ -3,9 +3,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/media_ref.dart';
 import '../services/admin_service.dart';
+import '../services/vault_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
 import '../widgets/admin_post_chips.dart';
+import 'admin_attach_panel.dart';
+import 'vault_manager.dart';
 import 'admin_library_list.dart';
 
 /// ADMIN STUDIO - THE COMPOSER. Media uploads to Storage or points
@@ -22,7 +25,6 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
   final TextEditingController _title = TextEditingController();
   final TextEditingController _summary = TextEditingController();
   final TextEditingController _body = TextEditingController();
-  final TextEditingController _link = TextEditingController();
   final TextEditingController _minutes = TextEditingController();
   final List<TextEditingController> _options = <TextEditingController>[
     TextEditingController(),
@@ -44,10 +46,9 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
   int? _freeFrom;
   bool _publishNow = true;
 
-  PickedMedia? _picked;
-  String? _uploadedUrl;
-  PickedMedia? _thumb;
-  String? _uploadedThumbUrl;
+  /// The media panel holds picks, the Vault queue and the link.
+  final GlobalKey<AdminAttachPanelState> _attach =
+      GlobalKey<AdminAttachPanelState>();
 
   bool _busy = false;
   String _busyLabel = '';
@@ -67,7 +68,6 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     _title.dispose();
     _summary.dispose();
     _body.dispose();
-    _link.dispose();
     _minutes.dispose();
     for (final TextEditingController c in _options) {
       c.dispose();
@@ -98,58 +98,8 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     );
   }
 
-  IconData get _typeIcon {
-    switch (_type) {
-      case 'audio':
-        return Icons.headphones_outlined;
-      case 'video':
-        return Icons.play_circle_outline;
-      case 'image':
-        return Icons.image_outlined;
-      case 'poll':
-        return Icons.how_to_vote_outlined;
-      default:
-        return Icons.auto_stories_outlined;
-    }
-  }
 
   // ------------------------------------------------------------- picking
-
-  Future<void> _pick({required bool thumbnail}) async {
-    try {
-      PickedMedia? m;
-      if (thumbnail || _type == 'image') {
-        m = await AdminService.instance.pickImage();
-      } else if (_type == 'video') {
-        m = await AdminService.instance.pickVideo();
-      } else if (_type == 'audio') {
-        m = await AdminService.instance.pickFile(audioOnly: true);
-      } else {
-        m = await AdminService.instance.pickFile();
-      }
-      if (m == null) return;
-      if (m.size > 48 * 1024 * 1024) {
-        _toast(
-          'That file is ${m.sizeLabel}. Keep uploads under about 48 MB, or '
-          'host it and paste the link instead.',
-          bad: true,
-        );
-        return;
-      }
-      setState(() {
-        if (thumbnail) {
-          _thumb = m;
-          _uploadedThumbUrl = null;
-        } else {
-          _picked = m;
-          _uploadedUrl = null;
-          _link.clear();
-        }
-      });
-    } catch (e) {
-      _toast('Could not open that file: $e', bad: true);
-    }
-  }
 
   // ---------------------------------------------------------- publishing
 
@@ -158,8 +108,9 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
 
     final bool needsMedia =
         _type == 'audio' || _type == 'video' || _type == 'image';
-    final bool hasLink = _link.text.trim().isNotEmpty;
-    if (needsMedia && _picked == null && !hasLink) {
+    final AdminAttachPanelState at = _attach.currentState!;
+    final bool hasLink = at.hasLink;
+    if (needsMedia && at.picked == null && at.vaultPath == null && !hasLink) {
       _toast('Attach a file or paste a link first.', bad: true);
       return;
     }
@@ -179,35 +130,51 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     });
 
     try {
-      String? mediaRef = _uploadedUrl;
+      String? mediaRef = at.uploadedUrl;
       MediaSource mediaSource = MediaSource.none;
+      bool vaulted = false;
 
-      if (_picked != null && mediaRef == null) {
-        setState(() => _busyLabel = 'Uploading ${_picked!.sizeLabel}...');
+      if (at.vaultPath != null && mediaRef == null) {
+        setState(() => _busyLabel = 'Opening the Vault...');
+        mediaRef = await VaultService.instance.uploadVideo(
+          path: at.vaultPath!,
+          name: at.vaultName ?? 'video.mp4',
+          onProgress: (double p) {
+            if (mounted) {
+              setState(() =>
+                  _busyLabel = 'Vault ${(p * 100).round()}% - keep open');
+            }
+          },
+        );
+        vaulted = true;
+      }
+
+      if (at.picked != null && mediaRef == null) {
+        setState(() => _busyLabel = 'Uploading ${at.picked!.sizeLabel}...');
         mediaRef = await AdminService.instance.upload(
-          _picked!,
+          at.picked!,
           folder: _type == 'image'
               ? 'images'
               : (_type == 'audio' ? 'audio' : 'video'),
           private: _type != 'image',
         );
-        _uploadedUrl = mediaRef;
+        at.setUploadedUrl(mediaRef);
       }
       if (mediaRef != null) {
-        mediaSource = MediaSource.supabase;
+        mediaSource = vaulted ? MediaSource.r2 : MediaSource.supabase;
       } else if (hasLink) {
-        final MediaRef parsed = MediaRef.parse(_link.text.trim());
+        final MediaRef parsed = MediaRef.parse(at.link.text.trim());
         mediaSource = parsed.source;
         mediaRef = parsed.ref;
       }
 
-      String? thumbRef = _uploadedThumbUrl;
+      String? thumbRef = at.uploadedThumbUrl;
       MediaSource thumbSource = MediaSource.none;
-      if (_thumb != null && thumbRef == null) {
+      if (at.thumb != null && thumbRef == null) {
         setState(() => _busyLabel = 'Uploading the cover...');
         thumbRef =
-            await AdminService.instance.upload(_thumb!, folder: 'thumbs');
-        _uploadedThumbUrl = thumbRef;
+            await AdminService.instance.upload(at.thumb!, folder: 'thumbs');
+        at.setUploadedThumbUrl(thumbRef);
       }
       if (thumbRef != null) thumbSource = MediaSource.supabase;
 
@@ -259,6 +226,12 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
       _toast(_publishNow
           ? 'Published. Every member has been notified.'
           : 'Saved as a draft. Nobody has been notified.');
+    } on VaultFullError catch (e) {
+      _toast('The Vault is at its 9 GB safety cap '
+          '(${e.usedGb.toStringAsFixed(1)} GB used). Choose what may '
+          'leave it - nothing goes without your approval.',
+          bad: true);
+      await VaultManager.open(context);
     } catch (e) {
       _toast('Could not publish: $e', bad: true);
     } finally {
@@ -275,16 +248,12 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     _title.clear();
     _summary.clear();
     _body.clear();
-    _link.clear();
     _minutes.clear();
     for (final TextEditingController c in _options) {
       c.clear();
     }
+    _attach.currentState?.reset();
     setState(() {
-      _picked = null;
-      _uploadedUrl = null;
-      _thumb = null;
-      _uploadedThumbUrl = null;
       _who = <int>{0, 1, 2, 3, 4};
       _price.clear();
       _doorCredit.clear();
@@ -320,11 +289,10 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
           const SizedBox(height: 10),
           Wrap(spacing: 8, runSpacing: 8, children: postTypeChips(
               selected: _type,
-              onTap: (String v) => setState(() {
-                _type = v;
-                _picked = null;
-                _uploadedUrl = null;
-              }),
+              onTap: (String v) {
+                setState(() => _type = v);
+                _attach.currentState?.clearForType();
+              },
             )),
           const SizedBox(height: 20),
           TextFormField(
@@ -361,7 +329,15 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
                       : null,
             ),
           ],
-          if (isPoll) ..._pollSection() else ..._mediaSection(),
+          if (isPoll)
+            ..._pollSection()
+          else
+            AdminAttachPanel(
+              key: _attach,
+              type: _type,
+              busy: _busy,
+              onToast: _toast,
+            ),
           if (_type == 'audio' || _type == 'video') ...<Widget>[
             const SizedBox(height: 14),
             TextFormField(
@@ -499,111 +475,6 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     return rows;
   }
 
-  List<Widget> _mediaSection() {
-    return <Widget>[
-      const SizedBox(height: 20),
-      const AdminLabel('THE MEDIA'),
-      const SizedBox(height: 10),
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: IvoryTheme.card(radius: 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            if (_picked != null) ...<Widget>[
-              AdminPickedFileCard(
-                media: _picked!,
-                uploaded: _uploadedUrl != null,
-                icon: _typeIcon,
-                onRemove: () => setState(() {
-                  _picked = null;
-                  _uploadedUrl = null;
-                }),
-              ),
-              const SizedBox(height: 10),
-            ],
-            SizedBox(
-              width: double.infinity,
-              child: AdminButton(
-                label: _picked == null ? 'UPLOAD A FILE' : 'REPLACE FILE',
-                icon: Icons.upload_file,
-                onPressed: _busy ? null : () => _pick(thumbnail: false),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const AdminOrLine('or point at a link'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _link,
-              keyboardType: TextInputType.url,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                labelText: 'YouTube / Telegram / R2 / direct link',
-                isDense: true,
-              ),
-            ),
-            if (_link.text.trim().isNotEmpty) ...<Widget>[
-              const SizedBox(height: 8),
-              Text(
-                'Detected: '
-                '${MediaRef.parse(_link.text.trim()).source.label}',
-                style: TextStyle(fontSize: 11.5, color: IvoryColors.success),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Divider(color: IvoryColors.hairline),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    _thumb == null
-                        ? 'Cover image (optional)'
-                        : '${_thumb!.name} \u00b7 ${_thumb!.sizeLabel}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        TextStyle(fontSize: 12.8, color: IvoryColors.textSoft),
-                  ),
-                ),
-                TextButton(
-                  onPressed: _busy ? null : () => _pick(thumbnail: true),
-                  style: TextButton.styleFrom(
-                      foregroundColor: IvoryColors.burgundy),
-                  child: Text(_thumb == null ? 'ADD' : 'CHANGE'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ];
-  }
-
-  Widget _publishSwitch() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: IvoryTheme.card(radius: 18),
-      child: SwitchListTile.adaptive(
-        contentPadding: EdgeInsets.zero,
-        activeColor: IvoryColors.gold,
-        value: _publishNow,
-        onChanged: (bool v) => setState(() => _publishNow = v),
-        title: const Text(
-          'Publish immediately',
-          style: TextStyle(
-            color: IvoryColors.burgundy,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        subtitle: Text(
-          _publishNow
-              ? 'Goes live and notifies every member.'
-              : 'Saved as a draft. Publish it later from the library.',
-          style: TextStyle(fontSize: 12, color: IvoryColors.textFaint),
-        ),
-      ),
-    );
-  }
-}
 
 // END OF FILE - lib/screens/admin_create_tab.dart
+  
