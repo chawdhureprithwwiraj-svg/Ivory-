@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/admin_service.dart';
+// Needed for the VaultFullError catch below, even though the upload
+// itself now lives in admin_publish_media.dart. Do not remove.
+import '../services/vault_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
 import '../widgets/admin_post_chips.dart';
