@@ -54,6 +54,19 @@ class AdminService {
     );
   }
 
+  /// Path-only video pick. The bytes stay on disk - a Vault video
+  /// can be a gigabyte and must never be read into memory.
+  Future<VaultPick?> pickVideoPath() async {
+    final XFile? x = await ImagePicker().pickVideo(
+      source: ImageSource.gallery,
+      maxDuration: const Duration(minutes: 120),
+    );
+    if (x == null) return null;
+    final File f = File(x.path);
+    if (!await f.exists()) return null;
+    return VaultPick(path: x.path, name: x.name, size: await f.length());
+  }
+
   /// Audio, documents, anything. file_selector is the Flutter team's own
   /// plugin, so it keeps pace with each Android SDK instead of lagging a
   /// year behind the way the community pickers do.
@@ -314,6 +327,18 @@ class PickedMedia {
   final Uint8List bytes;
 
   int get size => bytes.length;
+  String get sizeLabel => AdminService.sizeLabel(size);
+}
+
+/// A big video chosen for the Vault: path and size only, no bytes.
+class VaultPick {
+  const VaultPick(
+      {required this.path, required this.name, required this.size});
+
+  final String path;
+  final String name;
+  final int size;
+
   String get sizeLabel => AdminService.sizeLabel(size);
 }
 
