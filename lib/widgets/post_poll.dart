@@ -60,6 +60,15 @@ class _PollBodyState extends State<PollBody> {
     });
   }
 
+  bool get _hasQuestion {
+    final String? q = widget.post.summary;
+    return q != null && q.trim().isNotEmpty;
+  }
+
+  String get _question => _hasQuestion
+      ? widget.post.summary!.trim()
+      : _clean(widget.post.title);
+
   Future<void> _vote(int optionId) async {
     setState(() => _myVote = optionId);
     await ContentService.instance
@@ -83,17 +92,26 @@ class _PollBodyState extends State<PollBody> {
         const PollBadge(),
         const SizedBox(height: 13),
 
-        // The question is the headline. It is the whole point of
-        // the card, so it is set like one.
+        // SPRINT 24i - in the composer the field labelled "The question,
+        // in one line" is saved as the summary, so THAT is the question
+        // and it must be the headline. The title becomes a quiet label
+        // above it. The feed card reads it exactly the same way.
+        if (_hasQuestion) ...<Widget>[
+          Text(
+            _clean(widget.post.title),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: IvoryColors.textFaint,
+            ),
+          ),
+          const SizedBox(height: 6),
+        ],
         Text(
-          _clean(widget.post.title),
+          _question,
           style: Theme.of(context).textTheme.headlineMedium,
         ),
-        if (widget.post.summary != null) ...<Widget>[
-          const SizedBox(height: 8),
-          Text(widget.post.summary!,
-              style: Theme.of(context).textTheme.bodyMedium),
-        ],
         const SizedBox(height: 6),
         Text(
           _house
