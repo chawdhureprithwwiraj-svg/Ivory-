@@ -178,27 +178,27 @@ delivery; it confirmed `media_ref.dart` really is unused.
 
 ### L.1 A story may carry a file - fixed
 
-`post_actions.dart` split the detail sheet by post type: `blog` went to
-`_ReaderBody` (words only), everything else to `_MediaBody`. So a story
-with a film attached uploaded fine, reached R2, appeared in the Vault -
-and then nothing drew it. Not a crash; an assumption that a written
-story is always text.
+`post_actions.dart` split the sheet by post type: `blog` went to
+`_ReaderBody` (words only), everything else to `_MediaBody`. A story
+with a film uploaded fine, reached R2, showed in the Vault - and
+nothing drew it. Not a crash; an assumption that a story is always
+text.
 
-`_StoryMedia` now renders under the writing. It cannot use `post.type`
+`_StoryMedia` renders under the writing. It cannot use `post.type`
 (that says `blog`), so it reads the **file extension** off the stored
-ref, falling back to the signed URL with the query string stripped.
-Silent when there is no file - a wordless story is normal, not an error.
+ref, falling back to the signed URL with the query stripped. Silent
+when there is no file - a wordless story is normal, not an error.
 
 ### L.2 Poll bars are burgundy
 
-Fills are now `#6B1527 -> #96344A`, lead `burgundy -> #72203A`, gold stop
-edge kept. **The trap:** the label is painted *over* the bar, in
-burgundy - invisible on wine. So `_words(ink, accent)` is drawn twice,
-the second copy in ivory inside `ClipRect(clipper: _LeftFraction(f))`,
-clipped to exactly the bar edge. Identical layout both times or the
-glyphs drift. `AnimatedFractionallySizedBox` became
-`TweenAnimationBuilder` so bar and clip animate off one value.
-The member's own answer is ringed in **amber**; plum vanished on wine.
+Fills `#6B1527 -> #96344A`, lead `burgundy -> #72203A`, gold stop edge
+kept. **The trap:** the label is painted *over* the bar in burgundy -
+invisible on wine. `_words(ink, accent)` is drawn twice, the second
+copy ivory inside `ClipRect(clipper: _LeftFraction(f))`, clipped to
+the bar edge. Identical layout both times or the glyphs drift.
+`AnimatedFractionallySizedBox` became `TweenAnimationBuilder` so bar
+and clip animate off one value. Own answer ringed **amber**; plum
+vanished on wine.
 
 ### L.3 `tools/dart_check.py` - run before every delivery
 
@@ -313,13 +313,15 @@ feed still showed. It read as stuck rather than deliberate.
 
 **Decision: adaptive, by content.**
 
-* **Read or listened to** - story, voice note, poll - stays a sheet.
-  Opens at **0.94**, snaps to **1.0**. Between the two the corner
-  radius runs 28 -> 0 and a status-bar gap opens, so the card becomes
-  a page. The feed showing underneath at 0.94 is deliberate: it says
-  "flick down and you are back".
+* **Read or listened to** - story, voice note, poll - is a sheet that
+  **opens full (1.0)**. Corners square, status-bar gap open. It can be
+  thrown down to 0.62 to peek at the feed, or closed by the cross.
 * **Watched or looked at** - video, image - takes the **whole screen**
-  immediately, via a route, not a sheet.
+  at once, via a route, not a sheet.
+
+**24n first shipped at 0.94 and that was wrong.** The owner had to drag
+every post up before she could see it. A tap means open; nothing
+belongs between the tap and the thing itself.
 
 `lib/widgets/post_surface.dart` (new) owns all of it:
 `IvoryPostSurface.show(context, child, immersive: bool)`.
@@ -327,23 +329,20 @@ feed still showed. It read as stuck rather than deliberate.
 
 ### N.1 Three traps in that file
 
-* **`useSafeArea: false` is deliberate.** True would inset the whole
-  sheet and stop it short of the top, which is the bug we are fixing.
-  The status bar is cleared instead by `SizedBox(height: topInset * t)`
-  inside, which only opens as the sheet arrives.
+* **`useSafeArea: false` is deliberate** - true insets the whole sheet
+  and stops it short of the top, the very bug being fixed. **But it
+  also makes Flutter strip the top padding from the MediaQuery given
+  to the builder**, so `MediaQuery.of(context).padding.top` reads 0 in
+  there and the gap never opens. Cost one build: the story text ran
+  under the clock. The inset is now measured at the call site, outside
+  the sheet, and passed in as `topInset`.
+* The close cross is always visible; a way out must never have to
+  be discovered.
 * **The extent is read from `DraggableScrollableNotification`**, not a
   controller, and only rebuilds past a 0.004 change. Without that
   guard it calls `setState` on every animation frame of the snap.
 * **It had to be a new file.** `post_actions.dart` was 16.6 KB; this
   logic would have pushed it over the 18 KB paste ceiling.
-
-### N.2 The composer split keeps paying
-
-`post_actions.dart` **fell** to 16.0 KB because the presentation left
-it. Same move as 24j. When a file nears the ceiling the answer is
-always to lift a whole responsibility out, never to shave comments.
-
----
 
 ## O. EDITING A POST - DESIGNED, NOT YET BUILT
 
