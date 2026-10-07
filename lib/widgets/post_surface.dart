@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
@@ -63,19 +65,31 @@ class IvoryPostSurface {
       // nothing ever hides under the clock or the camera cutout.
       useSafeArea: false,
       barrierColor: IvoryColors.burgundy.withValues(alpha: 0.24),
-      // viewPadding, NOT padding. Two separate things zero `padding`
-      // before this code ever sees it: main_shell wraps the whole app
-      // in a SafeArea, and useSafeArea:false makes the sheet strip the
-      // top padding again. Neither touches `viewPadding`, which
-      // records the physical inset of the status bar and cutout. Ask
-      // for `padding` here and you get 0, and the writing prints over
-      // the clock - which is exactly what happened twice.
+      // READ THE WINDOW, NOT THE WIDGET TREE. Three builds were spent
+      // here. `MediaQuery.of(context).padding.top` is zeroed twice
+      // over - main_shell wraps the app in a SafeArea, and
+      // useSafeArea:false strips it again - and `viewPadding` came
+      // back zero as well. `View.of(context)` is the physical window
+      // and no ancestor widget can touch it. The floor is a guard,
+      // not a measurement: if the window ever reports nothing, the
+      // handle still cannot land on the clock.
       builder: (_) => _RisingSheet(
-        topInset: MediaQuery.of(context).viewPadding.top,
+        topInset: _statusBarHeight(context),
         child: child,
       ),
     );
   }
+}
+
+/// Height of the status bar and camera cutout, in logical pixels,
+/// taken straight from the window. Deliberately bypasses MediaQuery:
+/// every inherited route to this number has already been stripped by
+/// the time a post sheet asks for it.
+double _statusBarHeight(BuildContext context) {
+  final FlutterView view = View.of(context);
+  final double fromWindow = view.padding.top / view.devicePixelRatio;
+  final double fromTree = MediaQuery.of(context).viewPadding.top;
+  return math.max(math.max(fromWindow, fromTree), 24);
 }
 
 // =====================================================================
@@ -172,8 +186,13 @@ class _RisingSheetState extends State<_RisingSheet> {
                 // flush against the clock.
                 SizedBox(height: (topInset + 6) * t),
 
+                // width: infinity matters. Column centres its
+                // children by default, so without it this box shrinks
+                // to the 44px handle and `right: 6` puts the cross in
+                // the middle of the handle instead of the screen edge.
                 SizedBox(
                   height: 28,
+                  width: double.infinity,
                   child: Stack(
                     alignment: Alignment.center,
                     children: <Widget>[
