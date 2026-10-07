@@ -273,35 +273,71 @@ Still to land, verbatim from the design:
 
 ## U. WHERE THE CALL CHAIN ACTUALLY IS
 
-**25a (inspection) was superseded.** Rather than make her run a
-read-only query and wait a turn, `sprint25b_call_schema.sql` was
-written to be **safe without knowing the current schema**, and it
-reports the resulting state as its last statement. One paste does
-both jobs.
+### U.0 THE BIG FINDING - 25b, 7 Oct 20:32
 
-The two techniques that make that possible, and that should be
-reused for every future migration here:
+**The call chain is not missing. It is built, and broken.** 25b's
+report returned **fourteen existing functions**:
 
-* `add column if not exists` with a default or nullable, so existing
-  rows stay valid.
-* `add constraint ... NOT VALID`, which polices every new row from
-  that moment while leaving whatever is already in the table alone.
-  Without it, one odd legacy status row would fail the whole script.
+`request_call` · `respond_call` · **`set_call_time` (TWO
+overloads)** · `join_call` · `end_call` · `call_window` ·
+`call_balance` · `list_calls` · `adjust_call_usage` ·
+`submit_call_extension_payment` · `remind_calls` ·
+`sweep_missed_calls` · `mark_call_missed`
 
-### U.1 Next actions
+And `call_requests` already carried: `channel_name`, `charged`,
+`minutes`, `price_inr`, `payment_id`, `note`, `requested_for`,
+`window_end`, `reminded_at`, `missed_at`, `joined_host`,
+`joined_member`, `extension_paid`, `extension_price`,
+`extension_payment_id`.
 
-1. Run `sprint25b_call_schema.sql`. Send back its result table -
-   that is the schema truth 25c is written against.
-2. 25c: `admin_slot_decision`, `my_minutes`, `book_slot`, and the
-   scheduling guard (4-hour buffer, 12:00-03:00 IST window) as
-   Postgres functions.
-3. 25d / 25e: `call_sheet_member.dart`, then
-   `call_sheet_admin.dart`. `call_book_flow.dart` is replaced, not
-   patched.
-4. 24t is **built and verified** - "1 view" and "1,836th" both
-   confirmed on device 7 Oct 20:11.
+**This rewrites the plan.** §T described building a call chain from
+nothing. The real job is a **repair** of a working engine. Do not
+write `book_slot` or `admin_slot_decision` from scratch before
+reading what `set_call_time` and `respond_call` already do.
 
-### U.2 A workspace warning for whoever is next
+**`set_call_time` exists TWICE.** Two overloads of the same name is
+trap 11.8 and is the prime suspect for **M4, the chosen slot being
+invisible on both sides** - the app may be calling one signature
+while the other holds the logic. Resolve this before anything else.
+
+Statuses actually in the table: `accepted`, `active`, `completed`,
+`declined`.
+
+### U.1 A mistake in 25b, corrected in 25c
+
+The 25b status list **omitted `declined`**, which is in live use.
+`NOT VALID` meant nothing broke, but a new declined row would have
+been refused. 25c rewrites the constraint with `declined`, `missed`
+and `expired` added.
+
+### U.2 What 25b did land
+
+* All eleven scheduling columns on `call_requests`.
+* `member_minute_ledger`, with RLS so a member sees only their own.
+* Five dial columns on `payment_settings`, the 30-120 clamp in the
+  database, and one settings row - `id=1`, UPI **set**, dials at
+  `wish 30min/Rs0  premium 30min/Rs0  cap 2`.
+
+**She must set the two prices in Admin - they are Rs 0 today.**
+
+### U.5 - U.7 HAVE MOVED
+
+Part 5 reached its 18 KB ceiling here. The fourteen verified call
+signatures, the M4 root cause and the facts read out of the
+function source now live in **IVORY_HANDOVER_6.md**. Read Part 6
+before touching the call chain.
+
+### U.3 Next actions
+
+1. Run `sprint25c_call_functions.sql`. Fixes the status list, then
+   reports the signatures of all fourteen functions.
+2. Read `set_call_time`'s two overloads. Drop the dead one
+   (`drop function if exists ...(args);` - trap 11.8).
+3. Only then write the repairs, and the scheduling guard: 4-hour
+   buffer, 12:00-03:00 IST window.
+4. `call_sheet_member.dart` / `call_sheet_admin.dart` last.
+
+### U.4 A workspace warning for whoever is next
 
 This tree has **silently rolled back twice**, losing newly created
 files under `lib/core/` and reverting shell-edited files. The owner's
