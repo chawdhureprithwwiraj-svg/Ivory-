@@ -129,7 +129,7 @@ class PostCard extends StatelessWidget {
               if (post.viewCount > 0) ...<Widget>[
                 _dot(),
                 Text(
-                  '${post.viewCount} views',
+                  _views(post.viewCount),
                   style:
                       TextStyle(color: IvoryColors.textFaint, fontSize: 12.5),
                 ),
@@ -234,7 +234,7 @@ class PostCard extends StatelessWidget {
                   if (post.viewCount > 0) ...<Widget>[
                     _dot(),
                     Text(
-                      '${post.viewCount} views',
+                      _views(post.viewCount),
                       style: TextStyle(
                         color: IvoryColors.textFaint,
                         fontSize: 12.5,
@@ -261,6 +261,9 @@ class PostCard extends StatelessWidget {
       ],
     );
   }
+
+  /// One pair of eyes is a view, not "1 views".
+  static String _views(int n) => n == 1 ? '1 view' : '$n views';
 
   static Widget _dot() => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 7),
