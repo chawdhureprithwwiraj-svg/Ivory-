@@ -175,4 +175,120 @@ live timer and a known end time, which needs the slot to be
 single-sourced - so **cal.com removal must land before the
 extension prompts are wired.**
 
+### V.7 PUSH DIAGNOSIS - 25n result. THE TRIGGER IS FINE.
+
+`trg_queue_push()` **correctly handles targeted notifications**:
+
+```
+if new.audience = 'user' and new.user_id is not null then
+  insert into push_queue (...)
+  select new.id, d.token, ... from device_tokens d
+  where d.user_id = new.user_id;
+else  -- broadcast to every token
+```
+
+So call requests ARE being queued. **Theory 1 is dead.**
+
+**The live signal: `push_queue` holds 218 rows** while the cron
+job `ivory-send-push` runs **every minute** and is active. A queue
+drained every 60 seconds should be near empty.
+
+`kick_push_sender()` posts to
+`https://soephrftgddbwkzwjddj.supabase.co/functions/v1/send-push`
+with header **`x-ivory-key: ivory-7f3k9q2m-push`** and an empty
+body. **If that edge function rejects the call** - wrong key,
+"Verify JWT with legacy secret" switched back ON, or dead Firebase
+credentials - pg_cron fires faithfully every minute, the function
+refuses, and the queue grows forever. That matches a silent
+handset exactly.
+
+`device_tokens`: **6 rows, 5 distinct members.** Whether the admin
+account is one of them is unconfirmed - `sprint25o_queue_state.sql`
+checks it by role.
+
+**Also found: cron job `ivory-call-reminders` already runs every
+5 minutes** and is active, calling `remind_calls()`. The reminder
+ladder already has a working heartbeat - it needs the right rungs,
+not new plumbing.
+
+Other cron: `ivory-prune-push` daily at 03:17.
+
+### V.8 REMINDER LADDER - REVISED SPEC, up to 30 days
+
+The owner corrected the range: a member may book **up to 30 days
+ahead**, so the ladder must cover the whole window. Her example
+for a 30-day booking: **15 days, 7 days, 5 days, 2 days, 1 day**,
+then the intraday rungs.
+
+Her constraint, in her words: *"the notification should be
+effective enough but at the same time should not be annoying, so
+the frequency has to be adjusted practically."*
+
+**Agreed ladder (offsets, editable rows - NOT constants):**
+
+| offset | fires when lead time exceeds it |
+|---|---|
+| 15 days | yes |
+| 7 days | yes |
+| 5 days | yes |
+| 2 days | yes |
+| 1 day | yes |
+| 6 hours | yes |
+| 2 hours | yes |
+| 30 minutes | yes |
+| **10 minutes** | **always - universal** |
+
+**Rule: fire every offset strictly less than the lead time, once
+each.** A 30-day booking gets 9 nudges across a month - roughly
+one every few days, tightening near the end. A 6-hour booking
+gets 2h, 30m, 10m. Both match her examples from one rule.
+
+Store as a table (e.g. `call_reminder_offsets`) with a minutes
+value and an active flag, and one sent-row per (call, offset) so
+nothing can double-fire. `remind_calls()` already runs every 5
+minutes and is the natural place to drive it.
+
+### V.9 EXTENSION OFFER - OWNER-TRIGGERED, NOT TIMED
+
+**Superseding the earlier "5 or 10 minutes before the end"
+design.** The owner's decision, 7 Oct:
+
+*"I should have the option to push it onto their screen whenever
+I would like to, so there is no hard rule that it has to be
+before 5 or 10 or 15 minutes. Whenever I push it, it will show on
+their window and it should stay for at least a minute or so."*
+
+**Implications:**
+
+1. **No timer-driven trigger.** The admin call sheet gets a
+   control that sends the offer on demand. This also removes the
+   dependency on knowing the exact end time - which was the
+   reason extensions had to wait for cal.com removal. **That
+   dependency is gone.**
+2. The offer carries **duration and price**, from
+   `payment_settings` - wish dials for a wish session, premium
+   dials for a subscriber. Still Rs 0; she must set them.
+3. **It must remain on screen for at least a minute**, not flash
+   past. A dismissible card with a minimum dwell, not a toast.
+4. `max_ext_per_call` (currently 2) still caps how many times she
+   can push it on one call.
+
+**AUDIO CALLS ARE THE HARD PART - her explicit instruction.** On
+an audio call the member is not looking at a video surface, and
+may have the phone at their ear or the app in the background.
+The offer must still reach them:
+
+* an **in-app overlay** drawn above the audio-call surface, and
+* a **handset push** at the same moment, so it is seen even if
+  the app is backgrounded or the screen is off,
+* and it must stay visible/noted afterwards - she said it
+  "should be noted and visible to them even while they are on an
+  audio call", i.e. it must not vanish unseen.
+
+Mechanism: the offer is a row change on `call_requests`
+(`extension_price`, `extension_offered_at`) that the member app
+watches over Supabase realtime, **plus** a normal `notifications`
+insert so the existing push chain carries it to the handset. One
+action, two delivery paths, no new infrastructure.
+
 <!-- END OF FILE - IVORY_HANDOVER_7.md -->
