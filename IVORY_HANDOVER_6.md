@@ -373,4 +373,10 @@ should locate their target by relationship (level order, kind,
 `call_kind`) rather than by a literal id, so a late change to the
 tier list does not silently misfile them.
 
+## V. HAS MOVED TO PART 7
+
+Part 6 reached its 18 KB ceiling. The 7 Oct live call test, the
+cal.com defect and the owner's push-notification instructions are
+in **IVORY_HANDOVER_7.md**.
+
 <!-- END OF FILE - IVORY_HANDOVER_6.md -->
