@@ -151,4 +151,90 @@ else - `call_policy`, or a table not yet found. 25g dumps
 request_call repair until that is known**, or the hardcoded 999
 will simply be replaced by a different guess.
 
+### U.10 THE "name" TYPE TRAP - cost one whole run
+
+A `union all` takes its column type from the **first** branch. In
+25g that branch was `information_schema.columns.column_name`, whose
+type is **`name`** - a fixed **63-byte** type, not text. Postgres
+typed the entire union column as `name` and **silently truncated
+every row to 63 characters**. For indented function source, the
+first 63 characters are whitespace, so every line arrived blank.
+No error, no warning.
+
+**Rule: in any `union all` reporting query, cast EVERY branch
+explicitly with `::text`,** and strip indentation with
+`regexp_replace(src, '^[ \t]+', '')` before returning source code.
+
+### U.11 CONFIRMED VALUES - 7 Oct, 25g
+
+* **`call_policy` id=1**: `open_early 5`, `grace_minutes 20`,
+  `free_no_shows 2`, updated 30 Sep. The join window is live and
+  data-driven. **25f/25g do not need to build it.**
+* **`call_requests.status` defaults to `'requested'`, not null.**
+  So the one-open-session guard inside `request_call` *does* fire.
+  That suspected defect is **cleared** - it was a false alarm.
+* **`subscription_tiers` in full**: `id`, `name`, `description`,
+  `price_inr`, `duration_days`, `level`, `perks` (ARRAY),
+  `is_active`, `created_at`.
+  **There is NO call-minute column anywhere in the tier table.**
+  So `call_balance`'s `allowed` is sourced elsewhere - another
+  table, the `perks` array, or hardcoded inside the function. If
+  it is hardcoded that is a **second** breach of the data-driven
+  rule, alongside `request_call`'s `DEFAULT 999`.
+
+### U.12 THE ALLOWANCE ENGINE - read in full, 25h. IT IS SOUND.
+
+`call_balance(kind_in)` is **already fully data-driven**. Do not
+rewrite it. How it works:
+
+1. `public.current_tier_level()` gives the member's level.
+2. It selects from **`public.call_entitlements`** where
+   `kind = kind_in and is_active and tier_level <= my_level`,
+   `order by minutes desc limit 1` - i.e. **the most generous
+   entitlement the member's level qualifies for.**
+3. The cycle length comes from `e.period`: day / week / year /
+   else 30 days. The cycle is anchored to **`public.tier_anchor()`**
+   - the day the paid tier began, not the calendar month.
+4. Minutes spent are summed from **`public.call_usage`**
+   (`member_id`, `kind`, `minutes`, `used_at`) since cycle start.
+5. No-shows are counted from `call_requests.status = 'missed'`.
+6. **The cycle is clipped to the subscription:** if
+   `max(expires_at)` from `user_subscriptions` falls before the
+   next reset, the reset becomes the expiry and `period` is
+   reported as `'membership'`. Neat, and correct.
+
+Returns `kind, allowed, used, remaining, period, resets_at,
+tier_level, no_shows, cycle_start`.
+
+**Note its own comment at lines 21-22:** OUT column names are also
+plpgsql variables, so bare `kind` / `tier_level` are ambiguous
+(error **42702**). That is why everything is aliased. **Preserve
+this when editing any function with OUT parameters.**
+
+### U.13 `member_minute_ledger` IS REDUNDANT - abandon it
+
+25b created `public.member_minute_ledger`. **`public.call_usage`
+already exists and is the table `call_balance` actually reads.**
+Keeping both invites two sources of truth for the same number.
+
+**Decision: `member_minute_ledger` is abandoned, not used.** Do
+not write to it. It can be dropped at Play-build cleanup time.
+Record any new usage in **`call_usage`**.
+
+Likewise the 25b columns `slot_at`, `duration_mins`,
+`proposed_at`, `proposed_by`, `confirmed_at`, `ext_count` are
+**unused by the live engine** (U.7). The engine runs on
+`requested_for`, `window_end`, `minutes`.
+
+**Lesson: this is the cost of designing before inspecting. 25b
+should have been a read, not a migration.**
+
+### U.14 TABLES THE ENGINE DEPENDS ON - none of which were in §T
+
+`call_entitlements` · `call_usage` · `call_policy` ·
+`user_subscriptions` · `subscription_tiers` · `wish_categories`
+(has a `minutes` column) · `admin_calls` (a view - `list_calls`
+returns SETOF it) · functions `current_tier_level()` and
+`tier_anchor()`.
+
 <!-- END OF FILE - IVORY_HANDOVER_6.md -->
