@@ -34,6 +34,29 @@ class ContentService {
         .toList();
   }
 
+  /// Ivory's Firstlist: the posts the house wants every member to see
+  /// before anything else, in the order she put them there.
+  ///
+  /// Comes from the `firstlist()` function, which returns
+  /// `setof post_previews` and runs as the caller - so each row has
+  /// already passed the same entitlement rules as the ordinary feed.
+  /// A locked post may appear here, locked, exactly as it would below.
+  ///
+  /// Returns an empty list rather than throwing: Home must still draw
+  /// itself if this one shelf cannot be read.
+  Future<List<IvoryPost>> fetchFirstlist() async {
+    try {
+      final dynamic rows = await _db.rpc('firstlist');
+      if (rows is! List) return <IvoryPost>[];
+      return rows
+          .map((dynamic r) =>
+              IvoryPost.fromPreview(r as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return <IvoryPost>[];
+    }
+  }
+
   /// Full post including the media link. Returns null when the database
   /// refuses access, which is exactly what should happen for a locked
   /// post - the check is server-side and cannot be bypassed.
