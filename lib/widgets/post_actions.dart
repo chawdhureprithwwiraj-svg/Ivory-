@@ -150,28 +150,64 @@ class _ReaderBody extends StatelessWidget {
           style: TextStyle(fontSize: 12.5, color: IvoryColors.textFaint),
         ),
         Divider(color: IvoryColors.hairline, height: 30),
-        Text(
-          post.body ?? post.summary ?? 'This story has no text yet.',
-          style: const TextStyle(
-            fontFamily: IvoryTheme.displayFont,
-            fontSize: 16.5,
-            height: 1.78,
-            color: IvoryColors.burgundy,
-          ),
-        ),
 
-        // SPRINT 24k - A STORY MAY CARRY A FILE.
-        // This view used to render words and nothing else, because
-        // whoever wrote it assumed a written story is always text. It
-        // is not: the composer happily attaches a film, a voice note
-        // or a photograph to a story, uploads it and files it in the
-        // Vault. The file was never lost - nothing drew it. It does
-        // now, directly under the writing.
-        _StoryMedia(post: post),
+        // SPRINT 24o - THE FILM NO LONGER WAITS AT THE BOTTOM.
+        // 24k fixed 'the attached file is invisible' by drawing it
+        // under the writing, which buried it: a 3,000 character story
+        // meant a member scrolled past everything before discovering
+        // there was a film at all. The story is now broken into its
+        // paragraphs and the file sits after the FIRST one, so the
+        // opening lines lead, the film arrives early, and the rest of
+        // the writing carries on beneath it. A story with a single
+        // paragraph behaves exactly as it did before.
+        ..._flow(post),
 
         _giftRow(context, post),
       ],
     );
+  }
+
+  static const TextStyle _prose = TextStyle(
+    fontFamily: IvoryTheme.displayFont,
+    fontSize: 16.5,
+    height: 1.78,
+    color: IvoryColors.burgundy,
+  );
+
+  /// The writing, with the attached file set after the opening
+  /// paragraph. Never truncates: a story may be any length at all.
+  List<Widget> _flow(IvoryPost post) {
+    final List<String> paras = _paragraphs(
+      post.body ?? post.summary ?? 'This story has no text yet.',
+    );
+    final List<Widget> out = <Widget>[];
+    for (int i = 0; i < paras.length; i++) {
+      out.add(Text(paras[i], style: _prose));
+      if (i == 0) {
+        out.add(_StoryMedia(post: post));
+      } else if (i < paras.length - 1) {
+        out.add(const SizedBox(height: 15));
+      }
+    }
+    return out;
+  }
+
+  /// Blank lines separate paragraphs. If she wrote without blank
+  /// lines, single breaks are used instead, so her story is never
+  /// served as one unbroken slab whichever way she types.
+  static List<String> _paragraphs(String raw) {
+    List<String> parts = _splitOn(raw, RegExp(r'\n\s*\n'));
+    if (parts.length < 2) parts = _splitOn(raw, RegExp(r'\n'));
+    return parts.isEmpty ? <String>[raw.trim()] : parts;
+  }
+
+  static List<String> _splitOn(String raw, RegExp pattern) {
+    final List<String> out = <String>[];
+    for (final String piece in raw.split(pattern)) {
+      final String t = piece.trim();
+      if (t.isNotEmpty) out.add(t);
+    }
+    return out;
   }
 }
 
@@ -217,7 +253,7 @@ class _StoryMedia extends StatelessWidget {
     final bool isSound = _looksLike(_sounds, ref, playable);
 
     return Padding(
-      padding: const EdgeInsets.only(top: 22),
+      padding: const EdgeInsets.symmetric(vertical: 22),
       child: isPicture
           ? IvoryImageView(url: playable)
           : IvoryPlayer(
