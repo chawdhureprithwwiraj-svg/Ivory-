@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/content_revision.dart';
 import '../models/ivory_post.dart';
 import '../services/content_service.dart';
 import '../theme/ivory_theme.dart';
@@ -31,6 +32,22 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _load();
+    contentRevision.addListener(_onContentChanged);
+  }
+
+  @override
+  void dispose() {
+    // Must be removed, or this calls setState on a dead screen.
+    contentRevision.removeListener(_onContentChanged);
+    super.dispose();
+  }
+
+  /// The library changed somewhere else in the app - a post was
+  /// published, edited, hidden or deleted. This tab stays alive inside
+  /// main_shell's IndexedStack, so without this it would keep showing
+  /// what it fetched when the app started.
+  void _onContentChanged() {
+    if (mounted) _load();
   }
 
   Future<void> _load() async {
