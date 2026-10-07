@@ -4,6 +4,7 @@ import '../screens/live_screen.dart';
 import '../models/live_models.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
+import 'call_sheet_bits.dart';
 import 'call_book_flow.dart';
 
 /// ============================================================
@@ -133,9 +134,9 @@ class _CallWishSheetState extends State<CallWishSheet> {
     _load();
   }
 
-  String _when(DateTime d) =>
-      '${d.day}/${d.month}, ${d.hour.toString().padLeft(2, '0')}'
-      ':${d.minute.toString().padLeft(2, '0')}';
+  // Times arrive from Postgres in UTC. ivoryWhen turns them into
+  // the member's own clock - never show UTC to a member.
+  String _when(DateTime d) => ivoryWhen(d);
 
   String _dmy(DateTime d) {
     const List<String> m = <String>[
@@ -427,7 +428,8 @@ class _CallWishSheetState extends State<CallWishSheet> {
                         ? 'Agreed for ${_when(c.requestedFor!)} - JOIN '
                             'wakes up a little before.'
                         : 'Window ${_when(c.requestedFor!)} to '
-                            '${_when(c.windowEnd!)} - join any time inside.',
+                            '${ivoryClock(c.windowEnd!)} - join any time '
+                            'inside.',
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -459,12 +461,23 @@ class _CallWishSheetState extends State<CallWishSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         _sectionLabel('How it works'),
-        _step(1, 'Ask for the session', 'I am told straight away and confirm '
-            'it from my side.'),
-        _step(2, 'You pick the time', 'Once I confirm, my calendar opens '
-            'for you - choose the slot that suits you.'),
-        _step(3, 'Come back to Ivory', 'At your booked time, open this sheet '
-            'and tap JOIN. The call happens here, never on another app.'),
+        const CallStep(
+          number: 1,
+          title: 'Ask for the session',
+          body: 'I am told straight away and confirm it from my side.',
+        ),
+        const CallStep(
+          number: 2,
+          title: 'You pick the time',
+          body: 'Once I confirm, choose your day and time right here in '
+              'Ivory. Nothing to book anywhere else.',
+        ),
+        const CallStep(
+          number: 3,
+          title: 'Come back to Ivory',
+          body: 'At your chosen time, open this sheet and tap JOIN. The '
+              'call happens here, never on another app.',
+        ),
         const SizedBox(height: 18),
         if (canAskFree)
           IvoryGradientButton(
@@ -512,60 +525,6 @@ class _CallWishSheetState extends State<CallWishSheet> {
     );
   }
 
-  Widget _step(int n, String title, String body) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 13),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: IvoryColors.surfaceWarm,
-              shape: BoxShape.circle,
-              border: Border.all(color: IvoryColors.gold, width: 1.2),
-            ),
-            child: Center(
-              child: Text(
-                '$n',
-                style: const TextStyle(
-                  color: IvoryColors.burgundy,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: IvoryColors.burgundy,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  body,
-                  style: TextStyle(
-                    fontSize: 12.8,
-                    height: 1.45,
-                    color: IvoryColors.textSoft,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 
