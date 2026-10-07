@@ -6,7 +6,7 @@ chain design, and the decisions taken on 6 October. Read Part 3 first,
 then this. Neither file is read by the app; both are letters to the
 next agent.
 
-Current to **7 October 2026, 06:45 IST**.
+Current to **7 October 2026, 07:10 IST**.
 
 ---
 
@@ -273,16 +273,36 @@ database refuses. `_firstlist` is re-read from `firstlist_ids()` on
 every load, so it is never a guess held in the app. If that call
 fails the Library still renders, with every star dark.
 
-### M.4 What 24m must still do
+### M.4 The shelf - 24m, shipped
 
-Draw the shelf. `content_service.dart` needs
-`firstlist()` -> `_db.rpc('firstlist')` mapped through
-`IvoryPost.fromPreview`. `home_screen.dart` shows it above "Recent
-stories & media" as a horizontal rail titled **Ivory's Firstlist**.
+`ContentService.fetchFirstlist()` calls `rpc('firstlist')` and maps
+through `IvoryPost.fromPreview`. It **swallows its own errors and
+returns an empty list**: one unreadable shelf must never take Home
+down with it.
 
-**"Ivory's Golden Reserve" is not a feature.** `home_screen.dart:57`
-`_featured` is just the first unlocked non-poll post - no admin control
-ever existed. When the Firstlist has entries it should take that slot;
-when it is empty, fall back to today's behaviour so Home is never bare.
+`FirstlistRail` (`lib/widgets/firstlist_rail.dart`, new) is a sideways
+shelf - 182 x 232 cards, poster or a warm panel bearing the kind
+icon, a gold numbered disc for the place in Ivory's order, a LOCKED
+pill and a padlock when the post is not open to that member. Tapping
+goes through `PostActions.open`, so locked posts behave exactly as
+they do in the feed.
+
+`home_screen.dart`: `_load()` fetches the feed and the shelf together
+with `Future.wait`. **The shelf has to be its own query** - the feed
+only pulls the newest 12, and a Firstlist post will often be older
+than that. `_recent` now subtracts whatever the shelf already shows,
+so nothing is printed twice.
+
+**"Ivory's Golden Reserve" was never a feature.** `_featured` is just
+the first unlocked non-poll post; no admin control ever existed. The
+Firstlist takes that slot when it has entries, and Golden Reserve
+returns by itself if the list is ever emptied, so Home is never bare.
+
+### M.5 Not built, if ever asked for
+
+Re-ordering. `pin_rank` is assigned `max + 1` on adding, so the order
+is the order she starred things. Changing it means unstarring and
+re-starring. A drag handle would need a `reorder_firstlist(bigint[])`
+function rewriting every rank in one transaction.
 
 <!-- END OF FILE - IVORY_HANDOVER_4.md -->
