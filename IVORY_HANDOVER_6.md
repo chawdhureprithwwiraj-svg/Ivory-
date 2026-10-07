@@ -77,8 +77,9 @@ either side to display.
 
 **APPLIED 7 Oct 2026, 21:25 - the owner ran the drop and Supabase
 returned "Success. No rows returned", which is the correct result
-for a DROP.** The confirming one-row count query had not been run
-at time of writing; if it ever shows two rows again, someone has
+for a DROP.** **CONFIRMED 21:29: the count query returned exactly ONE row,
+`call_id_in bigint, when_in timestamptz, window_end_in
+timestamptz`.** If it ever shows two rows again, someone has
 re-created the overload.
 
 **Fix: `sprint25e_fix_m4.sql` drops the two-argument version.** The
@@ -128,5 +129,26 @@ harmless but currently dead.
 `channel_name` as `ivorycall-<id>-<10 hex>`, sets `accepted` or
 `declined`, notifies the member. Leave it alone.
 
+
+### U.8 SUPABASE SHOWS ONLY THE LAST STATEMENT'S RESULT
+
+Burned twice now. A script of five `select`s runs all five and
+**displays only the fifth**. Every inspection script must be **ONE
+statement** - `union all` the parts together with a common
+`(part, detail, extra)` text shape, as 25b and 25g do. Chunk any
+long value with
+`cross join generate_series(0, n) as g(i)` + `substr(..., i*60+1, 60)`.
+
+### U.9 TIER TABLE IS THINNER THAN ASSUMED
+
+`subscription_tiers` was searched for any column matching price,
+min, call or inr. **Only one matched: `price_inr integer`.**
+
+There is **no per-tier call-minute column**. So the allowance that
+`call_balance(kind_in)` returns as `allowed` comes from somewhere
+else - `call_policy`, or a table not yet found. 25g dumps
+`call_balance`'s source to settle it. **Do not write the
+request_call repair until that is known**, or the hardcoded 999
+will simply be replaced by a different guess.
 
 <!-- END OF FILE - IVORY_HANDOVER_6.md -->
