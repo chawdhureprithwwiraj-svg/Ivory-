@@ -6,7 +6,7 @@ design, the 6 October decisions, and the 24a-24i ledger. Read Part 3
 first, then this. Neither file is read by the app; both are letters to
 the next agent.
 
-Current to **7 October 2026, 16:10 IST**.
+Current to **7 October 2026, 18:20 IST**.
 
 ---
 
@@ -99,61 +99,6 @@ catch stayed. Import restored, marked `// Do not remove`.
 typedef that file declares. A checker resolving every capitalised
 identifier in `lib/` against its declaring file now runs before each
 delivery; it confirmed `media_ref.dart` really is unused.
-
-## L. SPRINT 24k (7 Oct) + WHAT 24l MUST DO
-
-### L.1 A story may carry a file - fixed
-
-`post_actions.dart` split the sheet by post type: `blog` went to
-`_ReaderBody` (words only), everything else to `_MediaBody`. A story
-with a film uploaded fine, reached R2, showed in the Vault - and
-nothing drew it. Not a crash; an assumption that a story is always
-text.
-
-`_StoryMedia` renders under the writing. It cannot use `post.type`
-(that says `blog`), so it reads the **file extension** off the stored
-ref, falling back to the signed URL with the query stripped. Silent
-when there is no file - a wordless story is normal, not an error.
-
-### L.2 Poll bars are burgundy
-
-Fills `#6B1527 -> #96344A`, lead `burgundy -> #72203A`, gold stop edge
-kept. **The trap:** the label is painted *over* the bar in burgundy -
-invisible on wine. `_words(ink, accent)` is drawn twice, the second
-copy ivory inside `ClipRect(clipper: _LeftFraction(f))`, clipped to
-the bar edge. Identical layout both times or the glyphs drift.
-`AnimatedFractionallySizedBox` became `TweenAnimationBuilder` so bar
-and clip animate off one value. Own answer ringed **amber**; plum
-vanished on wine.
-
-### L.3 `tools/dart_check.py` - run before every delivery
-
-    python3 tools/dart_check.py [file ...]
-
-Brace/paren balance, `const` constructors using the runtime colour
-getters, and every capitalised identifier resolved against a reachable
-import. Its predecessor stripped strings with one regex and cried wolf:
-an apostrophe inside `"Ivory's Golden Reserve"` opened a string that
-never closed; it tokenises properly now. Known pre-existing noise:
-`checkout_screen`, `live_screen`, `call_wish_sheet` exceed 18 KB, and
-the older files have no sentinel.
-
-### L.4 24l - "Ivory must watch first" (NOT yet built)
-
-Owner wants a curated shelf on Home, **up to 25 posts, any mix of
-types**. Never call it "pinned" in member-facing copy.
-
-**"Ivory's Golden Reserve" is not a feature.** `home_screen.dart:57` is
-`_featured` = the first unlocked non-poll post. No admin control. The
-shelf replaces that guess with the owner's choice.
-
-Needs: `pin_rank int` on posts (null = unpinned), surfaced through
-`post_previews` - **drop and recreate the view, trap 11.8**; a cap of 25
-enforced in Postgres, not the client; a toggle in
-`admin_library_list.dart`; a horizontal rail on Home above the Recent
-section. Idempotent SQL.
-
----
 
 ## M. IVORY'S FIRSTLIST (24l shipped, 24m pending)
 
@@ -369,11 +314,78 @@ over the SET list.
 
 ### O.4 Composer facts worth knowing
 
-`publish_post` inserts only: author_id, type, title, summary, body,
-media_source, media_ref, thumb_source, thumb_ref, tier_required,
-duration_secs, is_published. The composer then writes
-**`allowed_tiers`** and **`door_credit`** by direct `.update()` and
-the price by `set_post_price` - three calls, not one. `update_post`
-folds the first two in; price deliberately stays separate.
+The composer is **three calls, not one**: `publish_post`, then direct
+`.update()`s for **`allowed_tiers`** and **`door_credit`** (neither is
+in `publish_post`), then `set_post_price`. `update_post` folds the
+first two in; price deliberately stays separate.
+
+## P. EVERY SHELF MUST HEAR ABOUT A CHANGE (24q)
+
+Home and Explore load **once, in `initState`**, and
+`main_shell.dart:143` keeps every tab alive in an **`IndexedStack`**,
+so moving between tabs never rebuilds them. A post published, edited,
+hidden or deleted therefore left Home showing stale wording until the
+app was killed. It looked like an editor bug in 24p - an edited title
+went stale on Home while Explore looked right - but Explore only
+seemed correct because tapping a filter chip reloads it. Publishing
+had always been affected too.
+
+`lib/core/content_revision.dart` is a one-line global
+`ValueNotifier<int>`. `AdminService` calls `bumpContentRevision()`
+after **publishPost, updatePost, setPostPrice, setPublished,
+deletePost, setFirstlist**; Home and Explore listen and reload.
+
+* **Any new screen that lists posts must add the listener** - see the
+  worked example in the file's own comment.
+* **Always `removeListener` in `dispose`** or it calls `setState` on a
+  dead screen.
+* Saving an edit bumps **twice** (post, then price). Harmless: the
+  second reload lands on the final truth.
+
+**Verified on device 7 Oct 18:39-18:47.** Edited title reached Home's
+Firstlist without opening the post; hiding a post removed it from the
+Firstlist; a newly published video appeared on Home by itself. Inbox
+held at 46 through the edit and moved 46 to 47 only for the genuinely
+new post - exactly right.
+
+### P.1 Two faults the same screenshots exposed (24r)
+
+**Never give a Scaffold `backgroundColor: Colors.transparent`.** There
+is nothing behind a page route, so it paints **black** - which is the
+one colour this app may never show. EDIT POST had it and wore a black
+band over the status bar. Every other screen just lets the theme's
+ivory through; the page gradient goes on a Container in the body.
+
+**`post_card` said "1 views".** Now `_views(post)`, a static on
+PostCard. Any new count needs the same treatment.
+
+## Q. SEEDED VIEW COUNTS (24s)
+
+`lib/core/view_bloom.dart`. Films, voice notes, stories and
+photographs show a seeded audience; **polls show no count at all**,
+because their bars report real votes. Real views are added on top.
+
+* **Pure function of post id + created_at.** Nothing stored, nothing
+  random at runtime, so every phone agrees and the number can never
+  fall. A count that dropped on refresh would be noticed at once.
+* Per post: ceiling **2,300-2,950** (a hard maximum, never passed),
+  climb **15-19 days**, own daily rhythm. Verified over 399 posts:
+  never decreases, never exceeds its ceiling, highest possible value
+  **2,947**.
+* ~200 at one hour, ~2,300-2,700 at day 20, then a 3-12/day drift into
+  the last 6% so it never freezes dead.
+* **The Admin Library deliberately shows the TRUE `view_count`** -
+  `admin_library_list.dart:208` reads the column directly and must
+  never be switched to `viewBloom`. She must not be misled about her
+  own reach by her own decoration.
+* If real engagement ever approaches these numbers, delete this file
+  and the two call sites. It is scaffolding, not architecture.
+
+<!-- END OF FILE - IVORY_HANDOVER_4.md -->
+
+## CONTINUED IN PART 5
+
+Part 4 is full. Ledger, Play checklist and the call-chain design are
+in **IVORY_HANDOVER_5.md**.
 
 <!-- END OF FILE - IVORY_HANDOVER_4.md -->
