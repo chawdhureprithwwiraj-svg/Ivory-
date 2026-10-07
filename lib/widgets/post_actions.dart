@@ -10,6 +10,7 @@ import 'gift_sheet.dart';
 import '../theme/ivory_theme.dart';
 import 'ivory_media_view.dart';
 import 'post_poll.dart';
+import 'post_surface.dart';
 import 'post_unlock_sheet.dart';
 
 /// Everything that happens when a story card is tapped, shared by
@@ -61,49 +62,24 @@ class PostActions {
 
     if (full.type == PostType.blog) {
       _sheet(context, _ReaderBody(post: full));
-    } else {
-      _sheet(context, _MediaBody(post: full));
+      return;
     }
+    // Film and photograph fill the screen. A voice note is listened
+    // to, not watched, so it stays a sheet like the writing does.
+    final bool immersive =
+        full.type == PostType.video || full.type == PostType.image;
+    _sheet(context, _MediaBody(post: full), immersive: immersive);
   }
 
-  static void _sheet(BuildContext context, Widget child) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.78,
-        minChildSize: 0.4,
-        maxChildSize: 0.96,
-        expand: false,
-        builder: (BuildContext c, ScrollController sc) => Container(
-          decoration: const BoxDecoration(
-            gradient: IvoryColors.pageGradient,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            children: <Widget>[
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                width: 44,
-                height: 4.5,
-                decoration: BoxDecoration(
-                  color: IvoryColors.hairlineStrong,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: sc,
-                  padding: const EdgeInsets.fromLTRB(22, 4, 22, 40),
-                  child: child,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  /// A story, a voice note or a poll rises as a sheet that can reach
+  /// the very top. A film or a photograph takes the whole screen at
+  /// once - it is the thing itself, not an attachment to a page.
+  static void _sheet(
+    BuildContext context,
+    Widget child, {
+    bool immersive = false,
+  }) {
+    IvoryPostSurface.show(context, child, immersive: immersive);
   }
 
   static Future<void> launch(BuildContext context, String url) async {
