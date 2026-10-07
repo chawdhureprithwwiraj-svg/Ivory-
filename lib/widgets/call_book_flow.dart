@@ -1,82 +1,263 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../models/live_models.dart';
+import '../core/ivory_errors.dart';
 import '../services/live_service.dart';
+import '../theme/ivory_theme.dart';
 
 /// ============================================================
-/// IVORY - TELLING IVORY THE SLOT
+/// IVORY - CHOOSING THE SESSION TIME
 ///
-/// The member picks their date and time on the house calendar
-/// (cal.com - availability, notice and horizon are all controlled
-/// there). Back in Ivory they confirm the slot they chose, so the
-/// JOIN button, the door and the reminders all know when.
+/// The member picks their day and time here, inside Ivory. No
+/// outside calendar, no retyping, no second answer to disagree
+/// with. member_pick_slot is the only gate: it holds the notice
+/// period, the hours sessions run, and how far ahead a time may
+/// be chosen - all editable from the house, none of them written
+/// into this file.
+///
+/// The same rules are mirrored here only so a member is told
+/// kindly before they travel, never as the authority.
 /// ============================================================
+
+/// Hours the house keeps. Mirrors call_policy; the database
+/// decides. Shown so the member is never guessing.
+const int _noticeHours = 4;
+const int _opensHour = 12;
+const int _closesHour = 3;
+const int _horizonDays = 30;
+
+bool _insideHours(DateTime when) {
+  final int h = when.hour;
+  return h >= _opensHour || h < _closesHour;
+}
+
+String _pretty(DateTime d) {
+  const List<String> months = <String>[
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  final int hour12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  final String mins = d.minute.toString().padLeft(2, '0');
+  final String ampm = d.hour < 12 ? 'am' : 'pm';
+  return '${d.day} ${months[d.month - 1]}, $hour12:$mins $ampm';
+}
+
+/// Opens the picker and writes the chosen time. The signature is
+/// unchanged from the cal.com version, so nothing else moves.
 Future<void> bookCallSlot(
   BuildContext context,
   CallRequest c, {
   required void Function(String msg) say,
   required Future<void> Function() reload,
 }) async {
-  final BookingLink? link =
-      await LiveService.instance.bookingLink(c.kind);
-  final String? url = link?.url;
-  if (url != null && url.isNotEmpty) {
-    try {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } catch (_) {}
-  }
-  if (!context.mounted) return;
-  if (url == null || url.isEmpty) {
-    say('The house calendar is not up yet - write to Ivory and a time '
-        'will be agreed with you.');
+  final DateTime earliest =
+      DateTime.now().add(const Duration(hours: _noticeHours));
+  final DateTime latest =
+      DateTime.now().add(const Duration(days: _horizonDays));
+
+  final bool go = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext d) => _HoursDialog(earliest: earliest),
+      ) ??
+      false;
+  if (!go || !context.mounted) return;
+
+  final DateTime? day = await showDatePicker(
+    context: context,
+    initialDate: earliest,
+    firstDate: DateTime(earliest.year, earliest.month, earliest.day),
+    lastDate: latest,
+    helpText: 'Choose your day',
+    builder: (BuildContext ctx, Widget? child) => Theme(
+      data: Theme.of(ctx).copyWith(
+        colorScheme: Theme.of(ctx).colorScheme.copyWith(
+              primary: IvoryColors.burgundy,
+              onPrimary: IvoryColors.ivory,
+              surface: IvoryColors.surface,
+            ),
+      ),
+      child: child ?? const SizedBox.shrink(),
+    ),
+  );
+  if (day == null || !context.mounted) return;
+
+  final TimeOfDay? time = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay(hour: _opensHour, minute: 0),
+    helpText: 'Choose your time',
+    builder: (BuildContext ctx, Widget? child) => Theme(
+      data: Theme.of(ctx).copyWith(
+        colorScheme: Theme.of(ctx).colorScheme.copyWith(
+              primary: IvoryColors.burgundy,
+              onPrimary: IvoryColors.ivory,
+              surface: IvoryColors.surface,
+            ),
+      ),
+      child: child ?? const SizedBox.shrink(),
+    ),
+  );
+  if (time == null || !context.mounted) return;
+
+  final DateTime chosen =
+      DateTime(day.year, day.month, day.day, time.hour, time.minute);
+
+  // Told kindly here, decided firmly in the database.
+  if (!_insideHours(chosen)) {
+    say('Sessions run between $_opensHour:00 noon and $_closesHour:00 '
+        'in the morning. Please choose a time inside those hours.');
     return;
   }
-  final bool tell = await showDialog<bool>(
+  if (chosen.isBefore(earliest)) {
+    say('Please choose a time at least $_noticeHours hours from now, '
+        'so Ivory can prepare for you.');
+    return;
+  }
+
+  final bool sure = await showDialog<bool>(
         context: context,
-        builder: (BuildContext d) => AlertDialog(
-          title: const Text('Picked a slot?'),
-          content: const Text('Choose your date and time on the calendar '
-              'that just opened, then tell Ivory the slot you picked. '
-              'JOIN wakes up just before it.'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(d).pop(false),
-              child: const Text('LATER'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(d).pop(true),
-              child: const Text('TELL IVORY'),
-            ),
-          ],
+        builder: (BuildContext d) => _ConfirmDialog(
+          when: _pretty(chosen),
+          minutes: c.minutes,
         ),
       ) ??
       false;
-  if (!tell || !context.mounted) return;
-  final DateTime now = DateTime.now();
-  final DateTime? day = await showDatePicker(
-    context: context,
-    initialDate: now.add(const Duration(days: 1)),
-    firstDate: now,
-    lastDate: now.add(const Duration(days: 21)),
-    helpText: 'Which day did you book?',
-  );
-  if (day == null || !context.mounted) return;
-  final TimeOfDay? time = await showTimePicker(
-    context: context,
-    initialTime: TimeOfDay.now(),
-    helpText: 'What time did you book? (your clock)',
-  );
-  if (time == null || !context.mounted) return;
-  final DateTime when =
-      DateTime(day.year, day.month, day.day, time.hour, time.minute);
+  if (!sure || !context.mounted) return;
+
   try {
-    await LiveService.instance.confirmBooking(c.id, when);
-    say('Your slot is with the house. Join a little before it.');
+    final String word = await LiveService.instance.pickSlot(c.id, chosen);
+    say(word);
   } catch (e) {
-    say(e.toString().replaceFirst('Exception: ', ''));
+    say(houseMessage(e));
   }
   await reload();
+}
+
+class _HoursDialog extends StatelessWidget {
+  const _HoursDialog({required this.earliest});
+
+  final DateTime earliest;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: IvoryColors.surface,
+      title: Text('Choose your time',
+          style: TextStyle(
+              color: IvoryColors.burgundy, fontWeight: FontWeight.w700)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _Line(
+            icon: Icons.schedule_rounded,
+            text: 'Sessions run from noon through to '
+                '$_closesHour in the morning.',
+          ),
+          const SizedBox(height: 10),
+          _Line(
+            icon: Icons.hourglass_bottom_rounded,
+            text: 'The earliest you can choose is '
+                '${_pretty(earliest)}.',
+          ),
+          const SizedBox(height: 10),
+          _Line(
+            icon: Icons.event_available_rounded,
+            text: 'You can book up to $_horizonDays days ahead. '
+                'Ivory will remind you as it comes close.',
+          ),
+        ],
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('LATER'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text('CHOOSE',
+              style: TextStyle(
+                  color: IvoryColors.burgundy,
+                  fontWeight: FontWeight.w700)),
+        ),
+      ],
+    );
+  }
+}
+
+class _ConfirmDialog extends StatelessWidget {
+  const _ConfirmDialog({required this.when, required this.minutes});
+
+  final String when;
+  final int minutes;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: IvoryColors.surface,
+      title: Text('Is this right?',
+          style: TextStyle(
+              color: IvoryColors.burgundy, fontWeight: FontWeight.w700)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(when,
+              style: TextStyle(
+                color: IvoryColors.burgundy,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              )),
+          const SizedBox(height: 6),
+          Text('$minutes minutes together.',
+              style: TextStyle(color: IvoryColors.plum, fontSize: 14)),
+          const SizedBox(height: 12),
+          Text(
+            'Ivory is told the moment you confirm. Open Ivory a little '
+            'before and tap JOIN - the call happens here, never on '
+            'another app.',
+            style: TextStyle(
+                color: IvoryColors.plum, fontSize: 13, height: 1.35),
+          ),
+        ],
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('CHANGE'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text('CONFIRM',
+              style: TextStyle(
+                  color: IvoryColors.burgundy,
+                  fontWeight: FontWeight.w700)),
+        ),
+      ],
+    );
+  }
+}
+
+class _Line extends StatelessWidget {
+  const _Line({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(icon, size: 18, color: IvoryColors.gold),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(text,
+              style: TextStyle(
+                  color: IvoryColors.plum, fontSize: 13, height: 1.35)),
+        ),
+      ],
+    );
+  }
 }
 
 // END OF FILE - lib/widgets/call_book_flow.dart
