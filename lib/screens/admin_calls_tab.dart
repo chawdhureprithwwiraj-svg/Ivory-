@@ -63,8 +63,8 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
   Future<void> _accept(AdminCall c) async {
     try {
       await LiveService.instance.respondToCall(c.id, accept: true);
-      _say('Accepted. ${c.displayName} will now pick their slot on '
-          'your cal.com calendar.');
+      _say('Accepted. ${c.displayName} will now choose their time '
+          'inside Ivory.');
     } catch (e) {
       _say(e.toString().replaceFirst('Exception: ', ''));
     }
@@ -364,7 +364,7 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
             c.requestedFor != null
                 ? 'Agreed for ${_when(c.requestedFor!)}'
                 : c.status == 'accepted'
-                    ? 'Waiting for them to pick a slot on cal.com'
+                    ? 'Waiting for them to choose their time'
                     : 'No time agreed yet',
             style: TextStyle(
               fontSize: 12.5,
