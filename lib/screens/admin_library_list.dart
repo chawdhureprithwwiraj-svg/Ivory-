@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/ivory_errors.dart';
 import '../services/admin_service.dart';
 import '../theme/ivory_theme.dart';
 
@@ -18,6 +19,10 @@ class AdminLibraryList extends StatefulWidget {
 
 class _AdminLibraryListState extends State<AdminLibraryList> {
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
+
+  /// Ids on Ivory's Firstlist. Read from the database on every load so
+  /// the stars always show the truth, never a guess kept in the app.
+  Set<int> _firstlist = <int>{};
   bool _loading = true;
 
   @override
@@ -37,7 +42,16 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
     try {
       final List<Map<String, dynamic>> rows =
           await AdminService.instance.fetchLibrary();
+      // A failure here must not cost the house its Library. The list
+      // still works with every star dark.
+      Set<int> onList = <int>{};
+      try {
+        onList = await AdminService.instance.firstlistIds();
+      } catch (_) {
+        onList = <int>{};
+      }
       if (!mounted) return;
+      _firstlist = onList;
       setState(() {
         _items = rows;
         _loading = false;
@@ -106,9 +120,45 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
     );
   }
 
+  /// Add this post to Ivory's Firstlist, or take it off.
+  ///
+  /// The 25 place cap is the database's rule, not this screen's. When
+  /// the list is full Postgres refuses and sends back a sentence
+  /// already written for a person to read; houseMessage() lets that
+  /// sentence through untouched and hides anything technical.
+  Future<void> _toggleFirstlist(int id, bool pinned) async {
+    // Move the star at once so the tap feels answered, then put it
+    // back if the database disagrees.
+    setState(() {
+      if (pinned) {
+        _firstlist.remove(id);
+      } else {
+        _firstlist.add(id);
+      }
+    });
+    try {
+      await AdminService.instance.setFirstlist(id, !pinned);
+      if (!mounted) return;
+      _toast(pinned
+          ? 'Taken off Ivory\u2019s Firstlist.'
+          : 'Added to Ivory\u2019s Firstlist.');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        if (pinned) {
+          _firstlist.add(id);
+        } else {
+          _firstlist.remove(id);
+        }
+      });
+      _toast(houseMessage(e), bad: true);
+    }
+  }
+
   Widget _row(Map<String, dynamic> p) {
     final int id = ((p['id'] as num?) ?? 0).toInt();
     final bool live = p['is_published'] == true;
+    final bool pinned = _firstlist.contains(id);
     final int tier = ((p['tier_required'] as num?) ?? 0).toInt();
 
     // SPRINT 24i - a post sold on its own carries a price and a
@@ -161,6 +211,20 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
               ],
             ),
           ),
+          // ---- Ivory's Firstlist ----
+          IconButton(
+            tooltip: pinned
+                ? 'On Ivory\u2019s Firstlist'
+                : 'Add to Ivory\u2019s Firstlist',
+            visualDensity: VisualDensity.compact,
+            icon: Icon(
+              pinned ? Icons.star_rounded : Icons.star_outline_rounded,
+              size: 22,
+              color: pinned ? IvoryColors.gold : IvoryColors.textFaint,
+            ),
+            onPressed: () => _toggleFirstlist(id, pinned),
+          ),
+
           Switch.adaptive(
             value: live,
             activeColor: IvoryColors.gold,
