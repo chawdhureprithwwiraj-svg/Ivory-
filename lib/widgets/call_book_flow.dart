@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../models/live_models.dart';
 import '../core/ivory_errors.dart';
+import '../models/live_models.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
+import 'call_sheet_bits.dart';
 
 /// ============================================================
 /// IVORY - CHOOSING THE SESSION TIME
@@ -12,11 +13,11 @@ import '../theme/ivory_theme.dart';
 /// outside calendar, no retyping, no second answer to disagree
 /// with. member_pick_slot is the only gate: it holds the notice
 /// period, the hours sessions run, and how far ahead a time may
-/// be chosen - all editable from the house, none of them written
-/// into this file.
+/// be chosen - all editable from the house, none of them the
+/// authority in this file.
 ///
 /// The same rules are mirrored here only so a member is told
-/// kindly before they travel, never as the authority.
+/// kindly before they travel.
 /// ============================================================
 
 /// Hours the house keeps. Mirrors call_policy; the database
@@ -31,15 +32,13 @@ bool _insideHours(DateTime when) {
   return h >= _opensHour || h < _closesHour;
 }
 
-String _pretty(DateTime d) {
-  const List<String> months = <String>[
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-  final int hour12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
-  final String mins = d.minute.toString().padLeft(2, '0');
-  final String ampm = d.hour < 12 ? 'am' : 'pm';
-  return '${d.day} ${months[d.month - 1]}, $hour12:$mins $ampm';
+/// The notice period can land in the closed hours - 3:15 am plus
+/// four hours is 7:15 am, which the house does not keep. Roll
+/// forward to the next moment the door is really open, so a
+/// member is never offered a time they cannot have.
+DateTime _firstOpening(DateTime from) {
+  if (_insideHours(from)) return from;
+  return DateTime(from.year, from.month, from.day, _opensHour, 0);
 }
 
 /// Opens the picker and writes the chosen time. The signature is
@@ -50,8 +49,8 @@ Future<void> bookCallSlot(
   required void Function(String msg) say,
   required Future<void> Function() reload,
 }) async {
-  final DateTime earliest =
-      DateTime.now().add(const Duration(hours: _noticeHours));
+  final DateTime earliest = _firstOpening(
+      DateTime.now().add(const Duration(hours: _noticeHours)));
   final DateTime latest =
       DateTime.now().add(const Duration(days: _horizonDays));
 
@@ -83,7 +82,7 @@ Future<void> bookCallSlot(
 
   final TimeOfDay? time = await showTimePicker(
     context: context,
-    initialTime: TimeOfDay(hour: _opensHour, minute: 0),
+    initialTime: TimeOfDay(hour: earliest.hour, minute: 0),
     helpText: 'Choose your time',
     builder: (BuildContext ctx, Widget? child) => Theme(
       data: Theme.of(ctx).copyWith(
@@ -103,11 +102,12 @@ Future<void> bookCallSlot(
 
   // Told kindly here, decided firmly in the database.
   if (!_insideHours(chosen)) {
-    say('Sessions run between $_opensHour:00 noon and $_closesHour:00 '
-        'in the morning. Please choose a time inside those hours.');
+    say('Sessions run from noon through to $_closesHour in the morning. '
+        'Please choose a time inside those hours.');
     return;
   }
-  if (chosen.isBefore(earliest)) {
+  if (chosen.isBefore(
+      DateTime.now().add(const Duration(hours: _noticeHours)))) {
     say('Please choose a time at least $_noticeHours hours from now, '
         'so Ivory can prepare for you.');
     return;
@@ -116,7 +116,7 @@ Future<void> bookCallSlot(
   final bool sure = await showDialog<bool>(
         context: context,
         builder: (BuildContext d) => _ConfirmDialog(
-          when: _pretty(chosen),
+          when: ivoryWhen(chosen),
           minutes: c.minutes,
         ),
       ) ??
@@ -141,7 +141,7 @@ class _HoursDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: IvoryColors.surface,
-      title: Text('Choose your time',
+      title: const Text('Choose your time',
           style: TextStyle(
               color: IvoryColors.burgundy, fontWeight: FontWeight.w700)),
       content: Column(
@@ -156,8 +156,7 @@ class _HoursDialog extends StatelessWidget {
           const SizedBox(height: 10),
           _Line(
             icon: Icons.hourglass_bottom_rounded,
-            text: 'The earliest you can choose is '
-                '${_pretty(earliest)}.',
+            text: 'The earliest you can choose is ${ivoryWhen(earliest)}.',
           ),
           const SizedBox(height: 10),
           _Line(
@@ -174,7 +173,7 @@ class _HoursDialog extends StatelessWidget {
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: Text('CHOOSE',
+          child: const Text('CHOOSE',
               style: TextStyle(
                   color: IvoryColors.burgundy,
                   fontWeight: FontWeight.w700)),
@@ -194,7 +193,7 @@ class _ConfirmDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: IvoryColors.surface,
-      title: Text('Is this right?',
+      title: const Text('Is this right?',
           style: TextStyle(
               color: IvoryColors.burgundy, fontWeight: FontWeight.w700)),
       content: Column(
@@ -202,16 +201,17 @@ class _ConfirmDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(when,
-              style: TextStyle(
+              style: const TextStyle(
                 color: IvoryColors.burgundy,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
               )),
           const SizedBox(height: 6),
           Text('$minutes minutes together.',
-              style: TextStyle(color: IvoryColors.plum, fontSize: 14)),
+              style: const TextStyle(
+                  color: IvoryColors.plum, fontSize: 14)),
           const SizedBox(height: 12),
-          Text(
+          const Text(
             'Ivory is told the moment you confirm. Open Ivory a little '
             'before and tap JOIN - the call happens here, never on '
             'another app.',
@@ -227,7 +227,7 @@ class _ConfirmDialog extends StatelessWidget {
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: Text('CONFIRM',
+          child: const Text('CONFIRM',
               style: TextStyle(
                   color: IvoryColors.burgundy,
                   fontWeight: FontWeight.w700)),
@@ -252,7 +252,7 @@ class _Line extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Text(text,
-              style: TextStyle(
+              style: const TextStyle(
                   color: IvoryColors.plum, fontSize: 13, height: 1.35)),
         ),
       ],
