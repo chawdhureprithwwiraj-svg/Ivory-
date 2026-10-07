@@ -21,14 +21,20 @@ import '../theme/ivory_theme.dart';
 /// ============================================================
 
 /// The deep end of the bar, where it starts at the left edge.
-const Color _fillStart = Color(0xFFE8B978);
+const Color _fillStart = Color(0xFF6B1527);
 
-/// The pale end, where it fades out before its gold stop line.
-const Color _fillEnd = Color(0xFFF2DCA8);
+/// The lighter wine the bar fades towards before its gold stop line.
+const Color _fillEnd = Color(0xFF96344A);
 
-/// The front runner is poured a shade deeper so it reads first.
-const Color _leadStart = IvoryColors.amber;
-const Color _leadEnd = Color(0xFFEFC97E);
+/// The option in front sits deeper, so the lead reads at a glance.
+const Color _leadStart = IvoryColors.burgundy;
+const Color _leadEnd = Color(0xFF72203A);
+
+/// Words printed over the filled part of the bar. Burgundy on burgundy
+/// is invisible, so everything inside the fill is painted again in
+/// ivory and clipped to exactly the bar's edge.
+const Color _onFill = IvoryColors.ivory;
+const Color _onFillSoft = IvoryColors.gold;
 
 /// The little gold capsule that says, unmistakably, POLL.
 class PollBadge extends StatelessWidget {
@@ -105,15 +111,64 @@ class PollOptionBar extends StatelessWidget {
 
   final VoidCallback? onTap;
 
+  /// One row of words. Drawn twice: once in burgundy for the cream
+  /// part of the bar, once in ivory for the filled part. Both use the
+  /// identical layout, so the two copies line up glyph for glyph and
+  /// the colour appears to change exactly at the bar's edge.
+  Widget _words(Color ink, Color accent) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 13 : 15,
+        vertical: compact ? 11 : 14,
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              label,
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                color: ink,
+                fontSize: compact ? 13.5 : 14.5,
+                height: 1.3,
+                fontWeight:
+                    (mine || lead) ? FontWeight.w800 : FontWeight.w600,
+              ),
+            ),
+          ),
+          if (mine) ...<Widget>[
+            const SizedBox(width: 7),
+            Text(
+              'YOUR ANSWER',
+              style: TextStyle(
+                color: accent,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+          if (revealed) ...<Widget>[
+            const SizedBox(width: 10),
+            Text(
+              votes == null ? '$percent%' : '$votes \u00b7 $percent%',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: accent,
+                fontSize: compact ? 13 : 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final BorderRadius radius = BorderRadius.circular(13);
-
-    // The bar may be zero wide. A zero-width box with a right-hand
-    // border would still paint a stray gold line against the left
-    // edge, so the stop line only appears once there is a bar.
     final double factor = revealed ? (percent.clamp(0, 100)) / 100.0 : 0.0;
-    final bool hasBar = factor > 0.004;
 
     return Padding(
       padding: EdgeInsets.only(bottom: compact ? 7 : 9),
@@ -127,98 +182,70 @@ class PollOptionBar extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: radius,
               border: Border.all(
+                // Plum on a burgundy bar would vanish, so the member's
+                // own answer is ringed in amber instead.
                 color: mine
-                    ? IvoryColors.plum
+                    ? IvoryColors.amber
                     : IvoryColors.gold.withValues(alpha: 0.5),
-                width: mine ? 2 : 1.3,
+                width: mine ? 2.2 : 1.3,
               ),
             ),
             child: ClipRRect(
               borderRadius: radius,
-              child: Stack(
-                children: <Widget>[
-                  // ---- the result, lying behind the words ----
-                  // Full height of the row, anchored to the left edge,
-                  // its width the vote share and nothing else.
-                  Positioned.fill(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: AnimatedFractionallySizedBox(
-                        duration: const Duration(milliseconds: 700),
-                        curve: Curves.easeOutCubic,
-                        widthFactor: factor,
-                        heightFactor: 1,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: lead
-                                  ? const <Color>[_leadStart, _leadEnd]
-                                  : const <Color>[_fillStart, _fillEnd],
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0, end: factor),
+                duration: const Duration(milliseconds: 700),
+                curve: Curves.easeOutCubic,
+                builder: (BuildContext c, double f, Widget? _) {
+                  // A zero-width box with a right-hand border would
+                  // still paint a stray gold line against the left
+                  // edge, so the stop line waits for a bar.
+                  final bool hasBar = f > 0.004;
+                  return Stack(
+                    children: <Widget>[
+                      // ---- the result, lying behind the words ----
+                      Positioned.fill(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: FractionallySizedBox(
+                            widthFactor: f,
+                            heightFactor: 1,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: lead
+                                      ? const <Color>[_leadStart, _leadEnd]
+                                      : const <Color>[_fillStart, _fillEnd],
+                                ),
+                                border: hasBar
+                                    ? const Border(
+                                        right: BorderSide(
+                                          color: IvoryColors.gold,
+                                          width: 2.5,
+                                        ),
+                                      )
+                                    : null,
+                              ),
                             ),
-                            border: hasBar
-                                ? const Border(
-                                    right: BorderSide(
-                                      color: IvoryColors.gold,
-                                      width: 2.5,
-                                    ),
-                                  )
-                                : null,
                           ),
                         ),
                       ),
-                    ),
-                  ),
 
-                  // ---- the words, always on top of the bar ----
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: compact ? 13 : 15,
-                      vertical: compact ? 11 : 14,
-                    ),
-                    child: Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            label,
-                            textAlign: TextAlign.left,
-                            style: TextStyle(
-                              color: IvoryColors.burgundy,
-                              fontSize: compact ? 13.5 : 14.5,
-                              height: 1.3,
-                              fontWeight: (mine || lead)
-                                  ? FontWeight.w800
-                                  : FontWeight.w600,
-                            ),
+                      // ---- the words on the cream part ----
+                      _words(IvoryColors.burgundy, IvoryColors.plum),
+
+                      // ---- the same words, in ivory, clipped to
+                      //      the bar so they only show over wine ----
+                      if (hasBar)
+                        Positioned.fill(
+                          child: ClipRect(
+                            clipper: _LeftFraction(f),
+                            child: _words(_onFill, _onFillSoft),
                           ),
                         ),
-                        if (mine) ...<Widget>[
-                          const SizedBox(width: 7),
-                          const Text(
-                            'YOUR ANSWER',
-                            style: TextStyle(
-                              color: IvoryColors.plum,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ],
-                        if (revealed) ...<Widget>[
-                          const SizedBox(width: 10),
-                          Text(
-                            votes == null ? '$percent%' : '$votes \u00b7 $percent%',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              color: IvoryColors.plum,
-                              fontSize: compact ? 13 : 14,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -226,6 +253,21 @@ class PollOptionBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Keeps only the left-hand [fraction] of the row, so the ivory copy of
+/// the words shows exactly where the wine does and nowhere else.
+class _LeftFraction extends CustomClipper<Rect> {
+  const _LeftFraction(this.fraction);
+
+  final double fraction;
+
+  @override
+  Rect getClip(Size size) =>
+      Rect.fromLTWH(0, 0, size.width * fraction, size.height);
+
+  @override
+  bool shouldReclip(_LeftFraction old) => old.fraction != fraction;
 }
 
 /// The quiet line under the options.
