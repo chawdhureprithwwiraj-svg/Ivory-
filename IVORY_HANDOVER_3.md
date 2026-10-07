@@ -274,6 +274,64 @@ leaves the app. Owner's decision: **play those inside Ivory too** (queued).
 
 ---
 
+## L. SPRINT 24k (7 Oct) + WHAT 24l MUST DO
+
+### L.1 A story may carry a file - fixed
+
+`post_actions.dart` split the sheet by post type: `blog` went to
+`_ReaderBody` (words only), everything else to `_MediaBody`. A story
+with a film uploaded fine, reached R2, showed in the Vault - and
+nothing drew it. Not a crash; an assumption that a story is always
+text.
+
+`_StoryMedia` renders under the writing. It cannot use `post.type`
+(that says `blog`), so it reads the **file extension** off the stored
+ref, falling back to the signed URL with the query stripped. Silent
+when there is no file - a wordless story is normal, not an error.
+
+### L.2 Poll bars are burgundy
+
+Fills `#6B1527 -> #96344A`, lead `burgundy -> #72203A`, gold stop edge
+kept. **The trap:** the label is painted *over* the bar in burgundy -
+invisible on wine. `_words(ink, accent)` is drawn twice, the second
+copy ivory inside `ClipRect(clipper: _LeftFraction(f))`, clipped to
+the bar edge. Identical layout both times or the glyphs drift.
+`AnimatedFractionallySizedBox` became `TweenAnimationBuilder` so bar
+and clip animate off one value. Own answer ringed **amber**; plum
+vanished on wine.
+
+### L.3 `tools/dart_check.py` - run before every delivery
+
+    python3 tools/dart_check.py [file ...]
+
+Brace/paren balance, `const` constructors using the runtime colour
+getters, and every capitalised identifier resolved against a reachable
+import. Its predecessor stripped strings with one regex and cried wolf:
+an apostrophe inside `"Ivory's Golden Reserve"` opened a string that
+never closed; it tokenises properly now. Known pre-existing noise:
+`checkout_screen`, `live_screen`, `call_wish_sheet` exceed 18 KB, and
+the older files have no sentinel.
+
+### L.4 24l - "Ivory must watch first" (NOT yet built)
+
+Owner wants a curated shelf on Home, **up to 25 posts, any mix of
+types**. Never call it "pinned" in member-facing copy.
+
+**"Ivory's Golden Reserve" is not a feature.** `home_screen.dart:57` is
+`_featured` = the first unlocked non-poll post. No admin control. The
+shelf replaces that guess with the owner's choice.
+
+Needs: `pin_rank int` on posts (null = unpinned), surfaced through
+`post_previews` - **drop and recreate the view, trap 11.8**; a cap of 25
+enforced in Postgres, not the client; a toggle in
+`admin_library_list.dart`; a horizontal rail on Home above the Recent
+section. Idempotent SQL.
+
+---
+
+*(Moved down from Part 4 on 7 Oct - 24l and 24m are
+shipped and verified, so this is history now.)*
+
 ## CONTINUED IN PART 4
 
 Everything from Sprint 24j onward - storage, the Firstlist, how a post
