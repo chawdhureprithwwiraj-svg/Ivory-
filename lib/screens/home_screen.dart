@@ -8,6 +8,7 @@ import '../widgets/live_banner.dart';
 import '../widgets/member_pulse.dart';
 import '../widgets/story_door.dart';
 import '../widgets/post_actions.dart';
+import '../widgets/firstlist_rail.dart';
 import '../widgets/post_card.dart';
 
 /// The front page: a banner strip, the Ivory hero, the featured drop
@@ -38,11 +39,17 @@ class _HomeScreenState extends State<HomeScreen> {
       _error = null;
     });
     try {
-      final List<IvoryPost> posts =
-          await ContentService.instance.fetchFeed(limit: 12);
+      // Both at once. The shelf is a separate query because the feed
+      // only loads the newest 12, and a post may sit on Ivory's
+      // Firstlist long after it has dropped out of that window.
+      final List<dynamic> both = await Future.wait<dynamic>(<Future<dynamic>>[
+        ContentService.instance.fetchFeed(limit: 12),
+        ContentService.instance.fetchFirstlist(),
+      ]);
       if (!mounted) return;
       setState(() {
-        _posts = posts;
+        _posts = both[0] as List<IvoryPost>;
+        _firstlist = both[1] as List<IvoryPost>;
         _loading = false;
       });
     } catch (e) {
@@ -54,6 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  List<IvoryPost> _firstlist = <IvoryPost>[];
+
   IvoryPost? get _featured {
     for (final IvoryPost p in _posts) {
       if (!p.isLocked && p.type != PostType.poll) return p;
@@ -61,9 +70,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return _posts.isEmpty ? null : _posts.first;
   }
 
+  /// Whatever the shelf is already showing does not need showing again
+  /// directly underneath it.
   List<IvoryPost> get _recent {
-    final IvoryPost? f = _featured;
-    return _posts.where((IvoryPost p) => p.id != f?.id).take(4).toList();
+    final Set<int> shown = _firstlist.map((IvoryPost p) => p.id).toSet();
+    if (_firstlist.isEmpty) {
+      final IvoryPost? f = _featured;
+      if (f != null) shown.add(f.id);
+    }
+    return _posts
+        .where((IvoryPost p) => !shown.contains(p.id))
+        .take(4)
+        .toList();
   }
 
   void _go(String tab) => widget.onOpenTab?.call(tab);
@@ -98,7 +116,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   else if (_error != null)
                     _errorBox()
                   else ...<Widget>[
-                    if (_featured != null) ...<Widget>[
+                    // IVORY'S FIRSTLIST.
+                    // The house's own running order, and it takes the
+                    // top slot whenever she has put anything on it.
+                    // "Ivory's Golden Reserve" was never a choice she
+                    // made - it is simply the newest unlocked post -
+                    // so it steps aside here, and comes back on its
+                    // own if the Firstlist is ever emptied. Home is
+                    // never left bare.
+                    if (_firstlist.isNotEmpty) ...<Widget>[
+                      const IvorySectionHeader(
+                        title: "Ivory's Firstlist",
+                        subtitle: 'Start here. Chosen by Ivory, in order.',
+                        icon: Icons.auto_awesome,
+                      ),
+                      FirstlistRail(posts: _firstlist),
+                      const SizedBox(height: 14),
+                    ] else if (_featured != null) ...<Widget>[
                       IvorySectionHeader(
                         title: "Ivory's Golden Reserve",
                         actionLabel: 'Featured',
