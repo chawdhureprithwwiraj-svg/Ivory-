@@ -260,11 +260,13 @@ class _AdminEditPostState extends State<AdminEditPost> {
   // ------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
+    // A transparent Scaffold shows whatever sits BEHIND the route, and
+    // behind a page route there is nothing - so it painted black at the
+    // top and broke the colour rule. Every other screen simply lets the
+    // theme's ivory through. Do the same here.
     return Scaffold(
-      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('EDIT POST'),
-        backgroundColor: Colors.transparent,
       ),
       body: Container(
         decoration: const BoxDecoration(gradient: IvoryColors.pageGradient),
