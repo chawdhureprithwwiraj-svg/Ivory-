@@ -240,6 +240,39 @@ class AdminService {
   }
 
   /// Everything in the library, published or not.
+  // ------------------------------------------------------------------
+  // IVORY'S FIRSTLIST (sprint 24l)
+  // ------------------------------------------------------------------
+
+  /// Put a post on the Firstlist or take it off. Returns its place on
+  /// the list, or 0 when it has just been taken off.
+  ///
+  /// The cap of 25 lives in Postgres, not here. If the list is full the
+  /// database refuses and the message it sends back is already written
+  /// for a human to read.
+  Future<int> setFirstlist(int postId, bool onList) async {
+    final dynamic place = await _db.rpc(
+      'set_firstlist',
+      params: <String, dynamic>{
+        'post_id_in': postId,
+        'pinned_in': onList,
+      },
+    );
+    return ((place as num?) ?? 0).toInt();
+  }
+
+  /// The ids currently on the Firstlist, so the Library can show the
+  /// true state of every star after a reload.
+  Future<Set<int>> firstlistIds() async {
+    final dynamic rows = await _db.rpc('firstlist_ids');
+    if (rows is! List) return <int>{};
+    return rows
+        .map((dynamic r) =>
+            (((r as Map<String, dynamic>)['post_id'] as num?) ?? 0).toInt())
+        .where((int id) => id != 0)
+        .toSet();
+  }
+
   Future<List<Map<String, dynamic>>> fetchLibrary({int limit = 40}) async {
     final List<dynamic> rows = await _db
         .from('admin_posts')
