@@ -199,7 +199,7 @@ class _MemberPulseStripState extends State<MemberPulseStrip>
 
   @override
   Widget build(BuildContext context) {
-    final String n = MemberPulse.formattedValue;
+    final String n = MemberPulse.formattedValue + _ordinalSuffix();
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -292,6 +292,24 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
         ),
       ),
     );
+  }
+}
+
+/// "the 1,771 member" was never a sentence. 1st, 2nd, 3rd, 4th - and
+/// 11th, 12th, 13th, which are the three that catch everybody out.
+String _ordinalSuffix() {
+  final int v = MemberPulse.value;
+  final int last2 = v % 100;
+  if (last2 >= 11 && last2 <= 13) return 'th';
+  switch (v % 10) {
+    case 1:
+      return 'st';
+    case 2:
+      return 'nd';
+    case 3:
+      return 'rd';
+    default:
+      return 'th';
   }
 }
 
