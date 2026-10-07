@@ -183,6 +183,66 @@ class AdminService {
   /// Creates the post (and its poll options) in one database call. The
   /// existing announce trigger then writes the notification and queues
   /// the device push, so publishing really is one tap.
+  /// Everything the edit screen needs to fill its form. Reads the
+  /// posts row directly rather than a preview view, because
+  /// post_previews deliberately omits body and media_ref.
+  Future<Map<String, dynamic>> fetchPostForEdit(int postId) async {
+    final Map<String, dynamic> row = await _db
+        .from('posts')
+        .select('id, type, title, summary, body, media_source, '
+            'media_ref, thumb_source, thumb_ref, duration_secs, '
+            'tier_required, is_published, price_inr, free_from_tier, '
+            'door_credit, allowed_tiers')
+        .eq('id', postId)
+        .single();
+    return row;
+  }
+
+  /// Changes a post in place. SAME ID ALWAYS - the view count, the
+  /// poll votes, the paid unlocks and the Firstlist place all survive,
+  /// because nothing is deleted and re-created.
+  ///
+  /// This CANNOT notify anybody. update_post never inserts, so the
+  /// AFTER INSERT announce trigger cannot fire, and the published
+  /// trigger carries a WHEN clause that only passes on a real
+  /// draft -> live flip. Editing a post that is already live tells
+  /// nobody. See sprint24p_update_post.sql.
+  ///
+  /// Price is NOT here on purpose - it stays behind setPostPrice so
+  /// every money surface sits on one boundary and can be cut out in
+  /// one go for the Play build.
+  Future<void> updatePost({
+    required int postId,
+    required String title,
+    String? summary,
+    String? body,
+    required MediaSource mediaSource,
+    String? mediaRef,
+    required MediaSource thumbSource,
+    String? thumbRef,
+    required int tierRequired,
+    int? durationSecs,
+    required List<int> allowedTiers,
+    String? doorCredit,
+    required bool isPublished,
+  }) async {
+    await _db.rpc<dynamic>('update_post', params: <String, dynamic>{
+      'post_id_in': postId,
+      'title_in': title,
+      'summary_in': summary,
+      'body_in': body,
+      'media_source_in': mediaSource.dbValue,
+      'media_ref_in': mediaRef,
+      'thumb_source_in': thumbSource.dbValue,
+      'thumb_ref_in': thumbRef,
+      'tier_required_in': tierRequired,
+      'duration_secs_in': durationSecs,
+      'allowed_tiers_in': allowedTiers,
+      'door_credit_in': doorCredit,
+      'is_published_in': isPublished,
+    });
+  }
+
   /// The two dials a post can carry: what it costs on its own, and
   /// the tier that opens it without paying. Setting a price of 0
   /// clears both and hands the post back to the tier rule.
