@@ -63,12 +63,15 @@ class IvoryPostSurface {
       // nothing ever hides under the clock or the camera cutout.
       useSafeArea: false,
       barrierColor: IvoryColors.burgundy.withValues(alpha: 0.24),
-      // The inset is measured HERE, outside the sheet, and carried
-      // in. Flutter strips the top padding from the MediaQuery it
-      // hands the builder when useSafeArea is false, so asking for it
-      // in there returns 0 and the content runs under the clock.
+      // viewPadding, NOT padding. Two separate things zero `padding`
+      // before this code ever sees it: main_shell wraps the whole app
+      // in a SafeArea, and useSafeArea:false makes the sheet strip the
+      // top padding again. Neither touches `viewPadding`, which
+      // records the physical inset of the status bar and cutout. Ask
+      // for `padding` here and you get 0, and the writing prints over
+      // the clock - which is exactly what happened twice.
       builder: (_) => _RisingSheet(
-        topInset: MediaQuery.of(context).padding.top,
+        topInset: MediaQuery.of(context).viewPadding.top,
         child: child,
       ),
     );
@@ -83,8 +86,9 @@ class _RisingSheet extends StatefulWidget {
 
   final Widget child;
 
-  /// Height of the status bar, measured outside this sheet. See the
-  /// note at the call site: it cannot be read from in here.
+  /// Physical height of the status bar and cutout, taken from
+  /// `viewPadding` at the call site. See the note there - `padding` is
+  /// zeroed twice over before it reaches this widget.
   final double topInset;
 
   @override
@@ -102,6 +106,33 @@ class _RisingSheetState extends State<_RisingSheet> {
   double _extent = 1;
 
   static const double _rest = 0.62;
+
+  /// How far down the content a member has read, 0 to 1, or -1 when
+  /// the post is too short to be worth a progress line. Held in a
+  /// notifier rather than state on purpose: scrolling a long story
+  /// fires on every frame, and rebuilding the whole sheet each time
+  /// would stutter on a 4 GB phone. Only the hairline listens.
+  final ValueNotifier<double> _read = ValueNotifier<double>(-1);
+
+  /// Below this there is no real scrolling, so a progress line would
+  /// be noise rather than help.
+  static const double _worthTracking = 600;
+
+  @override
+  void dispose() {
+    _read.dispose();
+    super.dispose();
+  }
+
+  bool _onScroll(ScrollNotification n) {
+    final ScrollMetrics m = n.metrics;
+    if (!m.hasContentDimensions || m.maxScrollExtent < _worthTracking) {
+      _read.value = -1;
+    } else {
+      _read.value = (m.pixels / m.maxScrollExtent).clamp(0.0, 1.0);
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +168,9 @@ class _RisingSheetState extends State<_RisingSheet> {
               children: <Widget>[
                 // Clears the clock and the camera cutout, and only
                 // once the sheet is actually up there.
-                SizedBox(height: topInset * t),
+                // Plus a little air, so the eyebrow never sits
+                // flush against the clock.
+                SizedBox(height: (topInset + 6) * t),
 
                 SizedBox(
                   height: 28,
@@ -167,11 +200,34 @@ class _RisingSheetState extends State<_RisingSheet> {
                   ),
                 ),
 
+                // How far through a long piece you are. Appears only
+                // when there is enough to scroll, so a short post
+                // never carries a line that would always read full.
+                ValueListenableBuilder<double>(
+                  valueListenable: _read,
+                  builder: (BuildContext ctx, double v, Widget? kid) {
+                    if (v < 0) return const SizedBox(height: 2);
+                    return SizedBox(
+                      height: 2,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: FractionallySizedBox(
+                          widthFactor: v == 0 ? 0.0001 : v,
+                          child: Container(color: IvoryColors.gold),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
                 Expanded(
-                  child: SingleChildScrollView(
-                    controller: sc,
-                    padding: const EdgeInsets.fromLTRB(22, 4, 22, 40),
-                    child: widget.child,
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: _onScroll,
+                    child: SingleChildScrollView(
+                      controller: sc,
+                      padding: const EdgeInsets.fromLTRB(22, 4, 22, 40),
+                      child: widget.child,
+                    ),
                   ),
                 ),
               ],
