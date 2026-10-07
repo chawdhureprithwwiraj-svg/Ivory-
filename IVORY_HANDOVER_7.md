@@ -291,4 +291,39 @@ watches over Supabase realtime, **plus** a normal `notifications`
 insert so the existing push chain carries it to the handset. One
 action, two delivery paths, no new infrastructure.
 
+### V.10 PUSH - EVERYTHING WORKS EXCEPT THE FINAL SEND
+
+25o result. The chain is intact up to the last step:
+
+* `push_queue` columns: `notification_id`, `token`, `user_id`,
+  `title`, `body`, `action_tab`, **`sent_at`**, **`attempts`
+  (default 0)**, **`last_error`**, `created_at`.
+* **`device_tokens`: the ADMIN HAS A TOKEN** (1, added 7 Oct
+  14:41) and members hold 5. Not a registration problem.
+* Call notifications are all correctly targeted -
+  "New call request", "Your call is confirmed", "A slot was
+  chosen", "Your call can be extended", "A session is near" -
+  every one `audience = user`, `user_id` set.
+* **Queue age: oldest 29 Sep 14:45 UTC, newest 7 Oct 16:54 UTC.**
+
+**Eight days of backlog against a sender that runs every minute
+is roughly 11,500 failed attempts.** Nothing is being delivered.
+The failure is isolated to `send-push` itself, called by
+`kick_push_sender()` with header
+`x-ivory-key: ivory-7f3k9q2m-push`.
+
+`last_error` has been recording the reason the whole time.
+`sprint25p_last_error.sql` reads it, with the counts of sent vs
+unsent.
+
+**Likely causes, in order:** "Verify JWT with legacy secret"
+switched back ON for `send-push` (a known Ivory trap - it must be
+OFF); the `x-ivory-key` value no longer matching the function's
+expected secret; expired or revoked Firebase credentials.
+
+**Why this one fix matters more than it looks:** the reminder
+ladder (V.8), the arrival/presence alert, and the owner-triggered
+extension offer (V.9) **all ride on this same pipe**. Repair it
+once and three features begin working.
+
 <!-- END OF FILE - IVORY_HANDOVER_7.md -->
