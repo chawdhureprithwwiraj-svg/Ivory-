@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/ivory_errors.dart';
 import '../services/admin_service.dart';
 import '../theme/ivory_theme.dart';
+import 'admin_edit_post.dart';
 
 /// Everything already published or drafted, with a switch to take a post
 /// live or hide it and a button to delete it for good.
@@ -211,6 +212,22 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
               ],
             ),
           ),
+          // ---- change it, rather than delete and repost ----
+          // Deleting and reposting used to be the only way to fix a
+          // typo. It re-notified all 45 members, reset the views,
+          // dropped the poll votes and orphaned anyone who had paid.
+          // This keeps the same post.
+          IconButton(
+            tooltip: 'Edit this post',
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.edit_outlined,
+                size: 20, color: IvoryColors.plum),
+            onPressed: () async {
+              final bool saved = await AdminEditPost.open(context, id);
+              if (saved) await _load();
+            },
+          ),
+
           // ---- Ivory's Firstlist ----
           IconButton(
             tooltip: pinned
@@ -239,8 +256,11 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
             },
           ),
           IconButton(
+            tooltip: 'Delete for good',
+            visualDensity: VisualDensity.compact,
             onPressed: () => _confirmDelete(id, (p['title'] as String?) ?? ''),
-            icon: const Icon(Icons.delete_outline, color: IvoryColors.plum),
+            icon: const Icon(Icons.delete_outline,
+                size: 20, color: IvoryColors.plum),
           ),
         ],
       ),
