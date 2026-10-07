@@ -5,6 +5,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/content_revision.dart';
 import '../models/media_ref.dart';
 
 /// ============================================================
@@ -241,6 +242,7 @@ class AdminService {
       'door_credit_in': doorCredit,
       'is_published_in': isPublished,
     });
+    bumpContentRevision();
   }
 
   /// The two dials a post can carry: what it costs on its own, and
@@ -256,6 +258,7 @@ class AdminService {
       'price_in': priceInr,
       'free_from_in': priceInr > 0 ? freeFromTier : null,
     });
+    bumpContentRevision();
   }
 
   Future<int> publishPost({
@@ -296,6 +299,7 @@ class AdminService {
         'is_published_in': isPublished,
       },
     );
+    bumpContentRevision();
     return (id as num).toInt();
   }
 
@@ -318,6 +322,7 @@ class AdminService {
         'pinned_in': onList,
       },
     );
+    bumpContentRevision();
     return ((place as num?) ?? 0).toInt();
   }
 
@@ -342,14 +347,19 @@ class AdminService {
     return rows.cast<Map<String, dynamic>>();
   }
 
-  Future<void> setPublished(int postId, bool value) =>
-      _db.rpc('set_post_published', params: <String, dynamic>{
-        'post_id_in': postId,
-        'value_in': value,
-      });
+  Future<void> setPublished(int postId, bool value) async {
+    await _db.rpc('set_post_published', params: <String, dynamic>{
+      'post_id_in': postId,
+      'value_in': value,
+    });
+    bumpContentRevision();
+  }
 
-  Future<void> deletePost(int postId) =>
-      _db.rpc('delete_post', params: <String, dynamic>{'post_id_in': postId});
+  Future<void> deletePost(int postId) async {
+    await _db
+        .rpc('delete_post', params: <String, dynamic>{'post_id_in': postId});
+    bumpContentRevision();
+  }
 
   // =================================================================
   // 4. TIERS
