@@ -6,7 +6,7 @@ design, the 6 October decisions, and the 24a-24i ledger. Read Part 3
 first, then this. Neither file is read by the app; both are letters to
 the next agent.
 
-Current to **7 October 2026, 15:40 IST**.
+Current to **7 October 2026, 16:10 IST**.
 
 ---
 
@@ -253,15 +253,23 @@ belongs between the tap and the thing itself.
 
 ### N.1 Three traps in that file
 
-* **Use `viewPadding.top`, NEVER `padding.top`.** Cost two builds; the
-  writing printed over the clock both times. `padding` is zeroed twice
-  before this code sees it: `main_shell.dart:143` wraps the whole app
-  in a **`SafeArea`**, which consumes the inset and removes it for
-  every descendant, and `useSafeArea: false` on the sheet strips the
-  top padding again. Neither touches **`viewPadding`**, which is the
-  physical status bar and cutout. `useSafeArea: false` itself is
-  deliberate - true would stop the sheet short of the top, the very
-  bug being fixed - so the gap is opened by hand inside instead.
+* **Do not ask MediaQuery for the status bar height here. Ask the
+  window.** This cost three builds. `padding.top` is zeroed twice -
+  `main_shell.dart:143` wraps the app in a **`SafeArea`**, and
+  `useSafeArea: false` strips it again - and `viewPadding.top` was
+  measured on device returning **zero as well**. The only number that
+  survives is `View.of(context).padding.top / devicePixelRatio`, the
+  physical window, which no ancestor widget can alter. See
+  `_statusBarHeight()`. It takes the larger of the window and the
+  tree and floors the result at 24 - the floor is a guard against
+  another silent zero, not a measurement. `useSafeArea: false` itself
+  is deliberate: true stops the sheet short of the top, which is the
+  bug it was meant to fix.
+* **`Column` centres its children; it does not stretch them.** The
+  handle row needs `width: double.infinity` or the `SizedBox` shrinks
+  to the 44 px handle and `Positioned(right: 6)` lands the close
+  cross in the middle of the handle instead of the screen edge. It
+  shipped that way once and looked like a deliberate design.
 * The close cross is always visible; a way out must never have to be
   discovered.
 * **The extent is read from `DraggableScrollableNotification`**, not a
@@ -296,41 +304,76 @@ early, and the rest of the writing continues beneath it.
   hides itself below 600 px of scroll, where it would always read
   full.
 
-## O. EDITING A POST - DESIGNED, NOT YET BUILT
+## O. EDITING A POST (24p - BUILT)
 
-**There is no update path anywhere in Ivory.** `admin_service` can
-create, price, publish, delete - nothing can change a word. The only
-fix today is delete and repost, which is dangerous:
+Before this, the only way to fix a typo was delete and repost, which
+re-notified all 45 members, reset the views, dropped the poll votes,
+lost the Firstlist place and **orphaned every paid unlock** - a member
+who paid 199 for "Again" would have been locked out with no record.
+Editing is a guard on member money, not a convenience.
 
-* `publish_post` **fires the announce trigger**, so a repost pushes a
-  notification to every member for something they already read.
-* Views, poll votes and **every purchase of that post** die with the
-  row. A member who paid 199 for "Again" would be locked out of the
-  replacement, with nothing recording it.
-* The post loses its place on Ivory's Firstlist.
+### O.1 The two triggers on public.posts - READ THIS FIRST
 
-Editing is a guard on member money, not a convenience. Owner agreed it
-outranks the call chain.
+```
+trg_notify_new_post        AFTER INSERT -> notify_new_post()
+trg_notify_post_published  AFTER UPDATE OF is_published
+                           WHEN new.is_published IS TRUE
+                           AND old.is_published IS DISTINCT FROM true
+                           -> notify_new_post()
+```
 
-### O.1 Rules the implementation must hold
+**That WHEN clause is load bearing. Never remove it.** It is the only
+reason editing is safe: `update_post` never inserts, so the first
+trigger cannot fire, and on a post that is already live
+`old.is_published` is already true, so the second fails its condition
+and nobody is told. Only a real draft -> live flip announces, which is
+correct. Note `UPDATE OF is_published` fires when the column is
+**mentioned**, changed or not - the WHEN is what saves it, not care
+over the SET list.
 
-1. **An edit must never notify.** The trigger fires on insert; the
-   edit must be a true `UPDATE` of the same row without tripping it.
-   Read the trigger before writing the RPC.
-2. **Same post id, always** - that is what keeps views, votes,
-   purchases and the Firstlist place alive.
-3. **The replaced file is not deleted** (owner's standing rule), but
-   it eats the 9 GB cap, so the editor must say so and offer
-   MANAGE VAULT.
-4. **Post type is not editable** - it chooses the detail view.
-5. **Poll options freeze once a vote exists.**
+### O.2 What was built
 
-### O.2 Shape
+* **`sprint24p_update_post.sql`** - `update_post(...)` returns bigint,
+  `security definer`, gated on **`public.is_admin()`** (a FUNCTION;
+  calling it as a column is what caused the old
+  `column p.is_admin does not exist`). Refusals use plain
+  `raise exception`, which carries **P0001**, which `houseMessage()`
+  passes to the owner verbatim.
+* **`admin_edit_post.dart`** (18.0 KB) - the form.
+  `AdminEditPost.open(context, id)` returns true when saved.
+* **`admin_service`** gained `fetchPostForEdit` (reads `posts`
+  directly - `post_previews` omits `body` and `media_ref`) and
+  `updatePost`.
+* **`admin_library_list`** gained the pencil.
 
-**One form, not two.** Reuse `admin_attach_panel`,
-`admin_post_chips`, `resolvePublishMedia` rather than a parallel
-screen that will drift. `admin_create_tab` is 16.3 KB, so the editor
-is its own screen built from those shared pieces. Owner's scope:
-title, teaser, body, cover, the media file, tiers and price.
+### O.3 Decisions that must not be undone
+
+1. **Same post id always.** Nothing is deleted and re-created.
+2. **`update_post` writes every field it is given**, so a null means
+   "she cleared it", not "leave it". That is why a failed load shows
+   an error instead of an empty form - a half-read post would quietly
+   erase the fields it never got.
+3. **An untouched attach panel keeps the existing file.**
+   `resolvePublishMedia` returns a null ref when nothing was picked,
+   and the screen falls back to the stored `media_source`/`media_ref`.
+4. **The replaced file is never deleted** - house rule. The screen
+   says so plainly and offers MANAGE VAULT.
+5. **Price is NOT in `update_post`.** It stays behind `setPostPrice`
+   so every money surface sits on one boundary, cuttable in one go
+   for the Play build. Same reasoning keeps `pin_rank` with
+   `set_firstlist`.
+6. **Type is not a parameter at all** - structurally unchangeable,
+   not merely discouraged.
+7. **Poll options are still not editable.** They need a vote check
+   against **`poll_votes`** first. Next small block.
+
+### O.4 Composer facts worth knowing
+
+`publish_post` inserts only: author_id, type, title, summary, body,
+media_source, media_ref, thumb_source, thumb_ref, tier_required,
+duration_secs, is_published. The composer then writes
+**`allowed_tiers`** and **`door_credit`** by direct `.update()` and
+the price by `set_post_price` - three calls, not one. `update_post`
+folds the first two in; price deliberately stays separate.
 
 <!-- END OF FILE - IVORY_HANDOVER_4.md -->
