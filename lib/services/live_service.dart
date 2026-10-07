@@ -412,12 +412,21 @@ class LiveService {
     });
   }
 
-  /// The member picked a slot on cal.com and is telling Ivory when.
-  Future<void> confirmBooking(int callId, DateTime when) async {
-    await _db.rpc<dynamic>('confirm_my_booking', params: <String, dynamic>{
+  /// The member chooses their session time inside Ivory.
+  /// member_pick_slot is the only gate - it holds the notice
+  /// period, the hours sessions run and the horizon, and it
+  /// refuses in a sentence the member can read. Returns that
+  /// sentence on success.
+  Future<String> pickSlot(int callId, DateTime when) async {
+    final dynamic res =
+        await _db.rpc<dynamic>('member_pick_slot', params: <String, dynamic>{
       'call_id_in': callId,
-      'when_in': when.toUtc().toIso8601String(),
+      'slot_in': when.toUtc().toIso8601String(),
     });
+    final String word = (res as String?) ?? '';
+    return word.isEmpty
+        ? 'Your time is set. Open Ivory a little before it and tap JOIN.'
+        : word;
   }
 
   /// One call row, fresh - used by the extension prompt mid-call.
