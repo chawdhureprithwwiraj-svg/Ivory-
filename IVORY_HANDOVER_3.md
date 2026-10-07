@@ -1,86 +1,12 @@
 # IVORY - HANDOVER, PART 4
 
-Sprint 24 onward. Part 3 (`IVORY_HANDOVER_3.md`, same folder) holds the
-earlier history: who built what, the bug register B1-B10, the call
-chain design, and the decisions taken on 6 October. Read Part 3 first,
-then this. Neither file is read by the app; both are letters to the
-next agent.
+Sprint 24j onward. Part 3 (`IVORY_HANDOVER_3.md`, same folder) holds
+the history: who built what, the bug register B1-B10, the call chain
+design, the 6 October decisions, and the 24a-24i ledger. Read Part 3
+first, then this. Neither file is read by the app; both are letters to
+the next agent.
 
-Current to **7 October 2026, 13:40 IST**.
-
----
-
-## I. SPRINT 24 - WHAT ACTUALLY SHIPPED (7 October 2026)
-
-| Block | Files | Outcome |
-|---|---|---|
-| 24a | `sprint24a_repair.sql` | Run + verified. B1, B2 closed. Health report 7/7 clean. |
-| 24b | `vault_manager.dart`, `vault_service.dart`, `ivory_errors.dart` | Green. Vault gained a real error state; made the 403 visible. |
-| 24c | `edge/r2_vault.ts`, `vault_service.dart` | Redeployed in dashboard. **B3 closed.** |
-| 24d | `admin_attach_panel.dart`, `admin_create_tab.dart` | The lifecycle probe. Diagnostic only - it *found* B4. |
-| 24e | `admin_attach_panel.dart` | `AutomaticKeepAliveClientMixin`. **B4 + B5 closed.** |
-| 24f | `post_actions.dart` | **Privacy.** Removed "Open externally" + "Streaming inside Ivory". Verified on device. |
-| 24g | `poll_bars.dart` (new), `post_poll.dart` | Poll detail sheet redesigned. Built green. |
-| 24h | `admin_create_tab.dart` | Poll publish unblocked (see B9). |
-| 24i | `poll_card.dart` (new), `post_card.dart`, `post_poll.dart`, `admin_library_list.dart` | Poll feed card. **B7 closed**, verified on device. Library price label. |
-| 24j | `admin_publish_media.dart` (new), `vault_service.dart`, `admin_create_tab.dart` | Audio + video to R2. Composer split under the ceiling. |
-
-### I.1 B9 · Poll publish blocked by the 24d guard - fixed in 24h
-
-Symptom: `The attach panel is not mounted (init 1 / dispose 1 / clear 1)`.
-Cause: `build()` renders `if (isPoll) <options editor> else
-AdminAttachPanel(key: _attach)`. For a poll the panel is **absent by
-design**, so the GlobalKey is empty - and the 24d guard treated an empty
-key as a fault and returned early. This is why **A6 "poll publish status
-unclear" was never a mystery: polls had never published.**
-Fix: `at` is nullable; the panel is consulted only when
-`needsMedia` (audio/video/image). All later `at.` uses are null-guarded.
-
-### I.2 The poll's look - agreed with the owner, 7 Oct
-
-Approved mock: `IVORY_POLL_DESIGN.html` (workspace only). Gold `POLL`
-badge; the question as the headline; each option **label hard left,
-percentage hard right**, with a **full-height bar from the left edge to
-exactly the vote share** (amber `#E8B978` → `#F2DCA8`, gold stop line,
-front runner a shade deeper). **No tick, no radio circle** - the owner's
-explicit instruction; the member's own choice gets a plum outline and the
-words `YOUR ANSWER`. A member sees nothing until they vote; the house sees
-counts and names at once. **That split must stay.** All of it lives in
-`lib/widgets/poll_bars.dart`, shared by the feed card and the sheet.
-
-### I.3 Privacy rule, now enforced in code
-
-Members must never be given a storage address. `post_actions.dart` no
-longer exposes the R2/Supabase URL. **Any future media UI must obey this.**
-Still open: a post with *only* a pasted link shows `WATCH NOW`, which
-leaves the app. Owner's decision: **play those inside Ivory too** (queued).
-
-### I.4 Owner decisions taken 7 Oct
-
-1. **All media moves to R2**, not just video over 48 MB. Queued.
-2. **Link posts must play in-app.** Queued, after the poll.
-3. Build order: poll ✅ → storage (24j) → in-app link player → call chain.
-4. **Keep the handover updated every successful step, unprompted.**
-   One-shot, ready-to-hand-over at all times. (Owner's instruction.)
-
-### I.5 New traps paid for in blood this sprint
-
-* **`ListView(children: [...])` is lazy.** It unmounts off-screen rows.
-  Any stateful child in a scrolling form needs `AutomaticKeepAliveClientMixin`.
-* **`IvoryColors.textFaint` / `textSoft` / `hairline*` are runtime getters**
-  (`burgundy.withValues(...)`), *not* constants. They cannot appear inside
-  a `const TextStyle(...)`. Caught before a build was spent.
-* **Never assert a cause in an error message.** Report what was observed.
-  The 24b text blamed the JWT toggle; the cause was `is_admin`.
-* **Instrument, don't re-read.** Reading source failed on B4 three times;
-  three counters solved it in one tap.
-* **The composer's "The question, in one line" field is saved as the post
-  SUMMARY, not the title.** So for a poll the *question is the summary*
-  and the title is only a label. Both the feed card and the detail sheet
-  now read it that way. Anything new touching polls must do the same.
-* **Fixed in 24i:** the Library printed "Tier 9" for a priced post. Tier 9
-  is the sentinel for "Nobody - all pay"; it now prints `Paid · ₹199`,
-  falling back to `Everyone pays` when there is no price.
+Current to **7 October 2026, 15:40 IST**.
 
 ---
 
@@ -242,28 +168,26 @@ types.
 * `posts.pin_rank integer` - NULL means not on the list, 1 means first.
   Partial index on the non-null rows.
 * `set_firstlist(post_id_in bigint, pinned_in boolean) -> integer`
-  Checks `profiles.role = 'admin'`, enforces the cap, appends at
-  `max(pin_rank) + 1`. Re-pinning something already on the list is a
-  no-op that returns its existing place.
+  checks `profiles.role = 'admin'`, enforces the cap, appends at
+  `max(pin_rank) + 1`. Re-pinning is a no-op returning its place.
 * `firstlist_ids() -> (post_id, place)` - the admin Library's stars.
 * `firstlist() -> setof post_previews` - the member shelf, for 24m.
 
 **The cap of 25 is enforced in Postgres, never in the client.** A rule
-that lives only in Dart is not a rule; the REST API is reachable
-without the app. The refusal is raised as `P0001` with a sentence
-written for a person, and `houseMessage()` passes `P0001` text through
-untouched - so the owner reads "Ivory's Firstlist already holds 25
-posts..." and never an error code.
+living only in Dart is not a rule; the REST API is reachable without
+the app. The refusal is `P0001` with a sentence written for a person,
+and `houseMessage()` passes `P0001` through untouched - so she reads
+"Ivory's Firstlist already holds 25 posts...", not an error code.
 
 ### M.2 Why the view was left alone
 
-`firstlist()` returns **`setof public.post_previews`**, so it inherits
-whatever columns that view has, now and later. The alternative - drop
-and recreate `post_previews` - was rejected: its definition is not
+`firstlist()` returns **`setof public.post_previews`**, inheriting
+whatever columns that view has, now and later. Dropping and
+recreating `post_previews` was rejected: its definition is not
 visible from the app source, and rebuilding it blind could silently
-drop a column and kill the feed. It is also `security invoker`, so
-every row still passes the view's own entitlement rules. The shelf can
-never reveal a post the ordinary feed would hide.
+drop a column and kill the feed. `security invoker` keeps the view's
+entitlement rules, so the shelf can never reveal a post the ordinary
+feed would hide.
 
 ### M.3 Admin control
 
@@ -329,20 +253,48 @@ belongs between the tap and the thing itself.
 
 ### N.1 Three traps in that file
 
-* **`useSafeArea: false` is deliberate** - true insets the whole sheet
-  and stops it short of the top, the very bug being fixed. **But it
-  also makes Flutter strip the top padding from the MediaQuery given
-  to the builder**, so `MediaQuery.of(context).padding.top` reads 0 in
-  there and the gap never opens. Cost one build: the story text ran
-  under the clock. The inset is now measured at the call site, outside
-  the sheet, and passed in as `topInset`.
-* The close cross is always visible; a way out must never have to
-  be discovered.
+* **Use `viewPadding.top`, NEVER `padding.top`.** Cost two builds; the
+  writing printed over the clock both times. `padding` is zeroed twice
+  before this code sees it: `main_shell.dart:143` wraps the whole app
+  in a **`SafeArea`**, which consumes the inset and removes it for
+  every descendant, and `useSafeArea: false` on the sheet strips the
+  top padding again. Neither touches **`viewPadding`**, which is the
+  physical status bar and cutout. `useSafeArea: false` itself is
+  deliberate - true would stop the sheet short of the top, the very
+  bug being fixed - so the gap is opened by hand inside instead.
+* The close cross is always visible; a way out must never have to be
+  discovered.
 * **The extent is read from `DraggableScrollableNotification`**, not a
   controller, and only rebuilds past a 0.004 change. Without that
   guard it calls `setState` on every animation frame of the snap.
-* **It had to be a new file.** `post_actions.dart` was 16.6 KB; this
-  logic would have pushed it over the 18 KB paste ceiling.
+* **New file on purpose** - `post_actions.dart` was 16.6 KB and this
+  logic would have pushed it past the 18 KB ceiling.
+
+### N.2 How a written story is laid out (24o)
+
+A story is not words with a file bolted on. `_ReaderBody._flow()`
+splits the body into paragraphs and places `_StoryMedia` **after the
+first one**, so the opening lines lead, the film or photograph arrives
+early, and the rest of the writing continues beneath it.
+
+* **24k buried the file.** It fixed "the attachment is invisible" by
+  drawing it under the writing - which meant a 3,000 character story
+  hid the film completely until a member had scrolled past everything.
+  Fixing a thing's absence is not the same as placing it.
+* **Paragraphs are split on blank lines, falling back to single
+  breaks** when she writes without blank lines. Either typing style
+  gives real paragraphs; neither ever yields one unbroken slab.
+* A single-paragraph story behaves exactly as before - the file lands
+  after it, which is also the end.
+* **There is no length limit anywhere and none may be added.** The
+  composer body has `maxLines: 14` (box height, not a cap), no
+  `maxLength`, and the column is Postgres `text`. The owner asked for
+  unlimited and it is already true - do not "helpfully" truncate, and
+  do not add a "read more": a tap opens the whole story.
+* The gold hairline under the handle is the reading position, driven
+  by a `ValueNotifier` so a scroll does not rebuild the sheet. It
+  hides itself below 600 px of scroll, where it would always read
+  full.
 
 ## O. EDITING A POST - DESIGNED, NOT YET BUILT
 
