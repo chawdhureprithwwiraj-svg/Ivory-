@@ -183,8 +183,72 @@ class _ReaderBody extends StatelessWidget {
             color: IvoryColors.burgundy,
           ),
         ),
+
+        // SPRINT 24k - A STORY MAY CARRY A FILE.
+        // This view used to render words and nothing else, because
+        // whoever wrote it assumed a written story is always text. It
+        // is not: the composer happily attaches a film, a voice note
+        // or a photograph to a story, uploads it and files it in the
+        // Vault. The file was never lost - nothing drew it. It does
+        // now, directly under the writing.
+        _StoryMedia(post: post),
+
         _giftRow(context, post),
       ],
+    );
+  }
+}
+
+// =====================================================================
+// The file hanging off a written story
+// =====================================================================
+/// Draws whatever the story carries, or nothing at all when it carries
+/// only words. Deliberately silent on failure: a story with no file is
+/// the normal case, not an error, and must never show a warning.
+class _StoryMedia extends StatelessWidget {
+  const _StoryMedia({required this.post});
+
+  final IvoryPost post;
+
+  static const List<String> _pictures = <String>[
+    '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.bmp',
+  ];
+  static const List<String> _sounds = <String>[
+    '.mp3', '.m4a', '.aac', '.wav', '.ogg', '.opus', '.flac',
+  ];
+
+  /// The post type says 'story', so it cannot tell us what the file is.
+  /// The name can. A signed address carries its key before the '?', so
+  /// the extension survives signing - but check the stored reference
+  /// first, which is always clean.
+  static bool _looksLike(List<String> endings, String? ref, String url) {
+    for (final String candidate in <String>[ref ?? '', url]) {
+      final String name = candidate.split('?').first.toLowerCase();
+      for (final String e in endings) {
+        if (name.endsWith(e)) return true;
+      }
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String? playable = post.media.directUrl();
+    if (playable == null) return const SizedBox.shrink();
+
+    final String? ref = post.media.ref;
+    final bool isPicture = _looksLike(_pictures, ref, playable);
+    final bool isSound = _looksLike(_sounds, ref, playable);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 22),
+      child: isPicture
+          ? IvoryImageView(url: playable)
+          : IvoryPlayer(
+              url: playable,
+              audioOnly: isSound,
+              posterUrl: post.thumbnailFor(),
+            ),
     );
   }
 }
