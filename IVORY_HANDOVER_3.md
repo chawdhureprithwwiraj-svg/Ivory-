@@ -6,7 +6,7 @@ chain design, and the decisions taken on 6 October. Read Part 3 first,
 then this. Neither file is read by the app; both are letters to the
 next agent.
 
-Current to **7 October 2026, 07:10 IST**.
+Current to **7 October 2026, 13:40 IST**.
 
 ---
 
@@ -208,9 +208,9 @@ Brace/paren balance, `const` constructors using the runtime colour
 getters, and every capitalised identifier resolved against a reachable
 import. Its predecessor stripped strings with one regex and cried wolf:
 an apostrophe inside `"Ivory's Golden Reserve"` opened a string that
-never closed. It tokenises properly now. Known pre-existing noise:
-`checkout_screen`, `live_screen`, `call_wish_sheet` are all over 18 KB,
-and the older files have no sentinel.
+never closed; it tokenises properly now. Known pre-existing noise:
+`checkout_screen`, `live_screen`, `call_wish_sheet` exceed 18 KB, and
+the older files have no sentinel.
 
 ### L.4 24l - "Ivory must watch first" (NOT yet built)
 
@@ -268,41 +268,118 @@ never reveal a post the ordinary feed would hide.
 ### M.3 Admin control
 
 `admin_library_list.dart` - a gold star per row, left of the live
-switch. The star moves immediately on tap and rolls back if the
-database refuses. `_firstlist` is re-read from `firstlist_ids()` on
-every load, so it is never a guess held in the app. If that call
-fails the Library still renders, with every star dark.
+switch. It moves on tap and rolls back if the database refuses.
+`_firstlist` is re-read from `firstlist_ids()` on every load, never
+guessed. If that call fails the Library still renders, stars dark.
 
 ### M.4 The shelf - 24m, shipped
 
 `ContentService.fetchFirstlist()` calls `rpc('firstlist')` and maps
-through `IvoryPost.fromPreview`. It **swallows its own errors and
-returns an empty list**: one unreadable shelf must never take Home
-down with it.
+through `IvoryPost.fromPreview`. It **swallows its errors and returns
+an empty list**: one unreadable shelf must never take Home down.
 
-`FirstlistRail` (`lib/widgets/firstlist_rail.dart`, new) is a sideways
-shelf - 182 x 232 cards, poster or a warm panel bearing the kind
-icon, a gold numbered disc for the place in Ivory's order, a LOCKED
-pill and a padlock when the post is not open to that member. Tapping
-goes through `PostActions.open`, so locked posts behave exactly as
-they do in the feed.
+`FirstlistRail` (`lib/widgets/firstlist_rail.dart`, new): a sideways
+shelf of 182 x 232 cards - poster or warm panel with the kind icon, a
+gold numbered disc for the place, a LOCKED pill when shut. Tapping
+goes through `PostActions.open`, so locked posts behave as in the
+feed.
 
-`home_screen.dart`: `_load()` fetches the feed and the shelf together
-with `Future.wait`. **The shelf has to be its own query** - the feed
-only pulls the newest 12, and a Firstlist post will often be older
-than that. `_recent` now subtracts whatever the shelf already shows,
-so nothing is printed twice.
+`home_screen.dart`: `_load()` fetches feed and shelf together with
+`Future.wait`. **The shelf must be its own query** - the feed pulls
+only the newest 12 and a Firstlist post is often older. `_recent`
+subtracts what the shelf shows, so nothing prints twice.
 
 **"Ivory's Golden Reserve" was never a feature.** `_featured` is just
 the first unlocked non-poll post; no admin control ever existed. The
 Firstlist takes that slot when it has entries, and Golden Reserve
 returns by itself if the list is ever emptied, so Home is never bare.
 
-### M.5 Not built, if ever asked for
+### M.5 Not built
 
-Re-ordering. `pin_rank` is assigned `max + 1` on adding, so the order
-is the order she starred things. Changing it means unstarring and
-re-starring. A drag handle would need a `reorder_firstlist(bigint[])`
-function rewriting every rank in one transaction.
+Re-ordering. `pin_rank` is `max + 1` on adding, so the order is the
+order she starred things; changing it means unstar and re-star. A
+drag handle needs `reorder_firstlist(bigint[])` rewriting every rank
+in one transaction.
+
+---
+
+## N. HOW A POST ARRIVES ON SCREEN (24n)
+
+Owner, 7 Oct: the detail card "doesn't reach the top, shows from the
+mid level down". She was right, and the cause was two numbers in
+`post_actions.dart`: `initialChildSize: 0.78, maxChildSize: 0.96`. It
+opened low and **could never reach the top** - dragged fully, 4% of
+feed still showed. It read as stuck rather than deliberate.
+
+**Decision: adaptive, by content.**
+
+* **Read or listened to** - story, voice note, poll - stays a sheet.
+  Opens at **0.94**, snaps to **1.0**. Between the two the corner
+  radius runs 28 -> 0 and a status-bar gap opens, so the card becomes
+  a page. The feed showing underneath at 0.94 is deliberate: it says
+  "flick down and you are back".
+* **Watched or looked at** - video, image - takes the **whole screen**
+  immediately, via a route, not a sheet.
+
+`lib/widgets/post_surface.dart` (new) owns all of it:
+`IvoryPostSurface.show(context, child, immersive: bool)`.
+`PostActions._sheet` is now a three-line forwarder.
+
+### N.1 Three traps in that file
+
+* **`useSafeArea: false` is deliberate.** True would inset the whole
+  sheet and stop it short of the top, which is the bug we are fixing.
+  The status bar is cleared instead by `SizedBox(height: topInset * t)`
+  inside, which only opens as the sheet arrives.
+* **The extent is read from `DraggableScrollableNotification`**, not a
+  controller, and only rebuilds past a 0.004 change. Without that
+  guard it calls `setState` on every animation frame of the snap.
+* **It had to be a new file.** `post_actions.dart` was 16.6 KB; this
+  logic would have pushed it over the 18 KB paste ceiling.
+
+### N.2 The composer split keeps paying
+
+`post_actions.dart` **fell** to 16.0 KB because the presentation left
+it. Same move as 24j. When a file nears the ceiling the answer is
+always to lift a whole responsibility out, never to shave comments.
+
+---
+
+## O. EDITING A POST - DESIGNED, NOT YET BUILT
+
+**There is no update path anywhere in Ivory.** `admin_service` can
+create, price, publish, delete - nothing can change a word. The only
+fix today is delete and repost, which is dangerous:
+
+* `publish_post` **fires the announce trigger**, so a repost pushes a
+  notification to every member for something they already read.
+* Views, poll votes and **every purchase of that post** die with the
+  row. A member who paid 199 for "Again" would be locked out of the
+  replacement, with nothing recording it.
+* The post loses its place on Ivory's Firstlist.
+
+Editing is a guard on member money, not a convenience. Owner agreed it
+outranks the call chain.
+
+### O.1 Rules the implementation must hold
+
+1. **An edit must never notify.** The trigger fires on insert; the
+   edit must be a true `UPDATE` of the same row without tripping it.
+   Read the trigger before writing the RPC.
+2. **Same post id, always** - that is what keeps views, votes,
+   purchases and the Firstlist place alive.
+3. **The replaced file is not deleted** (owner's standing rule), but
+   it eats the 9 GB cap, so the editor must say so and offer
+   MANAGE VAULT.
+4. **Post type is not editable** - it chooses the detail view.
+5. **Poll options freeze once a vote exists.**
+
+### O.2 Shape
+
+**One form, not two.** Reuse `admin_attach_panel`,
+`admin_post_chips`, `resolvePublishMedia` rather than a parallel
+screen that will drift. `admin_create_tab` is 16.3 KB, so the editor
+is its own screen built from those shared pieces. Owner's scope:
+title, teaser, body, cover, the media file, tiers and price.
 
 <!-- END OF FILE - IVORY_HANDOVER_4.md -->
