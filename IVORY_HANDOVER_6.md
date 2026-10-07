@@ -237,4 +237,140 @@ should have been a read, not a migration.**
 returns SETOF it) · functions `current_tier_level()` and
 `tier_anchor()`.
 
+### U.15 WHERE CALL PRICES LIVE - `wish_categories`
+
+`public.wish_categories` columns: `id`, `name`, `tagline`, `icon`,
+`minutes`, `base_price_inr`, `delivery_days`, `call_kind`,
+`highlight`, `sort_order`, `is_active`, `created_at`.
+
+**`call_kind` is the join to the call engine.** Only two rows have
+it set:
+
+* **"Request a live session"** - `call_kind = video`, highlight,
+  `sort_order 0`, 30 minutes, **Rs 2,999**
+* **"Talk to me on a call"** - `call_kind = audio`, highlight,
+  30 minutes
+
+The other five rows (`call_kind` null) are the non-call wishes:
+A Story Written For You, A Voice Note, A Private Video Vignette,
+A Personal Letter, Surprise Me - priced Rs 999 to Rs 1,499.
+
+**This is where `request_call`'s hardcoded 999 should always have
+come from.** 25j rewires it: price and minutes are read from the
+category matched on `call_kind`, `is_active`, lowest `sort_order`.
+The `price_in` / `minutes_in` arguments remain in the signature
+(so the installed APK still binds) but are now **fallbacks only**.
+
+### U.16 ENTITLEMENT ROWS - AND A LIKELY INVERSION. ASK HER.
+
+Only two rows in `call_entitlements`:
+
+| kind | tier_level | minutes | period | note |
+|---|---|---|---|---|
+| video | **3** | 120 | **week** | "Top tier: live video with me." |
+| audio | **4** | 120 | **month** | "Second tier: audio calls with me." |
+
+Tiers are: 1 Ivory Reader Rs 99 - 2 Ivory Listener Rs 299 -
+3 Ivory Insider Rs 599 - **4 Ivory Circle Rs 999 (top)**.
+
+**RESOLVED 7 Oct by the owner - the rows were inverted. See
+U.19.** Original (wrong) state documented below for the record.
+
+**The notes contradict the levels.** The row calling itself "top
+tier" is set to level 3 (Insider), and the "second tier" row to
+level 4 (Circle, the actual top). Because `call_balance` matches
+`tier_level <= my_level`, the live effect is:
+
+* **Insider (3)** gets **video, 120 min/week** - but **no audio**.
+* **Circle (4)** gets video and audio.
+* Reader and Listener get nothing.
+
+So the cheaper tier unlocks video weekly while audio is gated to
+the most expensive tier, and video is **four times** more generous
+than audio (120/week vs 120/month). That is almost certainly
+backwards. **It is data, not code - do not silently "fix" it.
+Confirm the intended matrix with the owner, then update the rows.**
+
+### U.17 STATE OF THE CALL CHAIN AFTER 25j
+
+* M4 duplicate - **FIXED and confirmed** (25e, 21:29).
+* Join window - **already existed**, data-driven (`call_policy`).
+* Allowance engine - **already existed**, data-driven
+  (`call_entitlements` + `call_usage`).
+* Duplicate-request guard - **works** (status defaults
+  `requested`).
+* `request_call` price + booking rules - **25j, RAN 21:54.**
+  Proof returned video Rs 2,999 / 30 min and audio Rs 1,499 /
+  30 min, both read from `wish_categories`.
+* Entitlement matrix - **25k, RAN 22:00, confirmed correct.**
+* **STILL OPEN:** `submit_call_extension_payment(call_id_in
+  INTEGER, ...)` while `call_requests.id` is bigint. Must be
+  redefined as bigint, dropping the integer version explicitly.
+* **STILL OPEN:** the entitlement inversion in U.16.
+* **STILL OPEN:** B6, raw exception text reaching members.
+* Then the two call sheets.
+
+### U.18 `RAISE` TAKES A LITERAL, NOT AN EXPRESSION
+
+`raise exception 'a' || 'b';` is **invalid** - SQLSTATE 42601,
+"syntax error at or near ||". RAISE's message must be a single
+string literal (optionally with `%` placeholders and `using`).
+
+Two legal forms:
+
+```
+raise exception 'one long literal on a single line';
+
+raise exception 'first part '      -- adjacent literals,
+  'second part';                   -- separated by a newline
+```
+
+The second is standard SQL string continuation and is what the
+original `request_call` used. **Do not "tidy" it into `||`.**
+Cost: one failed run, 7 Oct 21:49.
+
+### U.19 THE ENTITLEMENT MATRIX THE OWNER CONFIRMED - 25k
+
+Her words, 7 Oct: *the top tier premium membership is going to
+have 120 minutes of video call a month, whereas the second top
+tier will have 120 minutes of audio call per week, which adds to
+480 minutes of audio a month.*
+
+| kind | tier | period | minutes | effective |
+|---|---|---|---|---|
+| video | **top** (level 4, Ivory Circle) | month | 120 | 120/mo |
+| audio | **second** (level 3, Insider) | week | 120 | ~480/mo |
+
+Because `call_balance` matches `tier_level <= my_level`, the live
+effect is: **Circle gets both video and audio. Insider gets audio
+only. Reader and Listener get neither.** That is what she asked
+for.
+
+**APPLIED AND CONFIRMED 7 Oct 22:00** - the proof query returned
+`video / Ivory Circle / level 4 / 120 mins per month` and
+`audio / Ivory Insider / level 3 / 120 mins per week`.
+
+`sprint25k_entitlements.sql` applies it. It resolves "top" and
+"second top" by `row_number() over (order by level desc)` on
+active tiers **rather than writing 4 and 3 literally**, so the
+script still lands correctly if tiers are renamed, repriced or
+re-levelled later.
+
+### U.20 STANDING INSTRUCTION - NUMBERS ARE PROVISIONAL
+
+The owner, 7 Oct: *the membership plan charges and the
+deliverables will be updated and confirmed at the very last
+moment. Right now we are just keeping the logic going and setting
+up the correct chain so that whatever we edit later, everything
+works and goes through smoothly.*
+
+**Therefore: every price, minute count and period must stay
+editable data.** No number may be written into a function, a
+widget or a constant. When a number is needed, read it from
+`wish_categories`, `call_entitlements`, `subscription_tiers`,
+`call_policy` or `payment_settings`. Scripts that set values
+should locate their target by relationship (level order, kind,
+`call_kind`) rather than by a literal id, so a late change to the
+tier list does not silently misfile them.
+
 <!-- END OF FILE - IVORY_HANDOVER_6.md -->
