@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/view_bloom.dart';
 import '../models/ivory_post.dart';
 import '../theme/ivory_theme.dart';
 import 'poll_card.dart';
@@ -126,10 +127,10 @@ class PostCard extends StatelessWidget {
                 post.relativeTime,
                 style: TextStyle(color: IvoryColors.textFaint, fontSize: 12.5),
               ),
-              if (post.viewCount > 0) ...<Widget>[
+              if (_views(post) != null) ...<Widget>[
                 _dot(),
                 Text(
-                  _views(post.viewCount),
+                  _views(post)!,
                   style:
                       TextStyle(color: IvoryColors.textFaint, fontSize: 12.5),
                 ),
@@ -231,10 +232,10 @@ class PostCard extends StatelessWidget {
                       fontSize: 12.5,
                     ),
                   ),
-                  if (post.viewCount > 0) ...<Widget>[
+                  if (_views(post) != null) ...<Widget>[
                     _dot(),
                     Text(
-                      _views(post.viewCount),
+                      _views(post)!,
                       style: TextStyle(
                         color: IvoryColors.textFaint,
                         fontSize: 12.5,
@@ -262,8 +263,29 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  /// One pair of eyes is a view, not "1 views".
-  static String _views(int n) => n == 1 ? '1 view' : '$n views';
+  /// What the member sees under a post. Null means show no count at
+  /// all - that is polls, whose bars report real votes, and anything
+  /// with no publish date to measure from.
+  ///
+  /// The number comes from `view_bloom.dart` and is cached per hour,
+  /// so asking twice in one build costs nothing.
+  static String? _views(IvoryPost post) {
+    final int? n = viewBloom(post);
+    if (n == null || n <= 0) return null;
+    return n == 1 ? '1 view' : '${_grouped(n)} views';
+  }
+
+  /// 1847 -> 1,847. Four digits with no separator read as a code
+  /// rather than an audience.
+  static String _grouped(int n) {
+    final String s = '$n';
+    final StringBuffer out = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) out.write(',');
+      out.write(s[i]);
+    }
+    return out.toString();
+  }
 
   static Widget _dot() => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 7),
