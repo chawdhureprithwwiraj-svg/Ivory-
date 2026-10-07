@@ -63,7 +63,14 @@ class IvoryPostSurface {
       // nothing ever hides under the clock or the camera cutout.
       useSafeArea: false,
       barrierColor: IvoryColors.burgundy.withValues(alpha: 0.24),
-      builder: (_) => _RisingSheet(child: child),
+      // The inset is measured HERE, outside the sheet, and carried
+      // in. Flutter strips the top padding from the MediaQuery it
+      // hands the builder when useSafeArea is false, so asking for it
+      // in there returns 0 and the content runs under the clock.
+      builder: (_) => _RisingSheet(
+        topInset: MediaQuery.of(context).padding.top,
+        child: child,
+      ),
     );
   }
 }
@@ -72,9 +79,13 @@ class IvoryPostSurface {
 // The sheet that can actually reach the top
 // =====================================================================
 class _RisingSheet extends StatefulWidget {
-  const _RisingSheet({required this.child});
+  const _RisingSheet({required this.child, required this.topInset});
 
   final Widget child;
+
+  /// Height of the status bar, measured outside this sheet. See the
+  /// note at the call site: it cannot be read from in here.
+  final double topInset;
 
   @override
   State<_RisingSheet> createState() => _RisingSheetState();
@@ -82,20 +93,24 @@ class _RisingSheet extends StatefulWidget {
 
 class _RisingSheetState extends State<_RisingSheet> {
   /// Where the sheet sits, 0 to 1 of the screen. Kept in state only so
-  /// the corners and the close button can respond to it.
-  double _extent = 0.94;
+  /// the corners and the status bar gap can respond to it.
+  ///
+  /// It now OPENS full. Asking the owner to drag a post upwards before
+  /// she could see it was the wrong instinct - a tap means open, and
+  /// nothing should stand between the tap and the thing itself. The
+  /// sheet survives only so it can still be thrown downwards to leave.
+  double _extent = 1;
 
-  static const double _open = 0.94;
+  static const double _rest = 0.62;
 
   @override
   Widget build(BuildContext context) {
-    final double topInset = MediaQuery.of(context).padding.top;
+    final double topInset = widget.topInset;
 
-    // Between 94% and 100% the card turns into a page: corners run
-    // from 28 to 0, and the status bar gap opens up underneath them.
-    final double t = ((_extent - _open) / (1 - _open)).clamp(0.0, 1.0);
+    // Over the last tenth the card becomes a page: corners run 28 -> 0
+    // and the status bar gap opens underneath them.
+    final double t = ((_extent - 0.9) / 0.1).clamp(0.0, 1.0);
     final double radius = 28 * (1 - t);
-    final bool atTop = t > 0.92;
 
     return NotificationListener<DraggableScrollableNotification>(
       onNotification: (DraggableScrollableNotification n) {
@@ -105,11 +120,11 @@ class _RisingSheetState extends State<_RisingSheet> {
         return false;
       },
       child: DraggableScrollableSheet(
-        initialChildSize: _open,
-        minChildSize: 0.5,
+        initialChildSize: 1,
+        minChildSize: _rest,
         maxChildSize: 1,
         snap: true,
-        snapSizes: const <double>[_open, 1],
+        snapSizes: const <double>[_rest, 1],
         expand: false,
         builder: (BuildContext c, ScrollController sc) {
           return Container(
@@ -137,19 +152,17 @@ class _RisingSheetState extends State<_RisingSheet> {
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
-                      // At full height the handle is far from the
-                      // thumb and less obviously draggable, so give
-                      // the eye a way out.
-                      if (atTop)
-                        Positioned(
-                          right: 6,
-                          child: IconButton(
-                            visualDensity: VisualDensity.compact,
-                            icon: const Icon(Icons.close_rounded,
-                                size: 22, color: IvoryColors.plum),
-                            onPressed: () => Navigator.of(c).maybePop(),
-                          ),
+                      // Always there. A way out must never be
+                      // something you have to discover.
+                      Positioned(
+                        right: 6,
+                        child: IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.close_rounded,
+                              size: 22, color: IvoryColors.plum),
+                          onPressed: () => Navigator.of(c).maybePop(),
                         ),
+                      ),
                     ],
                   ),
                 ),
