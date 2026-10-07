@@ -7,6 +7,11 @@ import 'admin_edit_post.dart';
 
 /// Everything already published or drafted, with a switch to take a post
 /// live or hide it and a button to delete it for good.
+/// The REAL count, always - this list is the owner's own eyes. The
+/// member-facing feed deliberately shows a seeded number instead
+/// (`view_bloom.dart`); this must never be switched over to it.
+String _trueViews(int n) => n == 1 ? '1 view' : '$n views';
+
 class AdminLibraryList extends StatefulWidget {
   const AdminLibraryList({super.key, this.refreshStamp = 0});
 
@@ -205,7 +210,7 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
                 const SizedBox(height: 2),
                 Text(
                   '${live ? 'Live' : 'Draft'} \u00b7 $tierName \u00b7 '
-                  '${(p['view_count'] as num?)?.toInt() ?? 0} views',
+                  '${_trueViews((p['view_count'] as num?)?.toInt() ?? 0)}',
                   style:
                       TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
                 ),
