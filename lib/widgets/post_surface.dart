@@ -1,4 +1,8 @@
 import 'dart:math' as math;
+// FlutterView is a dart:ui type. material.dart does not re-export it,
+// so annotating View.of(context) without this fails the build with
+// "'FlutterView' isn't a type".
+import 'dart:ui' show FlutterView;
 
 import 'package:flutter/material.dart';
 
