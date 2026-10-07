@@ -248,4 +248,50 @@ devices after the first full pass.
 
 **STILL OWED: rotate the Firebase private key** (V.16).
 
+### V.18 CONFIRMED ON A HANDSET - 8 Oct 02:04
+
+**A real Android notification appeared in the tray with the app
+closed:**
+
+```
+Ivory - now
+A session is near
+Your session with Ivory begins at 02:30 AM.
+Open Ivory and tap Join a little before.
+```
+
+**Point A of the 7 Oct list is functionally proven.** The
+source was `remind_calls()` (cron `ivory-call-reminders`, every
+5 min) - it had been writing these notifications throughout the
+outage with nowhere to deliver them.
+
+After `sprint25v`: **`still_queued 0, delivered 6,
+live_handsets 4`** - two dead tokens culled automatically by the
+new give-up path. The outbox is clean.
+
+**OPEN: the ADMIN handset has received nothing.** Two signals:
+the delivered copy is member-facing (*"Your session with
+Ivory"*), and `live_handsets` fell 6 -> 4 during cleanup, so an
+**admin token may have been culled as NotRegistered**. With no
+admin token there can be no admin push, and **nothing in the
+logs would look wrong** - the queue would simply never contain a
+row for her.
+
+`sprint25w_admin_test.sql` lists tokens by role and sends one
+real test notification to every `profiles.role = 'admin'`.
+
+**IF THERE IS NO ADMIN TOKEN:** the fix is on the device - open
+Ivory on the admin phone, allow notifications, and let the app
+re-register. **Every APK reinstall invalidates the previous
+token**, so this will recur through testing. Worth adding a
+visible "notifications are on / off" indicator to the admin
+screen later so this is never silently broken again.
+
+**ALSO VISIBLE IN THE 02:04 SHADE - the cal.com damage, again:**
+a Google Calendar entry *"Ivory Live Video Session be..."*
+02:30-03:00 attributed to **`chawdhu...`** - her personal
+address, on the member's phone, exactly as recorded in V.2.
+Independent confirmation that cal.com removal (block B) must be
+next.
+
 <!-- END OF FILE - IVORY_HANDOVER_8.md -->
