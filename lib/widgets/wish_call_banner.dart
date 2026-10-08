@@ -7,7 +7,7 @@ import '../services/wish_service.dart';
 import '../theme/ivory_theme.dart';
 import 'call_book_flow.dart';
 import 'call_sheet_bits.dart';
-import 'wish_guide.dart';
+import 'sessions_panel.dart';
 
 /// WHERE YOUR WISHES ARE.
 ///
@@ -138,40 +138,91 @@ class _WishCallBannerState extends State<WishCallBanner> {
       );
 
   // ---------------------------------------------------------------
+  /// A session that still needs a time is the only thing on
+  /// this page that asks something of the member, so it is the
+  /// only one that gets a full card. Once a time is set there is
+  /// nothing to do but turn up, and a page-filling card saying
+  /// "nothing to do" is the worst use of a screen there is - so
+  /// it shrinks to one line.
   Widget _callCard(BuildContext context, CallRequest c) {
-    final bool needsTime = c.requestedFor == null;
-    final String heading =
-        needsTime ? 'Your session is agreed' : 'Your session is set';
-    final String body = needsTime
-        ? 'I have said yes. All that is left is for you to choose '
-            'when - pick a day and a time that suits you.'
-        : 'Agreed for ${ivoryWhen(c.requestedFor!)}. Open Ivory a '
-            'little before and tap Join.';
+    final IconData icon =
+        c.isVideo ? Icons.videocam_rounded : Icons.phone_in_talk_rounded;
+
+    if (c.requestedFor != null) {
+      return _settled(context, icon, c);
+    }
 
     return _shell(
       context,
-      icon: c.isVideo
-          ? Icons.videocam_rounded
-          : Icons.phone_in_talk_rounded,
-      heading: heading,
-      body: body,
-      actionLabel: needsTime ? 'PICK YOUR TIME' : null,
+      icon: icon,
+      heading: 'Your session is agreed',
+      body: 'I have said yes. All that is left is for you to '
+          'choose when - pick a day and a time that suits you.',
+      actionLabel: 'PICK YOUR TIME',
       actionIcon: Icons.event_available_rounded,
-      onAction: needsTime ? () => _pick(c) : null,
-      // Once a time exists, the only thing left they could get
-      // wrong is the arriving. So we spell the arriving out.
-      extra: needsTime
-          ? null
-          : WishGuidePanel(
-              title: 'What to do on the day',
-              steps: sessionDaySteps(
-                isVideo: c.isVideo,
-                whenLabel: ivoryWhen(c.requestedFor!),
+      onAction: () => _pick(c),
+      extra: null,
+    );
+  }
+
+  /// One quiet line: what it is, when it is, and a way in.
+  Widget _settled(BuildContext context, IconData icon, CallRequest c) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => SessionGuideSheet.open(context),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(13, 11, 11, 11),
+          decoration: BoxDecoration(
+            color: IvoryColors.surfaceWarm,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: IvoryColors.gold, width: 1.2),
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(icon, size: 17, color: IvoryColors.amber),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      c.isVideo ? 'Face to face' : 'Voice only',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 1,
+                        fontWeight: FontWeight.w800,
+                        color: IvoryColors.plum,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      ivoryWhen(c.requestedFor!),
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: IvoryColors.burgundy,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              closing: 'Nothing can go wrong here. If you are '
-                  'early, late, or you lose the app for a '
-                  'moment, just come back and tap JOIN again.',
-            ),
+              Text(
+                'WHAT TO DO',
+                style: TextStyle(
+                  fontSize: 10,
+                  letterSpacing: 0.9,
+                  fontWeight: FontWeight.w800,
+                  color: IvoryColors.textFaint,
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  size: 19, color: IvoryColors.plum),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
