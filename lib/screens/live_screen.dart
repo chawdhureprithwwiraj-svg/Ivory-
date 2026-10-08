@@ -445,13 +445,13 @@ class _LiveScreenState extends State<LiveScreen> {
 
   Widget _stage() {
     if (_ended)
-      return LiveMessage(widget.mode == LiveMode.call
+      return LiveNotice(widget.mode == LiveMode.call
           ? 'The session has ended. Thank you for your time.'
           : 'The broadcast has ended. Thank you for being here.');
-    if (_error != null) return LiveMessage(_error!, isError: true);
+    if (_error != null) return LiveNotice(_error!, isError: true);
 
     final RtcEngine? engine = _engine;
-    if (engine == null || !_joined) return LiveMessage(_status);
+    if (engine == null || !_joined) return LiveNotice(_status);
 
     // Audio only: a warm panel, not a black rectangle.
     if (!widget.videoEnabled) {
@@ -471,7 +471,7 @@ class _LiveScreenState extends State<LiveScreen> {
       portrait: widget.mode == LiveMode.call,
       pipSelf: widget.mode == LiveMode.call && _camOn,
     );
-    return video ?? LiveMessage(_status);
+    return video ?? LiveNotice(_status);
   }
 
   Widget _controls() {
