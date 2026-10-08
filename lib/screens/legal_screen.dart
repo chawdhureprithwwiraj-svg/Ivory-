@@ -57,6 +57,16 @@ class _LegalScreenState extends State<LegalScreen> {
     }
   }
 
+  /// Both of these are rows in app_policies. They were already
+  /// there and the page was quietly ignoring them, so changing
+  /// the row changed nothing. They are read now - edit the row,
+  /// the page follows, no rebuild.
+  String get _reportWindow =>
+      '${_pol['refund_report_window_hours'] ?? '72'} hours';
+
+  String get _refundDays =>
+      _pol['refund_process_days'] ?? '5-7 business days';
+
   bool get _officerSet {
     final String email = _pol['officer_email'] ?? '';
     return email.isNotEmpty &&
@@ -154,10 +164,11 @@ class _LegalScreenState extends State<LegalScreen> {
                   "performed - so change of mind isn't refundable. But "
                   'three things are always on the house: a ticket that '
                   'never arrived, a double charge, and a show pulled '
-                  'before you stepped in. Tell the house within 72 hours '
+                  'before you stepped in. Tell the house within '
+                  '$_reportWindow '
                   "through the quiet door ('a payment or refund') and "
                   'quote your UPI reference; approved refunds ride back '
-                  'to the original method in 5-7 business days.',
+                  'to the original method in $_refundDays.',
                   style: _soft,
                 ),
                 if (_officerSet) ...<Widget>[
