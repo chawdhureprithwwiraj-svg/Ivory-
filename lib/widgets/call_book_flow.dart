@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/ivory_errors.dart';
 import '../models/live_models.dart';
+import '../services/call_room_service.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 import 'call_sheet_bits.dart';
@@ -20,12 +21,45 @@ import 'call_sheet_bits.dart';
 /// kindly before they travel.
 /// ============================================================
 
-/// Hours the house keeps. Mirrors call_policy; the database
-/// decides. Shown so the member is never guessing.
-const int _noticeHours = 4;
-const int _opensHour = 12;
-const int _closesHour = 3;
-const int _horizonDays = 30;
+/// Hours the house keeps. These are only the starting values -
+/// _loadHours() replaces them from call_policy before the
+/// picker opens, so changing the rule in the database changes
+/// what the member is actually offered. They remain as a
+/// fallback for the moment the read fails; a member must never
+/// be stopped from booking by a slow settings row.
+int _noticeHours = 4;
+int _opensHour = 12;
+int _closesHour = 3;
+int _horizonDays = 30;
+
+/// Reads the four numbers from call_policy. Silent on failure -
+/// the values above simply stand.
+Future<void> _loadHours() async {
+  final CallHours? h = await CallRoomService.instance.hours();
+  if (h == null) return;
+  if (h.noticeHours != null && h.noticeHours! >= 0) {
+    _noticeHours = h.noticeHours!;
+  }
+  if (h.opensHour != null) _opensHour = h.opensHour!;
+  if (h.closesHour != null) _closesHour = h.closesHour!;
+  if (h.horizonDays != null && h.horizonDays! > 0) {
+    _horizonDays = h.horizonDays!;
+  }
+}
+
+/// Says an hour the way a person would: 12 -> "noon",
+/// 3 -> "3 in the morning", 18 -> "6 in the evening". The
+/// window is data now, so the sentence cannot be written by
+/// hand any more.
+String _spoken(int hour) {
+  final int h = ((hour % 24) + 24) % 24;
+  if (h == 0) return 'midnight';
+  if (h == 12) return 'noon';
+  if (h < 12) return '$h in the morning';
+  if (h < 17) return '${h - 12} in the afternoon';
+  if (h < 21) return '${h - 12} in the evening';
+  return '${h - 12} at night';
+}
 
 bool _insideHours(DateTime when) {
   final int h = when.hour;
@@ -49,10 +83,11 @@ Future<void> bookCallSlot(
   required void Function(String msg) say,
   required Future<void> Function() reload,
 }) async {
+  await _loadHours();
   final DateTime earliest = _firstOpening(
-      DateTime.now().add(const Duration(hours: _noticeHours)));
+      DateTime.now().add(Duration(hours: _noticeHours)));
   final DateTime latest =
-      DateTime.now().add(const Duration(days: _horizonDays));
+      DateTime.now().add(Duration(days: _horizonDays));
 
   final bool go = await showDialog<bool>(
         context: context,
@@ -102,12 +137,13 @@ Future<void> bookCallSlot(
 
   // Told kindly here, decided firmly in the database.
   if (!_insideHours(chosen)) {
-    say('Sessions run from noon through to $_closesHour in the morning. '
-        'Please choose a time inside those hours.');
+    say('Sessions run from ${_spoken(_opensHour)} through to '
+        '${_spoken(_closesHour)}. Please choose a time inside '
+        'those hours.');
     return;
   }
   if (chosen.isBefore(
-      DateTime.now().add(const Duration(hours: _noticeHours)))) {
+      DateTime.now().add(Duration(hours: _noticeHours)))) {
     say('Please choose a time at least $_noticeHours hours from now, '
         'so Ivory can prepare for you.');
     return;
@@ -150,8 +186,8 @@ class _HoursDialog extends StatelessWidget {
         children: <Widget>[
           _Line(
             icon: Icons.schedule_rounded,
-            text: 'Sessions run from noon through to '
-                '$_closesHour in the morning.',
+            text: 'Sessions run from ${_spoken(_opensHour)} '
+                'through to ${_spoken(_closesHour)}.',
           ),
           const SizedBox(height: 10),
           _Line(
