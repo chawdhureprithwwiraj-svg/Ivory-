@@ -227,6 +227,66 @@ class LiveService {
         .rpc<void>('end_call', params: <String, dynamic>{'call_id_in': callId});
   }
 
+  // ---------------------------------------------------------------
+  // Leaving a room is not ending a session
+  // ---------------------------------------------------------------
+
+  /// Entering, or coming back after a mistap or a lost signal.
+  /// Returns the seconds already spent, so the clock resumes
+  /// instead of starting again.
+  Future<int> callEnter(int callId) async {
+    final dynamic res = await _db
+        .rpc<dynamic>('call_enter', params: <String, dynamic>{
+      'call_id_in': callId,
+    });
+    return (res as num?)?.toInt() ?? 0;
+  }
+
+  /// Leaving the room. Reports this side's count; the database
+  /// keeps whichever is larger. Ends nothing.
+  Future<void> callExit(int callId, int seconds) async {
+    try {
+      await _db.rpc<void>('call_exit', params: <String, dynamic>{
+        'call_id_in': callId,
+        'seconds_in': seconds,
+      });
+    } catch (_) {
+      // Losing a few seconds of bookkeeping must never show up
+      // as an error on a member's screen.
+    }
+  }
+
+  /// Ending it for real - the owner's END SESSION.
+  Future<void> callFinish(int callId) async {
+    await _db.rpc<void>('call_finish',
+        params: <String, dynamic>{'call_id_in': callId});
+  }
+
+  /// A call lives in call_requests, not live_sessions. Watching
+  /// the wrong table is why a member was left on a frozen frame
+  /// when the other side hung up.
+  RealtimeChannel watchCall(
+      int callId, void Function(String status, bool ended) onChange) {
+    final RealtimeChannel channel = _db.channel('ivory-call-$callId');
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'call_requests',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: callId,
+          ),
+          callback: (PostgresChangePayload p) => onChange(
+            (p.newRecord['status'] as String?) ?? '',
+            p.newRecord['ended_at'] != null,
+          ),
+        )
+        .subscribe();
+    return channel;
+  }
+
 
   // ---------------------------------------------------------------
   // The administrator's console
@@ -412,21 +472,12 @@ class LiveService {
     });
   }
 
-  /// The member chooses their session time inside Ivory.
-  /// member_pick_slot is the only gate - it holds the notice
-  /// period, the hours sessions run and the horizon, and it
-  /// refuses in a sentence the member can read. Returns that
-  /// sentence on success.
-  Future<String> pickSlot(int callId, DateTime when) async {
-    final dynamic res =
-        await _db.rpc<dynamic>('member_pick_slot', params: <String, dynamic>{
+  /// The member picked a slot on cal.com and is telling Ivory when.
+  Future<void> confirmBooking(int callId, DateTime when) async {
+    await _db.rpc<dynamic>('confirm_my_booking', params: <String, dynamic>{
       'call_id_in': callId,
-      'slot_in': when.toUtc().toIso8601String(),
+      'when_in': when.toUtc().toIso8601String(),
     });
-    final String word = (res as String?) ?? '';
-    return word.isEmpty
-        ? 'Your time is set. Open Ivory a little before it and tap JOIN.'
-        : word;
   }
 
   /// One call row, fresh - used by the extension prompt mid-call.
