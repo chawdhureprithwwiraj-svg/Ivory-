@@ -17,11 +17,12 @@ import 'call_extension_prompt.dart';
 /// when the call ends - she decides, whenever she likes, as
 /// often as she likes.
 ///
-/// THE MEMBER: a card that slides over the call and STAYS.
-/// This matters most on an audio call, where the phone may be
-/// at an ear or the app in the background: the card waits a
-/// full minute, and a handset notification is sent at the very
-/// same moment from the database. Two paths, one offer.
+/// THE MEMBER: a card that slides over the call and holds for
+/// THIRTY SECONDS. This matters most on an audio call, where
+/// the phone may be at an ear or the app in the background, so
+/// a handset notification is sent at the very same moment from
+/// the database. Two paths, one offer - and the notification
+/// stays in the tray after the card has gone.
 /// ============================================================
 
 /// The house's side. Price box, duration box, SEND.
@@ -110,7 +111,8 @@ class _OfferDialogState extends State<_OfferDialog> {
           const Text(
             'This appears on their screen straight away and their '
             'phone is notified at the same moment. You can send it '
-            'again as often as you like.',
+            'again as often as you like. It stays on their screen '
+            'for thirty seconds.',
             style: TextStyle(fontSize: 13, height: 1.5),
           ),
           const SizedBox(height: 16),
@@ -180,13 +182,18 @@ class MoreTimeCard extends StatefulWidget {
 
 class _MoreTimeCardState extends State<MoreTimeCard> {
   Timer? _hold;
-  int _left = 60;
+
+  /// Thirty seconds, as the owner specified. Long enough to be
+  /// read and acted on while the phone is at an ear, short
+  /// enough never to sit in the way of the conversation.
+  int _left = 30;
 
   @override
   void initState() {
     super.initState();
-    // The owner asked that it "stay for at least a minute or
-    // so". It holds a full minute, then steps aside quietly.
+    // It holds for thirty seconds, then steps aside quietly.
+    // Nothing is lost if it does: the handset notification sent
+    // at the same moment stays in her notification tray.
     _hold = Timer.periodic(const Duration(seconds: 1), (Timer t) {
       if (!mounted) return;
       setState(() => _left -= 1);
