@@ -4,6 +4,7 @@ import '../models/wish.dart';
 import '../services/wish_service.dart';
 import '../services/razorpay_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/wish_call_banner.dart';
 import '../widgets/call_wish_sheet.dart';
 import 'wish_form.dart';
 
@@ -95,6 +96,11 @@ class _WishScreenState extends State<WishScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 18, 16, 40),
           children: <Widget>[
+            // A member arriving from "Your call is confirmed" must
+            // see the thing they were told about, not the same page
+            // as always. This answers the question before it is
+            // asked, and disappears once the time is chosen.
+            const WishCallBanner(),
             _hero(),
             const SizedBox(height: 24),
             Text(
