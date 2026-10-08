@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/ivory_errors.dart';
 import '../models/live_models.dart';
 import '../services/auth_service.dart';
 import '../services/live_service.dart';
@@ -18,15 +19,6 @@ import '../widgets/live_chat.dart';
 import '../widgets/live_stage_bits.dart';
 import '../widgets/call_more_time.dart';
 import '../services/call_room_service.dart';
-
-/// Edge and database errors arrive wrapped in transport noise.
-/// Keep only the sentence the house actually wrote.
-String _cleanErr(Object e) {
-  final String raw = e.toString();
-  final RegExpMatch? m = RegExp(r'\{error: (.*)\}').firstMatch(raw);
-  if (m != null) return m.group(1)!;
-  return raw.replaceFirst('Exception: ', '');
-}
 
 /// ============================================================
 /// IVORY - THE LIVE ROOM
@@ -176,7 +168,7 @@ class _LiveScreenState extends State<LiveScreen> {
         _spent = await LiveService.instance.callEnter(widget.sessionId);
       } catch (e) {
         if (!mounted) return;
-        setState(() => _error = _cleanErr(e));
+        setState(() => _error = houseMessage(e));
         return;
       }
     }
@@ -285,7 +277,7 @@ class _LiveScreenState extends State<LiveScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = _cleanErr(e));
+      setState(() => _error = houseMessage(e));
     }
   }
 
@@ -437,7 +429,7 @@ class _LiveScreenState extends State<LiveScreen> {
       await LiveService.instance.callFinish(widget.sessionId);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = _cleanErr(e));
+      setState(() => _error = houseMessage(e));
       return;
     }
     if (mounted) Navigator.of(context).pop();
