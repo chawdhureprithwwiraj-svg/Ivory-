@@ -441,13 +441,18 @@ class IvoryEyebrow extends StatelessWidget {
           Icon(icon, size: 15, color: IvoryColors.amber),
           const SizedBox(width: 7),
         ],
-        Text(
-          text.toUpperCase(),
-          style: const TextStyle(
-            color: IvoryColors.plum,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 2.4,
+        // Wide letter spacing plus a long label used to run
+        // straight off the edge of the card. It wraps now.
+        Expanded(
+          child: Text(
+            text.toUpperCase(),
+            style: const TextStyle(
+              color: IvoryColors.plum,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2.4,
+              height: 1.5,
+            ),
           ),
         ),
       ],
@@ -536,3 +541,5 @@ class IvorySectionHeader extends StatelessWidget {
     );
   }
 }
+
+// END OF FILE - lib/theme/ivory_theme.dart
