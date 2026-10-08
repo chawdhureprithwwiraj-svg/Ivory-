@@ -110,27 +110,28 @@ class WishGuidePanel extends StatefulWidget {
     required this.steps,
     this.intro,
     this.closing,
-    this.openAtFirst = false,
   });
 
   final String title;
   final String? intro;
   final String? closing;
   final List<WishStep> steps;
-  final bool openAtFirst;
 
   @override
   State<WishGuidePanel> createState() => _WishGuidePanelState();
 }
 
 class _WishGuidePanelState extends State<WishGuidePanel> {
-  late bool _open = widget.openAtFirst;
+  // ALWAYS CLOSED ON ARRIVAL. The Wish page belongs to the
+  // burgundy card, not to a wall of instructions. This is one
+  // slim line until somebody actually wants it.
+  bool _open = false;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(13, 9, 11, 9),
       decoration: BoxDecoration(
         color: IvoryColors.surfaceWarm,
         borderRadius: BorderRadius.circular(18),
@@ -144,15 +145,16 @@ class _WishGuidePanelState extends State<WishGuidePanel> {
             child: Row(
               children: <Widget>[
                 Icon(Icons.menu_book_rounded,
-                    size: 18, color: IvoryColors.amber),
-                const SizedBox(width: 9),
+                    size: 15, color: IvoryColors.amber),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     widget.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 13.5,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w800,
-                      height: 1.35,
                       color: IvoryColors.burgundy,
                     ),
                   ),
@@ -161,6 +163,7 @@ class _WishGuidePanelState extends State<WishGuidePanel> {
                   _open
                       ? Icons.keyboard_arrow_up_rounded
                       : Icons.keyboard_arrow_down_rounded,
+                  size: 20,
                   color: IvoryColors.plum,
                 ),
               ],
@@ -192,12 +195,6 @@ class _WishGuidePanelState extends State<WishGuidePanel> {
                 ),
               ),
             ],
-          ] else ...<Widget>[
-            const SizedBox(height: 6),
-            Text(
-              'Tap to read it. It takes half a minute.',
-              style: TextStyle(fontSize: 12.5, color: IvoryColors.textFaint),
-            ),
           ],
         ],
       ),
@@ -214,7 +211,7 @@ class MembershipCallGuide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return WishGuidePanel(
-      title: 'How a session with Ivory works - read this first',
+      title: 'How a session with Ivory works',
       intro: 'Everything happens inside this app. There is '
           'nothing to book anywhere else and no number to call. '
           'If your membership includes sessions, they are '
