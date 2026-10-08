@@ -36,13 +36,19 @@ class _LegalScreenState extends State<LegalScreen> {
 
   Future<void> _load() async {
     try {
+      // app_policies is a KEY/VALUE table - two text columns and
+      // nothing else. The archived sprint 12b file describes a
+      // wide row with an id; that description is out of date and
+      // must not be trusted. This is the live shape, confirmed
+      // against information_schema on 9 Oct 2026.
       final List<dynamic> rows = await Supabase.instance.client
           .from('app_policies')
           .select('key,value');
       if (!mounted) return;
       setState(() {
         _pol = <String, String>{
-          for (final dynamic r in rows) r['key'] as String: r['value'] as String,
+          for (final dynamic r in rows)
+            r['key'] as String: (r['value'] ?? '').toString(),
         };
         _loaded = true;
       });
@@ -53,7 +59,9 @@ class _LegalScreenState extends State<LegalScreen> {
 
   bool get _officerSet {
     final String email = _pol['officer_email'] ?? '';
-    return email.isNotEmpty && !email.startsWith('(to be set)');
+    return email.isNotEmpty &&
+        !email.startsWith('(to be set)') &&
+        !email.contains('example.com');
   }
 
   Future<void> _askErasure() async {
