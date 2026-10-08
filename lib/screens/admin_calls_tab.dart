@@ -378,9 +378,11 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
-                c.charged
-                    ? 'Missed - minutes were used (third this cycle).'
-                    : 'Missed - forgiven, no minutes used.',
+                c.priceInr > 0
+                    ? 'Missed - this one was paid for.'
+                    : c.charged
+                        ? 'Missed - minutes were used.'
+                        : 'Missed - forgiven, no minutes used.',
                 style: TextStyle(fontSize: 12, color: IvoryColors.textFaint),
               ),
             ),
