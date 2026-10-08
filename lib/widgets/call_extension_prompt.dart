@@ -17,6 +17,21 @@ import '../theme/ivory_theme.dart';
 class CallExtensionPrompt {
   CallExtensionPrompt._();
 
+  /// Opens the payment sheet straight away, for when the house
+  /// has pushed an offer by hand and the member has accepted.
+  static void open(
+    BuildContext context, {
+    required int callId,
+    required int price,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _ExtensionSheet(callId: callId, price: price),
+    );
+  }
+
   /// Called from the call screen's clock. Cheap: it only opens a
   /// row when an unpaid offer exists near the end.
   static Future<void> tick(
