@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/ivory_notification.dart';
+import '../core/ivory_errors.dart';
 import '../services/notification_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/report_sheet.dart';
@@ -26,11 +27,25 @@ class _InboxScreenState extends State<InboxScreen> {
   void initState() {
     super.initState();
     _load();
+    // The bell was counting arrivals the list never showed.
+    NotificationService.instance.revision.addListener(_quietReload);
   }
 
-  Future<void> _load() async {
+  @override
+  void dispose() {
+    NotificationService.instance.revision.removeListener(_quietReload);
+    super.dispose();
+  }
+
+  /// Reload without the spinner. Something new has landed; it should
+  /// simply appear, the way a letter appears on a mat.
+  void _quietReload() {
+    if (mounted) _load(quiet: true);
+  }
+
+  Future<void> _load({bool quiet = false}) async {
     setState(() {
-      _loading = true;
+      _loading = !quiet;
       _error = null;
     });
     try {
@@ -45,7 +60,7 @@ class _InboxScreenState extends State<InboxScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = houseMessage(e);
         _loading = false;
       });
     }
