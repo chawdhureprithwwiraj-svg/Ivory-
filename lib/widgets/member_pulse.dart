@@ -8,7 +8,10 @@ import '../theme/ivory_theme.dart';
 /// ============================================================
 /// IVORY - THE MEMBER PULSE
 ///
-/// "You are the 2,317 member who visited today."
+/// "You are the 2,317th member to walk in."
+/// No "today" - the CCPA treats a day-scoped popularity claim
+/// as False Urgency. Without it the line is a welcome, not a
+/// pressure.
 ///
 /// TWO RULES THAT MAKE IT FEEL REAL
 ///
@@ -199,7 +202,7 @@ class _MemberPulseStripState extends State<MemberPulseStrip>
 
   @override
   Widget build(BuildContext context) {
-    final String n = MemberPulse.formattedValue + _ordinalSuffix();
+    final String n = MemberPulse.formattedValue;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -240,7 +243,7 @@ class _MemberPulseStripState extends State<MemberPulseStrip>
                       letterSpacing: 0.2,
                     ),
                   ),
-                  const TextSpan(text: ' member who visited today.'),
+                  const TextSpan(text: ' member to walk in.'),
                 ],
               ),
             ),
@@ -292,24 +295,6 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
         ),
       ),
     );
-  }
-}
-
-/// "the 1,771 member" was never a sentence. 1st, 2nd, 3rd, 4th - and
-/// 11th, 12th, 13th, which are the three that catch everybody out.
-String _ordinalSuffix() {
-  final int v = MemberPulse.value;
-  final int last2 = v % 100;
-  if (last2 >= 11 && last2 <= 13) return 'th';
-  switch (v % 10) {
-    case 1:
-      return 'st';
-    case 2:
-      return 'nd';
-    case 3:
-      return 'rd';
-    default:
-      return 'th';
   }
 }
 
