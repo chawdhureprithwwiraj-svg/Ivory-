@@ -243,7 +243,7 @@ class _ConfirmDialog extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               )),
           const SizedBox(height: 6),
-          Text('$minutes minutes together.',
+          Text('Together, here.',
               style: const TextStyle(
                   color: IvoryColors.plum, fontSize: 14)),
           const SizedBox(height: 12),
