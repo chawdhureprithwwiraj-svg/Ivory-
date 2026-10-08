@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../models/live_models.dart';
 import '../models/wish.dart';
 import '../services/wish_service.dart';
 import '../services/razorpay_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/wish_call_banner.dart';
 import '../services/auth_service.dart';
+import '../services/live_service.dart';
 import '../widgets/wish_guide.dart';
 import '../widgets/wish_status_card.dart';
 import '../widgets/call_wish_sheet.dart';
@@ -48,6 +50,7 @@ class _WishScreenState extends State<WishScreen> {
   bool _loading = true;
   String? _error;
   String _mode = 'upi';
+  final Map<String, bool> _included = <String, bool>{};
 
   @override
   void initState() {
@@ -67,6 +70,15 @@ class _WishScreenState extends State<WishScreen> {
       final List<WishCategory> cats =
           await WishService.instance.fetchCategories();
       final List<Wish> mine = await WishService.instance.fetchMyWishes();
+      if (!mounted) return;
+      for (final String kind in <String>['video', 'audio']) {
+        try {
+          final CallBalance b = await LiveService.instance.balance(kind);
+          _included[kind] = b.isIncluded;
+        } catch (_) {
+          _included[kind] = false;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _categories = cats;
@@ -160,7 +172,6 @@ class _WishScreenState extends State<WishScreen> {
             // her gold cards belong in the CALLS tab, not here.
             if (!AuthService.instance.isAdminCached) ...<Widget>[
               WishCallBanner(onSomethingWaiting: _somethingWaiting),
-              const MembershipCallGuide(),
             ],
             _hero(),
             const SizedBox(height: 24),
@@ -408,28 +419,48 @@ class _WishScreenState extends State<WishScreen> {
                         ),
                       ],
                       const SizedBox(height: 8),
-                      Row(
-                        children: <Widget>[
-                          Text(
-                            c.priceLabel,
-                            style: const TextStyle(
-                              color: IvoryColors.plum,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
+                      // Quoting a price to somebody who has
+                      // already paid for it is the quickest way
+                      // to make them feel cheated.
+                      if (c.isCall && (_included[c.callKind] ?? false))
+                        Row(
+                          children: <Widget>[
+                            const Icon(Icons.verified_rounded,
+                                size: 14, color: IvoryColors.amber),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Included with your membership',
+                              style: const TextStyle(
+                                color: IvoryColors.plum,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            c.isCall
-                                ? c.callLabel
-                                : '~${c.deliveryDays} days',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: IvoryColors.textFaint,
+                          ],
+                        )
+                      else
+                        Row(
+                          children: <Widget>[
+                            Text(
+                              c.priceLabel,
+                              style: const TextStyle(
+                                color: IvoryColors.plum,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 10),
+                            Text(
+                              c.isCall
+                                  ? c.callLabel
+                                  : '~${c.deliveryDays} days',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: IvoryColors.textFaint,
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
