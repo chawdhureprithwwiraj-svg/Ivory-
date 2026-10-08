@@ -74,8 +74,8 @@ class LiveAudioStage extends StatelessWidget {
 /// A centred sentence in the middle of the stage. A spinner
 /// while something is still happening, a quiet mark when it is
 /// news rather than progress.
-class LiveMessage extends StatelessWidget {
-  const LiveMessage(this.text, {super.key, this.isError = false});
+class LiveNotice extends StatelessWidget {
+  const LiveNotice(this.text, {super.key, this.isError = false});
 
   final String text;
   final bool isError;
