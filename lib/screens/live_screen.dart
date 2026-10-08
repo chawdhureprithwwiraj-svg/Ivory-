@@ -16,6 +16,8 @@ import '../widgets/gift_moment.dart';
 import '../widgets/call_extension_prompt.dart';
 import '../widgets/live_chat.dart';
 import '../widgets/live_stage_bits.dart';
+import '../widgets/call_more_time.dart';
+import '../services/call_room_service.dart';
 
 /// Edge and database errors arrive wrapped in transport noise.
 /// Keep only the sentence the house actually wrote.
@@ -99,6 +101,10 @@ class _LiveScreenState extends State<LiveScreen> {
 
   bool get _isOwner => AuthService.instance.isAdminCached;
 
+  /// The offer of more time, if one is standing.
+  CallOffer? _offer;
+  RealtimeChannel? _offerChannel;
+
   static const String _roomOpenNote =
       'They have stepped out. The room is still open - stay here '
       'and they can come straight back.';
@@ -123,6 +129,21 @@ class _LiveScreenState extends State<LiveScreen> {
           }
         },
       );
+      if (!_isOwner) {
+        _offerChannel = CallRoomService.instance.watchOffer(
+          widget.sessionId,
+          (CallOffer o) {
+            if (mounted && o.isLive) setState(() => _offer = o);
+          },
+        );
+        CallRoomService.instance
+            .currentOffer(widget.sessionId)
+            .then((CallOffer? o) {
+          if (mounted && o != null && o.isLive) {
+            setState(() => _offer = o);
+          }
+        });
+      }
       _boot();
       return;
     }
@@ -310,6 +331,8 @@ class _LiveScreenState extends State<LiveScreen> {
   void dispose() {
     final RealtimeChannel? sc = _statusChannel;
     if (sc != null) LiveService.instance.stopWatching(sc);
+    final RealtimeChannel? oc = _offerChannel;
+    if (oc != null) CallRoomService.instance.stopWatching(oc);
     _leave();
     super.dispose();
   }
@@ -333,7 +356,26 @@ class _LiveScreenState extends State<LiveScreen> {
       child: Scaffold(
         backgroundColor: IvoryColors.burgundy,
         body: SafeArea(
-          child: Column(
+          child: Stack(
+            children: <Widget>[
+              _room(context),
+              if (_offer != null)
+                MoreTimeCard(
+                  callId: widget.sessionId,
+                  offer: _offer!,
+                  onDismiss: () {
+                    if (mounted) setState(() => _offer = null);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _room(BuildContext context) {
+    return Column(
             children: <Widget>[
               _bar(context),
               // A broadcast gives the stage the top half and the
@@ -360,10 +402,7 @@ class _LiveScreenState extends State<LiveScreen> {
               ],
               _controls(),
             ],
-          ),
-        ),
-      ),
-    );
+          );
   }
 
   // ---------------------------------------------------------------
@@ -424,62 +463,15 @@ class _LiveScreenState extends State<LiveScreen> {
       );
     }
 
-    // Watching: the host's feed. Hosting: your own camera.
-    final Widget? video = widget.mode == LiveMode.host
-        ? AgoraVideoView(
-            controller: VideoViewController(
-              rtcEngine: engine,
-              canvas: const VideoCanvas(uid: 0),
-            ),
-          )
-        : (_remoteUid == null
-            ? null
-            : AgoraVideoView(
-                controller: VideoViewController.remote(
-                  rtcEngine: engine,
-                  canvas: VideoCanvas(uid: _remoteUid),
-                  connection:
-                      RtcConnection(channelId: _ticket?.channel ?? ''),
-                ),
-              ));
-
-    if (video == null) return LiveMessage(_status);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: AspectRatio(
-        // A broadcast shares the screen with the chat rail, so its
-        // frame is wider; a call keeps the full 9:16 portrait stage.
-        aspectRatio: widget.mode == LiveMode.call ? 9 / 16 : 4 / 5,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            fit: StackFit.expand,
-            children: <Widget>[
-              Container(color: IvoryColors.surfaceWarm),
-              video,
-              // In a call, your own camera sits in the corner.
-              if (widget.mode == LiveMode.call && _camOn)
-                Positioned(
-                  right: 10,
-                  top: 10,
-                  width: 96,
-                  height: 96 * 16 / 9,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: AgoraVideoView(
-                      controller: VideoViewController(
-                        rtcEngine: engine,
-                        canvas: const VideoCanvas(uid: 0),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+    final Widget? video = LiveVideoStage.build(
+      engine: engine,
+      selfView: widget.mode == LiveMode.host,
+      remoteUid: _remoteUid,
+      channel: _ticket?.channel ?? '',
+      portrait: widget.mode == LiveMode.call,
+      pipSelf: widget.mode == LiveMode.call && _camOn,
     );
+    return video ?? LiveMessage(_status);
   }
 
   Widget _controls() {
@@ -531,6 +523,28 @@ class _LiveScreenState extends State<LiveScreen> {
             onTap: () => Navigator.of(context).maybePop(),
           ),
           if (widget.mode == LiveMode.call && _isOwner) ...<Widget>[
+            const SizedBox(width: 14),
+            LiveRoundButton(
+              icon: Icons.more_time_rounded,
+              active: true,
+              label: 'MORE TIME',
+              onTap: () async {
+                final bool sent = await showOfferMoreTime(
+                  context,
+                  callId: widget.sessionId,
+                  premium: widget.subtitle?.toLowerCase()
+                          .contains('premium') ??
+                      false,
+                );
+                if (sent && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Sent. It is on their screen now.'),
+                    ),
+                  );
+                }
+              },
+            ),
             const SizedBox(width: 14),
             LiveRoundButton(
               icon: Icons.stop_circle_outlined,
