@@ -127,7 +127,7 @@ class _CallWishSheetState extends State<CallWishSheet> {
           // The member is not calling a product, they are calling a
           // person. The house sees their name; they see hers.
           title: 'Ivory',
-          subtitle: '${c.minutes} minutes with me',
+          subtitle: 'Together, here',
           mode: LiveMode.call,
           videoEnabled: c.isVideo,
         ),
@@ -293,7 +293,8 @@ class _CallWishSheetState extends State<CallWishSheet> {
                   ),
                 ),
                 const SizedBox(width: 7),
-                Padding(
+                Expanded(
+                  child: Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
                     'of ${_balance.allowed} minutes left ${_balance.periodLabel}',
@@ -301,6 +302,7 @@ class _CallWishSheetState extends State<CallWishSheet> {
                       fontSize: 13.5,
                       color: IvoryColors.textSoft,
                     ),
+                ),
                   ),
                 ),
               ],
