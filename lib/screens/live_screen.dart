@@ -18,7 +18,7 @@ import '../widgets/call_extension_prompt.dart';
 import '../widgets/live_chat.dart';
 import '../widgets/live_stage_bits.dart';
 import '../widgets/call_more_time.dart';
-import '../services/call_room_service.dart';
+import '../widgets/call_offer_layer.dart';
 
 /// ============================================================
 /// IVORY - THE LIVE ROOM
@@ -93,10 +93,6 @@ class _LiveScreenState extends State<LiveScreen> {
 
   bool get _isOwner => AuthService.instance.isAdminCached;
 
-  /// The offer of more time, if one is standing.
-  CallOffer? _offer;
-  RealtimeChannel? _offerChannel;
-
   static const String _roomOpenNote =
       'They have stepped out. The room is still open - stay here '
       'and they can come straight back.';
@@ -113,7 +109,9 @@ class _LiveScreenState extends State<LiveScreen> {
       _statusChannel = LiveService.instance.watchCall(
         widget.sessionId,
         (String st, bool ended) {
-          if ((ended || st == 'done') && mounted && !_ended) {
+          if ((ended || st == 'done' || st == 'completed') &&
+              mounted &&
+              !_ended) {
             setState(() => _ended = true);
             Future<void>.delayed(const Duration(seconds: 4), () {
               if (mounted) Navigator.of(context).pop();
@@ -121,21 +119,6 @@ class _LiveScreenState extends State<LiveScreen> {
           }
         },
       );
-      if (!_isOwner) {
-        _offerChannel = CallRoomService.instance.watchOffer(
-          widget.sessionId,
-          (CallOffer o) {
-            if (mounted && o.isLive) setState(() => _offer = o);
-          },
-        );
-        CallRoomService.instance
-            .currentOffer(widget.sessionId)
-            .then((CallOffer? o) {
-          if (mounted && o != null && o.isLive) {
-            setState(() => _offer = o);
-          }
-        });
-      }
       _boot();
       return;
     }
@@ -323,8 +306,6 @@ class _LiveScreenState extends State<LiveScreen> {
   void dispose() {
     final RealtimeChannel? sc = _statusChannel;
     if (sc != null) LiveService.instance.stopWatching(sc);
-    final RealtimeChannel? oc = _offerChannel;
-    if (oc != null) CallRoomService.instance.stopWatching(oc);
     _leave();
     super.dispose();
   }
@@ -351,13 +332,10 @@ class _LiveScreenState extends State<LiveScreen> {
           child: Stack(
             children: <Widget>[
               _room(context),
-              if (_offer != null)
-                MoreTimeCard(
+              if (widget.mode == LiveMode.call && !_isOwner)
+                CallOfferLayer(
                   callId: widget.sessionId,
-                  offer: _offer!,
-                  onDismiss: () {
-                    if (mounted) setState(() => _offer = null);
-                  },
+                  ended: _ended,
                 ),
             ],
           ),
@@ -408,7 +386,10 @@ class _LiveScreenState extends State<LiveScreen> {
       note: widget.mode == LiveMode.host && _joined
           ? 'Only you see this count'
           : null,
-      onGift: live && widget.mode != LiveMode.host
+      // Gifts belong to a broadcast, where the room is watching
+      // together. In a one-to-one session they were only ever
+      // decoration, and they did nothing when tapped.
+      onGift: live && widget.mode == LiveMode.watch
           ? () => showGiftSheet(context, sessionId: widget.sessionId)
           : null,
       onClose: () => Navigator.of(context).maybePop(),
