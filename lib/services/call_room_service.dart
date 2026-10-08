@@ -165,7 +165,34 @@ class CallOffer {
   final DateTime? offeredAt;
   final bool paid;
 
-  bool get isLive => offeredAt != null && !paid;
+  /// How long an offer stands. The card holds for this long and
+  /// then the offer is simply over.
+  static const Duration holdFor = Duration(seconds: 30);
+
+  /// AN OFFER IS ONLY LIVE WHILE IT IS FRESH.
+  ///
+  /// The stamp stays in the row forever, and every single write
+  /// to that row - entering, leaving, finishing - hands the whole
+  /// row back to the watcher. Judging liveness on "is the stamp
+  /// set" therefore replayed an old offer every time anybody
+  /// moved. It must be judged on AGE.
+  bool get isLive {
+    final DateTime? at = offeredAt;
+    if (at == null || paid) return false;
+    final int age =
+        DateTime.now().toUtc().difference(at.toUtc()).inSeconds;
+    return age >= -120 && age < holdFor.inSeconds;
+  }
+
+  /// What is left of the hold, for the countdown on the card.
+  Duration get remaining {
+    final DateTime? at = offeredAt;
+    if (at == null) return Duration.zero;
+    final int gone =
+        DateTime.now().toUtc().difference(at.toUtc()).inSeconds;
+    final int left = holdFor.inSeconds - (gone < 0 ? 0 : gone);
+    return Duration(seconds: left < 0 ? 0 : left);
+  }
 
   factory CallOffer.fromDb(Map<String, dynamic> m) => CallOffer(
         priceInr: (m['extension_price'] as num?)?.toInt() ?? 0,
