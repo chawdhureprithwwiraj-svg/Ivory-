@@ -222,6 +222,20 @@ class LiveService {
         params: <String, dynamic>{'call_id_in': callId});
   }
 
+  /// The member chooses the day and time inside Ivory. The
+  /// database is the only gate: four hours' notice, the noon
+  /// to 3 am window, thirty days ahead. It returns the sentence
+  /// to show, already written by the house.
+  Future<String> pickSlot(int callId, DateTime when) async {
+    final dynamic res = await _db.rpc<dynamic>('member_pick_slot',
+        params: <String, dynamic>{
+          'call_id_in': callId,
+          'slot_in': when.toUtc().toIso8601String(),
+        });
+    return (res as String?) ??
+        'Your time is set. You will get a reminder before it.';
+  }
+
   Future<void> endCall(int callId) async {
     await _db
         .rpc<void>('end_call', params: <String, dynamic>{'call_id_in': callId});
@@ -231,14 +245,12 @@ class LiveService {
   // Leaving a room is not ending a session
   // ---------------------------------------------------------------
 
-  /// Entering, or coming back after a mistap or a lost signal.
+  /// Coming in, or coming back after a mistap or a lost signal.
   /// Returns the seconds already spent, so the clock resumes
   /// instead of starting again.
   Future<int> callEnter(int callId) async {
-    final dynamic res = await _db
-        .rpc<dynamic>('call_enter', params: <String, dynamic>{
-      'call_id_in': callId,
-    });
+    final dynamic res = await _db.rpc<dynamic>('call_enter',
+        params: <String, dynamic>{'call_id_in': callId});
     return (res as num?)?.toInt() ?? 0;
   }
 
@@ -508,33 +520,6 @@ class LiveService {
         });
   }
 
-  // ---------------------------------------------------------------
-  // Booking links
-  // ---------------------------------------------------------------
-  Future<BookingLink?> bookingLink(String kind) async {
-    final List<dynamic> rows = await _db
-        .from('booking_settings')
-        .select()
-        .eq('kind', kind)
-        .eq('is_active', true)
-        .limit(1);
-    if (rows.isEmpty) return null;
-    return BookingLink.fromDb(rows.first as Map<String, dynamic>);
-  }
-
-  Future<void> saveBookingLink({
-    required String kind,
-    required String provider,
-    required String url,
-    String? headline,
-  }) async {
-    await _db.from('booking_settings').update(<String, dynamic>{
-      'provider': provider,
-      'url': url,
-      if (headline != null) 'headline': headline,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('kind', kind);
-  }
 }
 
 // END OF FILE - lib/services/live_service.dart
