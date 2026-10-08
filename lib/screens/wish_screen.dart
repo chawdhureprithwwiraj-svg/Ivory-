@@ -5,6 +5,8 @@ import '../services/wish_service.dart';
 import '../services/razorpay_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/wish_call_banner.dart';
+import '../widgets/wish_guide.dart';
+import '../widgets/wish_status_card.dart';
 import '../widgets/call_wish_sheet.dart';
 import 'wish_form.dart';
 
@@ -79,6 +81,47 @@ class _WishScreenState extends State<WishScreen> {
     }
   }
 
+  final ScrollController _scroll = ScrollController();
+  bool _waiting = false;
+  bool _tookThemUp = false;
+  bool _scrolledAway = false;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// A member reading about the audio session is a long way down
+  /// this page. The app remembers where they were, so when Ivory
+  /// says yes they come back to the middle of the page and never
+  /// see the gold card sitting above them. So we take them up to
+  /// it, once, the first time there is something to see.
+  void _somethingWaiting(bool waiting) {
+    if (!mounted) return;
+    setState(() => _waiting = waiting);
+    if (!waiting || _tookThemUp) return;
+    _tookThemUp = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      if (_scroll.offset < 80) return;
+      _scroll.animateTo(
+        0,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  void _toTop() {
+    if (!_scroll.hasClients) return;
+    _scroll.animateTo(
+      0,
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   int get _startingPrice => _categories.isEmpty
       ? 999
       : _categories
@@ -93,14 +136,26 @@ class _WishScreenState extends State<WishScreen> {
         color: IvoryColors.burgundy,
         backgroundColor: IvoryColors.surface,
         onRefresh: _load,
-        child: ListView(
+        child: Stack(
+          children: <Widget>[
+            NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification n) {
+                final bool away = _scroll.hasClients && _scroll.offset > 260;
+                if (away != _scrolledAway) {
+                  setState(() => _scrolledAway = away);
+                }
+                return false;
+              },
+              child: ListView(
+          controller: _scroll,
           padding: const EdgeInsets.fromLTRB(16, 18, 16, 40),
           children: <Widget>[
             // A member arriving from "Your call is confirmed" must
             // see the thing they were told about, not the same page
             // as always. This answers the question before it is
             // asked, and disappears once the time is chosen.
-            const WishCallBanner(),
+            WishCallBanner(onSomethingWaiting: _somethingWaiting),
+            const MembershipCallGuide(),
             _hero(),
             const SizedBox(height: 24),
             Text(
@@ -137,8 +192,16 @@ class _WishScreenState extends State<WishScreen> {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 12),
-              ..._mine.map(_wishStatusCard),
+              ..._mine.map((Wish w) => wishStatusCard(w, mode: _mode)),
             ],
+          ],
+              ),
+            ),
+            // They may still be deep in the page when something
+            // lands. This sits above everything and takes them
+            // straight to it.
+            if (_waiting && _scrolledAway)
+              WaitingPill(onTap: _toTop),
           ],
         ),
       ),
@@ -368,79 +431,6 @@ class _WishScreenState extends State<WishScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _wishStatusCard(Wish w) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: IvoryTheme.card(radius: 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    w.title,
-                    style: const TextStyle(
-                      color: IvoryColors.burgundy,
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    gradient: IvoryColors.goldGradient,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    w.statusLabel.toUpperCase(),
-                    style: const TextStyle(
-                      color: IvoryColors.burgundy,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 7),
-            Text(
-              '${w.categoryName} · ₹${w.budgetInr}',
-              style: TextStyle(
-                color: IvoryColors.textFaint,
-                fontSize: 12.5,
-              ),
-            ),
-            if (w.adminReply != null && w.adminReply!.trim().isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(
-                w.adminReply!,
-                style: TextStyle(
-                  color: IvoryColors.textSoft,
-                  fontSize: 13.5,
-                  height: 1.45,
-                ),
-              ),
-            ],
-            if (w.status == 'accepted' && _mode == 'razorpay') ...<Widget>[
-              const SizedBox(height: 12),
-              RazorpayPayPanel(
-                purpose: 'custom_request',
-                customRequestId: w.id,
-                label: w.title,
-              ),
-            ],
-          ],
         ),
       ),
     );
