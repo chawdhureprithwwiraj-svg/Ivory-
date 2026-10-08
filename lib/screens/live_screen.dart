@@ -17,7 +17,7 @@ import '../widgets/gift_moment.dart';
 import '../widgets/call_extension_prompt.dart';
 import '../widgets/live_chat.dart';
 import '../widgets/live_stage_bits.dart';
-import '../widgets/call_more_time.dart';
+import '../widgets/call_owner_controls.dart';
 import '../widgets/call_offer_layer.dart';
 
 /// ============================================================
@@ -90,6 +90,10 @@ class _LiveScreenState extends State<LiveScreen> {
 
   /// Set once, so leaving twice cannot write the clock twice.
   bool _wroteExit = false;
+
+  /// Loudspeaker on an audio call. Starts on, which is how it has
+  /// always behaved; the button is there to put it to the ear.
+  bool _speaker = true;
 
   bool get _isOwner => AuthService.instance.isAdminCached;
 
@@ -465,6 +469,22 @@ class _LiveScreenState extends State<LiveScreen> {
                 await _engine?.muteLocalAudioStream(!_micOn);
               },
             ),
+          // An audio session is held against the ear or across a
+          // room, and nothing on screen let them choose. A video
+          // call is already loudspeaker by its nature.
+          if (_publishes && !widget.videoEnabled) ...<Widget>[
+            const SizedBox(width: 14),
+            LiveRoundButton(
+              icon: _speaker
+                  ? Icons.volume_up_rounded
+                  : Icons.hearing_rounded,
+              active: _speaker,
+              onTap: () async {
+                setState(() => _speaker = !_speaker);
+                await _engine?.setEnableSpeakerphone(_speaker);
+              },
+            ),
+          ],
           if (_publishes && widget.videoEnabled) ...<Widget>[
             const SizedBox(width: 14),
             LiveRoundButton(
@@ -495,37 +515,15 @@ class _LiveScreenState extends State<LiveScreen> {
             label: widget.mode == LiveMode.call ? 'LEAVE' : null,
             onTap: () => Navigator.of(context).maybePop(),
           ),
-          if (widget.mode == LiveMode.call && _isOwner) ...<Widget>[
-            const SizedBox(width: 14),
-            LiveRoundButton(
-              icon: Icons.more_time_rounded,
-              active: true,
-              label: 'MORE TIME',
-              onTap: () async {
-                final bool sent = await showOfferMoreTime(
-                  context,
-                  callId: widget.sessionId,
-                  premium: widget.subtitle?.toLowerCase()
-                          .contains('premium') ??
-                      false,
-                );
-                if (sent && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Sent. It is on their screen now.'),
-                    ),
-                  );
-                }
-              },
+          if (widget.mode == LiveMode.call && _isOwner)
+            CallOwnerControls(
+              callId: widget.sessionId,
+              premium: widget.subtitle
+                      ?.toLowerCase()
+                      .contains('premium') ??
+                  false,
+              onEnd: _endSession,
             ),
-            const SizedBox(width: 14),
-            LiveRoundButton(
-              icon: Icons.stop_circle_outlined,
-              active: false,
-              label: 'END SESSION',
-              onTap: _endSession,
-            ),
-          ],
         ],
       ),
     );
