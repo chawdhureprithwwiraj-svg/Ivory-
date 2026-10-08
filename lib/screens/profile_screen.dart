@@ -8,6 +8,7 @@ import '../services/payment_service.dart';
 import '../services/notification_service.dart';
 import '../services/push_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/sessions_panel.dart';
 import '../widgets/member_pulse.dart';
 import '../widgets/premium_badge.dart';
 import '../widgets/report_sheet.dart';
@@ -259,6 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 14),
 
               // ---- shortcuts ----
+              SessionsCard(onOpenTab: widget.onOpenTab),
               _row(Icons.auto_awesome, 'Your wishes',
                   () => widget.onOpenTab?.call('wish')),
               _row(Icons.mail_outline, 'Sanctuary Inbox',
