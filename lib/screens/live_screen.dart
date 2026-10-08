@@ -15,6 +15,7 @@ import '../widgets/gift_sheet.dart';
 import '../widgets/gift_moment.dart';
 import '../widgets/call_extension_prompt.dart';
 import '../widgets/live_chat.dart';
+import '../widgets/live_stage_bits.dart';
 
 /// Edge and database errors arrive wrapped in transport noise.
 /// Keep only the sentence the house actually wrote.
@@ -85,12 +86,46 @@ class _LiveScreenState extends State<LiveScreen> {
   Duration _elapsed = Duration.zero;
   Timer? _timer;
 
+  /// Seconds this session had already used before this visit.
+  /// A mistap, an incoming phone call or a lost signal must not
+  /// hand anybody free minutes, nor steal paid ones.
+  int _spent = 0;
+
+  /// The other side has left the room, but the room is open.
+  bool _remoteLeft = false;
+
+  /// Set once, so leaving twice cannot write the clock twice.
+  bool _wroteExit = false;
+
+  bool get _isOwner => AuthService.instance.isAdminCached;
+
+  static const String _roomOpenNote =
+      'They have stepped out. The room is still open - stay here '
+      'and they can come straight back.';
+
   bool get _publishes =>
       widget.mode == LiveMode.host || widget.mode == LiveMode.call;
 
   @override
   void initState() {
     super.initState();
+    if (widget.mode == LiveMode.call) {
+      // A call lives in call_requests, not live_sessions. Watching
+      // the wrong table is what left a member on a frozen frame.
+      _statusChannel = LiveService.instance.watchCall(
+        widget.sessionId,
+        (String st, bool ended) {
+          if ((ended || st == 'done') && mounted && !_ended) {
+            setState(() => _ended = true);
+            Future<void>.delayed(const Duration(seconds: 4), () {
+              if (mounted) Navigator.of(context).pop();
+            });
+          }
+        },
+      );
+      _boot();
+      return;
+    }
     _statusChannel = LiveService.instance.watchStatus(
       widget.sessionId,
       (String st) {
@@ -114,6 +149,13 @@ class _LiveScreenState extends State<LiveScreen> {
       final bool ok = await askBetweenUs(context);
       if (!ok) {
         if (mounted) Navigator.of(context).pop();
+        return;
+      }
+      try {
+        _spent = await LiveService.instance.callEnter(widget.sessionId);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _error = _cleanErr(e));
         return;
       }
     }
@@ -170,6 +212,7 @@ class _LiveScreenState extends State<LiveScreen> {
           if (!mounted) return;
           setState(() {
             _remoteUid = uid;
+            _remoteLeft = false;
             _status = '';
           });
         },
@@ -177,9 +220,14 @@ class _LiveScreenState extends State<LiveScreen> {
           if (!mounted) return;
           setState(() {
             if (_remoteUid == uid) _remoteUid = null;
-            _status = widget.mode == LiveMode.host
-                ? 'You are on air'
-                : 'The stream has paused.';
+            if (widget.mode == LiveMode.call) {
+              _remoteLeft = true;
+              _status = _roomOpenNote;
+            } else {
+              _status = widget.mode == LiveMode.host
+                  ? 'You are on air'
+                  : 'The stream has paused.';
+            }
           });
         },
         onError: (ErrorCodeType code, String msg) {
@@ -247,10 +295,14 @@ class _LiveScreenState extends State<LiveScreen> {
     if (widget.mode == LiveMode.watch) {
       await LiveService.instance.leaveLive(widget.sessionId);
     }
-    // The call ends only if the two of them actually spoke - an
-    // early bounce must never close the session.
-    if (widget.mode == LiveMode.call && _joined && _remoteUid != null) {
-      await LiveService.instance.endCall(widget.sessionId);
+    // LEAVING IS NOT ENDING. A mistap, a lost signal or a phone
+    // call coming in must never destroy minutes that were paid
+    // for. The session closes only when the minutes are gone or
+    // the owner taps END SESSION.
+    if (widget.mode == LiveMode.call && !_wroteExit) {
+      _wroteExit = true;
+      await LiveService.instance
+          .callExit(widget.sessionId, _total.inSeconds);
     }
   }
 
@@ -262,9 +314,12 @@ class _LiveScreenState extends State<LiveScreen> {
     super.dispose();
   }
 
+  /// Everything this session has used, including earlier visits.
+  Duration get _total => _elapsed + Duration(seconds: _spent);
+
   String get _clock {
-    final int m = _elapsed.inMinutes;
-    final String s = (_elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    final int m = _total.inMinutes;
+    final String s = (_total.inSeconds % 60).toString().padLeft(2, '0');
     return '$m:$s';
   }
 
@@ -313,87 +368,60 @@ class _LiveScreenState extends State<LiveScreen> {
 
   // ---------------------------------------------------------------
   Widget _bar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
-      child: Row(
-        children: <Widget>[
-          if (_joined && _error == null) ...<Widget>[
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-              decoration: BoxDecoration(
-                gradient: IvoryColors.goldGradient,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                widget.mode == LiveMode.call ? _clock : 'LIVE  $_clock',
-                style: const TextStyle(
-                  color: IvoryColors.burgundy,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.1,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-          ],
-          if (_joined && _error == null &&
-              widget.mode != LiveMode.host) ...<Widget>[
-            IconButton(
-              tooltip: 'Send a gift',
-              padding: EdgeInsets.zero,
-              icon: const Text('💌', style: TextStyle(fontSize: 18)),
-              onPressed: () =>
-                  showGiftSheet(context, sessionId: widget.sessionId),
-            ),
-            const SizedBox(width: 2),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                  widget.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: IvoryColors.ivory,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                if (widget.mode == LiveMode.host && _joined)
-                  Text(
-                    'Only you see this count',
-                    style: TextStyle(
-                      color: IvoryColors.cream.withValues(alpha: 0.6),
-                      fontSize: 11,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: const Icon(Icons.close_rounded, color: IvoryColors.ivory),
-          ),
-        ],
-      ),
+    final bool live = _joined && _error == null;
+    return LiveTopBar(
+      title: widget.title,
+      clock: _clock,
+      showClock: live,
+      clockPrefix: widget.mode == LiveMode.call ? '' : 'LIVE  ',
+      note: widget.mode == LiveMode.host && _joined
+          ? 'Only you see this count'
+          : null,
+      onGift: live && widget.mode != LiveMode.host
+          ? () => showGiftSheet(context, sessionId: widget.sessionId)
+          : null,
+      onClose: () => Navigator.of(context).maybePop(),
     );
+  }
+
+  /// END SESSION. The only thing in Ivory that truly closes a
+  /// call. Always asks first, because it cannot be undone.
+  Future<void> _endSession() async {
+    final bool sure = await confirmEndSession(context);
+    if (!sure || !mounted) return;
+    try {
+      if (widget.mode == LiveMode.call && !_wroteExit) {
+        _wroteExit = true;
+        await LiveService.instance
+            .callExit(widget.sessionId, _total.inSeconds);
+      }
+      await LiveService.instance.callFinish(widget.sessionId);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = _cleanErr(e));
+      return;
+    }
+    if (mounted) Navigator.of(context).pop();
   }
 
   Widget _stage() {
     if (_ended)
-      return _message('The broadcast has ended. Thank you for being here.');
-    if (_error != null) return _message(_error!, isError: true);
+      return LiveMessage(widget.mode == LiveMode.call
+          ? 'The session has ended. Thank you for your time.'
+          : 'The broadcast has ended. Thank you for being here.');
+    if (_error != null) return LiveMessage(_error!, isError: true);
 
     final RtcEngine? engine = _engine;
-    if (engine == null || !_joined) return _message(_status);
+    if (engine == null || !_joined) return LiveMessage(_status);
 
     // Audio only: a warm panel, not a black rectangle.
     if (!widget.videoEnabled) {
-      return _audioStage();
+      return LiveAudioStage(
+        heading: _remoteUid == null
+            ? (_remoteLeft ? 'They stepped out' : 'Connecting...')
+            : 'Connected',
+        subtitle: _remoteLeft ? _roomOpenNote : widget.subtitle,
+      );
     }
 
     // Watching: the host's feed. Hosting: your own camera.
@@ -415,7 +443,7 @@ class _LiveScreenState extends State<LiveScreen> {
                 ),
               ));
 
-    if (video == null) return _message(_status);
+    if (video == null) return LiveMessage(_status);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -454,76 +482,6 @@ class _LiveScreenState extends State<LiveScreen> {
     );
   }
 
-  Widget _audioStage() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 26),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Container(
-            width: 132,
-            height: 132,
-            decoration: BoxDecoration(
-              gradient: IvoryColors.goldGradient,
-              shape: BoxShape.circle,
-              boxShadow: IvoryTheme.softShadow(blur: 26, y: 10),
-            ),
-            child: const Icon(Icons.graphic_eq_rounded,
-                color: IvoryColors.burgundy, size: 58),
-          ),
-          const SizedBox(height: 22),
-          Text(
-            _remoteUid == null ? 'Connecting...' : 'Connected',
-            style: const TextStyle(
-              color: IvoryColors.ivory,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          if (widget.subtitle != null) ...<Widget>[
-            const SizedBox(height: 8),
-            Text(
-              widget.subtitle!,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: IvoryColors.cream.withValues(alpha: 0.8),
-                fontSize: 13.5,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _message(String text, {bool isError = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          if (!isError)
-            const CircularProgressIndicator(
-                color: IvoryColors.gold, strokeWidth: 2.4)
-          else
-            const Icon(Icons.info_outline_rounded,
-                color: IvoryColors.gold, size: 40),
-          const SizedBox(height: 18),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: IvoryColors.cream.withValues(alpha: 0.92),
-              fontSize: 14.5,
-              height: 1.55,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _controls() {
     if (_error != null || !_joined) {
       return const SizedBox(height: 28);
@@ -534,7 +492,7 @@ class _LiveScreenState extends State<LiveScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           if (_publishes)
-            _round(
+            LiveRoundButton(
               icon: _micOn ? Icons.mic_rounded : Icons.mic_off_rounded,
               active: _micOn,
               onTap: () async {
@@ -544,7 +502,7 @@ class _LiveScreenState extends State<LiveScreen> {
             ),
           if (_publishes && widget.videoEnabled) ...<Widget>[
             const SizedBox(width: 14),
-            _round(
+            LiveRoundButton(
               icon: _camOn
                   ? Icons.videocam_rounded
                   : Icons.videocam_off_rounded,
@@ -555,7 +513,7 @@ class _LiveScreenState extends State<LiveScreen> {
               },
             ),
             const SizedBox(width: 14),
-            _round(
+            LiveRoundButton(
               icon: Icons.cameraswitch_rounded,
               active: true,
               onTap: () async {
@@ -565,46 +523,27 @@ class _LiveScreenState extends State<LiveScreen> {
             ),
           ],
           const SizedBox(width: 14),
-          _round(
+          LiveRoundButton(
             icon: Icons.call_end_rounded,
             active: true,
             danger: true,
+            label: widget.mode == LiveMode.call ? 'LEAVE' : null,
             onTap: () => Navigator.of(context).maybePop(),
           ),
+          if (widget.mode == LiveMode.call && _isOwner) ...<Widget>[
+            const SizedBox(width: 14),
+            LiveRoundButton(
+              icon: Icons.stop_circle_outlined,
+              active: false,
+              label: 'END SESSION',
+              onTap: _endSession,
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _round({
-    required IconData icon,
-    required bool active,
-    required VoidCallback onTap,
-    bool danger = false,
-  }) {
-    return InkWell(
-      customBorder: const CircleBorder(),
-      onTap: onTap,
-      child: Container(
-        width: 54,
-        height: 54,
-        decoration: BoxDecoration(
-          gradient: danger ? null : IvoryColors.goldGradient,
-          color: danger ? IvoryColors.plum : null,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: active ? IvoryColors.gold : IvoryColors.cream,
-            width: active ? 0 : 1.4,
-          ),
-        ),
-        child: Icon(
-          icon,
-          color: danger ? IvoryColors.cream : IvoryColors.burgundy,
-          size: 25,
-        ),
-      ),
-    );
-  }
 }
 
 // END OF FILE - lib/screens/live_screen.dart
