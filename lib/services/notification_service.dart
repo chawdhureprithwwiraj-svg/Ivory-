@@ -17,6 +17,13 @@ class NotificationService {
   /// Rebuilds any widget wrapped in a ValueListenableBuilder.
   final ValueNotifier<int> unreadCount = ValueNotifier<int>(0);
 
+  /// Bumped whenever the inbox itself has changed. The badge had a
+  /// live count while the LIST underneath it sat still until it was
+  /// pulled down by hand - a number with nothing behind it. Any
+  /// screen showing notifications should listen to this and reload
+  /// quietly, and must removeListener in dispose.
+  final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
   RealtimeChannel? _channel;
 
   /// Call once after sign-in.
@@ -29,7 +36,10 @@ class NotificationService {
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'notifications',
-          callback: (PostgresChangePayload _) => refreshUnread(),
+          callback: (PostgresChangePayload _) async {
+            await refreshUnread();
+            revision.value = revision.value + 1;
+          },
         )
         .subscribe();
   }
