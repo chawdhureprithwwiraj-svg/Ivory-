@@ -144,8 +144,10 @@ Future<void> bookCallSlot(
   }
   if (chosen.isBefore(
       DateTime.now().add(Duration(hours: _noticeHours)))) {
-    say('Please choose a time at least $_noticeHours hours from now, '
-        'so Ivory can prepare for you.');
+    say(_noticeHours <= 0
+        ? 'Please choose a time later than right now.'
+        : 'Please choose a time at least $_noticeHours hours from '
+            'now, so Ivory can prepare for you.');
     return;
   }
 
