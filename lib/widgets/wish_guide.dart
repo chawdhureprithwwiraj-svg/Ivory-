@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
 
+/// THE SHARED PIECES OF THE INSTRUCTIONS.
+///
+/// The instructions themselves live in ONE place -
+/// `SessionGuideSheet` in sessions_panel.dart. What is here is
+/// only the furniture: a numbered step, a list of them, and the
+/// pill that carries a member back to the top of a page.
+///
 /// PLAIN INSTRUCTIONS, IN PLAIN WORDS.
 ///
 /// A member cannot ask Ivory a question. There is no chat, no
@@ -70,173 +77,6 @@ class WishStepList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: rows,
-    );
-  }
-}
-
-/// The exact steps for a session that already has a day and time.
-/// This is the one a member reads while they are waiting.
-List<WishStep> sessionDaySteps({
-  required bool isVideo,
-  required String whenLabel,
-}) {
-  final String tap = isVideo ? 'Request a live session' : 'Talk to me on a call';
-  return <WishStep>[
-    WishStep('Your time is $whenLabel. Put it in your phone '
-        'alarm now so you do not have to remember it.'),
-    const WishStep('On the day, open Ivory about five minutes '
-        'early. Nobody calls your phone - you come here.'),
-    WishStep('Tap the Wish button at the bottom, then tap '
-        '"$tap".'),
-    const WishStep('You will see a JOIN button. Tap it. If it '
-        'tells you it is too early, that is fine - close it, '
-        'wait a few minutes and tap JOIN again.'),
-    const WishStep('Once you are in, just wait. Ivory comes in '
-        'from her side. The screen tells you the moment she '
-        'arrives.'),
-    const WishStep('Keep the app open while you wait. If you '
-        'leave by accident, come straight back and tap JOIN '
-        'again - your place is still held.'),
-  ];
-}
-
-/// A gold-bordered panel of instructions. Collapsed by default so
-/// it never buries the page, but the heading makes it obvious what
-/// is inside.
-class WishGuidePanel extends StatefulWidget {
-  const WishGuidePanel({
-    super.key,
-    required this.title,
-    required this.steps,
-    this.intro,
-    this.closing,
-  });
-
-  final String title;
-  final String? intro;
-  final String? closing;
-  final List<WishStep> steps;
-
-  @override
-  State<WishGuidePanel> createState() => _WishGuidePanelState();
-}
-
-class _WishGuidePanelState extends State<WishGuidePanel> {
-  // ALWAYS CLOSED ON ARRIVAL. The Wish page belongs to the
-  // burgundy card, not to a wall of instructions. This is one
-  // slim line until somebody actually wants it.
-  bool _open = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(13, 9, 11, 9),
-      decoration: BoxDecoration(
-        color: IvoryColors.surfaceWarm,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: IvoryColors.gold, width: 1.2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          InkWell(
-            onTap: () => setState(() => _open = !_open),
-            child: Row(
-              children: <Widget>[
-                Icon(Icons.menu_book_rounded,
-                    size: 15, color: IvoryColors.amber),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    widget.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      color: IvoryColors.burgundy,
-                    ),
-                  ),
-                ),
-                Icon(
-                  _open
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  size: 20,
-                  color: IvoryColors.plum,
-                ),
-              ],
-            ),
-          ),
-          if (_open) ...<Widget>[
-            const SizedBox(height: 13),
-            if (widget.intro != null) ...<Widget>[
-              Text(
-                widget.intro!,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  height: 1.5,
-                  color: IvoryColors.textSoft,
-                ),
-              ),
-              const SizedBox(height: 13),
-            ],
-            WishStepList(steps: widget.steps),
-            if (widget.closing != null) ...<Widget>[
-              const SizedBox(height: 13),
-              Text(
-                widget.closing!,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  fontStyle: FontStyle.italic,
-                  color: IvoryColors.plum,
-                ),
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// THE MEMBERSHIP GUIDE. Shown to anybody whose membership
-/// includes sessions, because otherwise they have no idea the
-/// sessions are theirs or where they live.
-class MembershipCallGuide extends StatelessWidget {
-  const MembershipCallGuide({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return WishGuidePanel(
-      title: 'How a session with Ivory works',
-      intro: 'Everything happens inside this app. There is '
-          'nothing to book anywhere else and no number to call. '
-          'If your membership includes sessions, they are '
-          'already waiting for you here.',
-      steps: const <WishStep>[
-        WishStep('You are on the right page. The Wish button at '
-            'the bottom of the screen is where every session '
-            'lives.'),
-        WishStep('Tap "Request a live session" to see Ivory, or '
-            '"Talk to me on a call" to only hear her.'),
-        WishStep('The gold box at the top of that page shows how '
-            'much time your membership gives you and how much is '
-            'still left.'),
-        WishStep('Tap the button to ask for a session. Ivory is '
-            'told straight away.'),
-        WishStep('When she says yes, a gold card appears at the '
-            'top of this page. That card is how you know.'),
-        WishStep('Tap PICK YOUR TIME on that card and choose a '
-            'day and a time that suits you.'),
-        WishStep('Come back here on the day, a few minutes '
-            'early, and tap JOIN. That is all there is to it.'),
-      ],
-      closing: 'If anything ever looks unclear, come back to '
-          'this page. Whatever is happening is always shown at '
-          'the top.',
     );
   }
 }
