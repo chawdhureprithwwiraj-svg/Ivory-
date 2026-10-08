@@ -407,7 +407,9 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
               ],
             ),
           ],
-          if (c.status == 'active' && !c.extensionPaid) ...<Widget>[
+          if (c.status == 'active' &&
+              c.requestedFor != null &&
+              !c.extensionPaid) ...<Widget>[
             const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: () => _offerExtension(c),
@@ -437,7 +439,9 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
                 Expanded(
                   child: IvoryGradientButton(
                     label: 'JOIN',
-                    icon: Icons.videocam_rounded,
+                    icon: c.kind == 'audio'
+                        ? Icons.phone_in_talk_rounded
+                        : Icons.videocam_rounded,
                     onPressed: () => _join(c),
                   ),
                 ),
@@ -462,8 +466,10 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
         bg = IvoryColors.gold;
         break;
       case 'active':
-        text = 'IN THE ROOM';
-        bg = IvoryColors.gold;
+        // A session with no agreed time was never really entered -
+        // it is a leftover. Saying IN THE ROOM about it is a lie.
+        text = c.requestedFor == null ? 'LEFT OPEN' : 'IN THE ROOM';
+        bg = c.requestedFor == null ? IvoryColors.amber : IvoryColors.gold;
         break;
       case 'completed':
         text = 'DONE';
