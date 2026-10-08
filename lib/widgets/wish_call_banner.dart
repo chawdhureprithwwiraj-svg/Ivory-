@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../core/ivory_errors.dart';
 import '../models/live_models.dart';
 import '../models/wish.dart';
 import '../services/live_service.dart';
@@ -92,19 +91,6 @@ class _WishCallBannerState extends State<WishCallBanner> {
     );
   }
 
-  Future<void> _withdraw(CallRequest c) async {
-    try {
-      await LiveService.instance.cancelMyCall(c.id);
-      if (!mounted) return;
-      setState(() => _message = 'Withdrawn. Ask again whenever '
-          'you like.');
-      await _load();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _message = houseMessage(e));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_calls.isEmpty && _wishes.isEmpty) {
@@ -174,8 +160,6 @@ class _WishCallBannerState extends State<WishCallBanner> {
       onAction: needsTime ? () => _pick(c) : null,
       // Once a time exists, the only thing left they could get
       // wrong is the arriving. So we spell the arriving out.
-      onQuiet: () => _withdraw(c),
-      quietLabel: 'I have changed my mind - withdraw this',
       extra: needsTime
           ? null
           : WishGuidePanel(
@@ -237,8 +221,6 @@ class _WishCallBannerState extends State<WishCallBanner> {
     required IconData actionIcon,
     required VoidCallback? onAction,
     Widget? extra,
-    VoidCallback? onQuiet,
-    String? quietLabel,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -284,23 +266,6 @@ class _WishCallBannerState extends State<WishCallBanner> {
                 color: IvoryColors.textSoft,
               ),
             ),
-            if (onQuiet != null && quietLabel != null) ...<Widget>[
-              const SizedBox(height: 4),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: onQuiet,
-                  child: Text(
-                    quietLabel,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: IvoryColors.textFaint,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-              ),
-            ],
             if (extra != null) ...<Widget>[
               const SizedBox(height: 14),
               extra,
