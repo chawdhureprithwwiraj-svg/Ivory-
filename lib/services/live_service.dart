@@ -226,15 +226,6 @@ class LiveService {
   /// database is the only gate: four hours' notice, the noon
   /// to 3 am window, thirty days ahead. It returns the sentence
   /// to show, already written by the house.
-  /// A member withdrawing a session they asked for. Returns the
-  /// new status, or throws a house-voiced message.
-  Future<void> cancelMyCall(int callId) async {
-    await _db.rpc<dynamic>(
-      'member_cancel_call',
-      params: <String, dynamic>{'call_id_in': callId},
-    );
-  }
-
   Future<String> pickSlot(int callId, DateTime when) async {
     final dynamic res = await _db.rpc<dynamic>('member_pick_slot',
         params: <String, dynamic>{
