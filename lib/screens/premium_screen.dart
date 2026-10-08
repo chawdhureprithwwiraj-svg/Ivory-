@@ -333,7 +333,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'The open feed, polls and teasers. You are here now.',
+                  (_membership?.tierLevel ?? 0) > 0
+                      ? 'The open feed, polls and teasers.'
+                      : 'The open feed, polls and teasers. You are '
+                          'here now.',
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
