@@ -88,6 +88,32 @@ class CallRoomService {
         priceInr: 0, minutes: 30, offeredAt: null, paid: false);
   }
 
+  /// The house's scheduling rules, read from call_policy so
+  /// the member's booking sheet and the database can never
+  /// disagree. If the read fails the caller keeps its own
+  /// fallbacks - a member must never be blocked from booking
+  /// because a settings row was slow.
+  Future<CallHours?> hours() async {
+    try {
+      final List<dynamic> rows = await _db
+          .from('call_policy')
+          .select('min_notice_hours, open_from_hour, '
+              'open_to_hour, max_days_ahead')
+          .eq('id', 1)
+          .limit(1);
+      if (rows.isEmpty) return null;
+      final Map<String, dynamic> m = rows.first as Map<String, dynamic>;
+      return CallHours(
+        noticeHours: (m['min_notice_hours'] as num?)?.toInt(),
+        opensHour: (m['open_from_hour'] as num?)?.toInt(),
+        closesHour: (m['open_to_hour'] as num?)?.toInt(),
+        horizonDays: (m['max_days_ahead'] as num?)?.toInt(),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Listens to this one session for an offer appearing. This is
   /// the path that works when the member is looking at the
   /// screen; a handset notification is sent at the same moment
@@ -148,6 +174,23 @@ class CallOffer {
             (m['extension_offered_at'] as String?) ?? ''),
         paid: (m['extension_paid'] as bool?) ?? false,
       );
+}
+
+/// The four scheduling numbers the house keeps. Any of them
+/// may be null if the column is empty; the caller then keeps
+/// the value it already had.
+class CallHours {
+  const CallHours({
+    this.noticeHours,
+    this.opensHour,
+    this.closesHour,
+    this.horizonDays,
+  });
+
+  final int? noticeHours;
+  final int? opensHour;
+  final int? closesHour;
+  final int? horizonDays;
 }
 
 // END OF FILE - lib/services/call_room_service.dart
