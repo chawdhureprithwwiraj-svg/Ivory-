@@ -233,7 +233,7 @@ class _SessionsCardState extends State<SessionsCard> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (BuildContext sheetContext) => _GuideSheet(
+      builder: (BuildContext sheetContext) => SessionGuideSheet(
         included: _anyIncluded,
         onGo: () {
           Navigator.of(sheetContext).pop();
@@ -245,11 +245,35 @@ class _SessionsCardState extends State<SessionsCard> {
 }
 
 /// The whole explanation, in one place, only when asked for.
-class _GuideSheet extends StatelessWidget {
-  const _GuideSheet({required this.included, required this.onGo});
+/// THE ONE MANUAL. Every explanation of how a session works
+/// lives here and nowhere else. The Profile card opens it; the
+/// gold card on the Wish page opens the same sheet. Two doors,
+/// one room - so a member can never read the same thing twice in
+/// slightly different words.
+class SessionGuideSheet extends StatelessWidget {
+  const SessionGuideSheet({
+    super.key,
+    required this.included,
+    required this.onGo,
+  });
 
   final bool included;
   final VoidCallback onGo;
+
+  /// Open it from anywhere. [onGo] may be null when the member is
+  /// already on the Wish page - the button then simply closes.
+  static void open(BuildContext context,
+      {bool included = true, VoidCallback? onGo}) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext c) => SessionGuideSheet(
+        included: included,
+        onGo: onGo ?? () => Navigator.of(c).pop(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -347,7 +371,7 @@ class _GuideSheet extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onGo,
                 icon: const Icon(Icons.auto_awesome, size: 18),
-                label: const Text('TAKE ME THERE'),
+                label: const Text('THAT IS EVERYTHING'),
               ),
             ),
           ],
