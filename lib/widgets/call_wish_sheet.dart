@@ -124,7 +124,9 @@ class _CallWishSheetState extends State<CallWishSheet> {
       MaterialPageRoute<void>(
         builder: (_) => LiveScreen(
           sessionId: c.id,
-          title: widget.category.name,
+          // The member is not calling a product, they are calling a
+          // person. The house sees their name; they see hers.
+          title: 'Ivory',
           subtitle: '${c.minutes} minutes with me',
           mode: LiveMode.call,
           videoEnabled: c.isVideo,
