@@ -5,6 +5,7 @@ import '../services/wish_service.dart';
 import '../services/razorpay_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/wish_call_banner.dart';
+import '../services/auth_service.dart';
 import '../widgets/wish_guide.dart';
 import '../widgets/wish_status_card.dart';
 import '../widgets/call_wish_sheet.dart';
@@ -148,14 +149,19 @@ class _WishScreenState extends State<WishScreen> {
               },
               child: ListView(
           controller: _scroll,
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 40),
+          // Room at the foot for the navigation bar and the pill.
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 120),
           children: <Widget>[
             // A member arriving from "Your call is confirmed" must
             // see the thing they were told about, not the same page
             // as always. This answers the question before it is
             // asked, and disappears once the time is chosen.
-            WishCallBanner(onSomethingWaiting: _somethingWaiting),
-            const MembershipCallGuide(),
+            // The house does not need her own instructions, and
+            // her gold cards belong in the CALLS tab, not here.
+            if (!AuthService.instance.isAdminCached) ...<Widget>[
+              WishCallBanner(onSomethingWaiting: _somethingWaiting),
+              const MembershipCallGuide(),
+            ],
             _hero(),
             const SizedBox(height: 24),
             Text(
