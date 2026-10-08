@@ -7,6 +7,7 @@ import '../services/wish_service.dart';
 import '../theme/ivory_theme.dart';
 import 'call_book_flow.dart';
 import 'call_sheet_bits.dart';
+import 'wish_guide.dart';
 
 /// WHERE YOUR WISHES ARE.
 ///
@@ -27,7 +28,12 @@ import 'call_sheet_bits.dart';
 /// wrong, and it is not what the member needs at this moment. They
 /// need to know what is waiting and what to do about it.
 class WishCallBanner extends StatefulWidget {
-  const WishCallBanner({super.key});
+  const WishCallBanner({super.key, this.onSomethingWaiting});
+
+  /// Called with true the moment there is a card to show, so the
+  /// page above can take the member to the top of the screen.
+  /// Without it they sit where they left off and never see this.
+  final void Function(bool waiting)? onSomethingWaiting;
 
   @override
   State<WishCallBanner> createState() => _WishCallBannerState();
@@ -61,6 +67,8 @@ class _WishCallBannerState extends State<WishCallBanner> {
                 w.status == 'delivered')
             .toList();
       });
+      widget.onSomethingWaiting
+          ?.call(_calls.isNotEmpty || _wishes.isNotEmpty);
     } catch (_) {
       // Quiet. The page below is perfectly usable, and the strip
       // comes back on the next pull-to-refresh.
@@ -71,8 +79,13 @@ class _WishCallBannerState extends State<WishCallBanner> {
     await bookCallSlot(
       context,
       c,
+      // The cards below already say where everything stands, so a
+      // success line would only repeat them. Only a refusal, which
+      // nothing else on this page can show, is worth surfacing.
       say: (String m) {
-        if (mounted) setState(() => _message = m);
+        if (!mounted) return;
+        final bool good = m.contains('tap JOIN') || m.contains('is set');
+        setState(() => _message = good ? null : m);
       },
       reload: _load,
     );
@@ -145,6 +158,21 @@ class _WishCallBannerState extends State<WishCallBanner> {
       actionLabel: needsTime ? 'PICK YOUR TIME' : null,
       actionIcon: Icons.event_available_rounded,
       onAction: needsTime ? () => _pick(c) : null,
+      // Once a time exists, the only thing left they could get
+      // wrong is the arriving. So we spell the arriving out.
+      extra: needsTime
+          ? null
+          : WishGuidePanel(
+              title: 'What to do on the day - please read this',
+              openAtFirst: true,
+              steps: sessionDaySteps(
+                isVideo: c.isVideo,
+                whenLabel: ivoryWhen(c.requestedFor!),
+              ),
+              closing: 'Nothing can go wrong here. If you are '
+                  'early, late, or you lose the app for a '
+                  'moment, just come back and tap JOIN again.',
+            ),
     );
   }
 
@@ -180,6 +208,7 @@ class _WishCallBannerState extends State<WishCallBanner> {
       actionLabel: null,
       actionIcon: Icons.auto_awesome_rounded,
       onAction: null,
+      extra: null,
     );
   }
 
@@ -192,6 +221,7 @@ class _WishCallBannerState extends State<WishCallBanner> {
     required String? actionLabel,
     required IconData actionIcon,
     required VoidCallback? onAction,
+    Widget? extra,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -237,6 +267,10 @@ class _WishCallBannerState extends State<WishCallBanner> {
                 color: IvoryColors.textSoft,
               ),
             ),
+            if (extra != null) ...<Widget>[
+              const SizedBox(height: 14),
+              extra,
+            ],
             if (actionLabel != null && onAction != null) ...<Widget>[
               const SizedBox(height: 14),
               SizedBox(
@@ -256,3 +290,4 @@ class _WishCallBannerState extends State<WishCallBanner> {
 }
 
 // END OF FILE - lib/widgets/wish_call_banner.dart
+
