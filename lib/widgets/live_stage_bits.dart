@@ -1,3 +1,4 @@
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
@@ -291,6 +292,74 @@ Future<bool> confirmEndSession(BuildContext context) async {
     ),
   );
   return sure == true;
+}
+
+/// The video stage. A broadcast shares the screen with the chat
+/// rail so its frame is wider; a call keeps the full portrait
+/// stage. A landscape camera is letterboxed onto warm cream,
+/// never stretched and never onto black.
+class LiveVideoStage {
+  LiveVideoStage._();
+
+  static Widget? build({
+    required RtcEngine engine,
+    required bool selfView,
+    required int? remoteUid,
+    required String channel,
+    required bool portrait,
+    required bool pipSelf,
+  }) {
+    final Widget? video = selfView
+        ? AgoraVideoView(
+            controller: VideoViewController(
+              rtcEngine: engine,
+              canvas: const VideoCanvas(uid: 0),
+            ),
+          )
+        : (remoteUid == null
+            ? null
+            : AgoraVideoView(
+                controller: VideoViewController.remote(
+                  rtcEngine: engine,
+                  canvas: VideoCanvas(uid: remoteUid),
+                  connection: RtcConnection(channelId: channel),
+                ),
+              ));
+    if (video == null) return null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: AspectRatio(
+        aspectRatio: portrait ? 9 / 16 : 4 / 5,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              Container(color: IvoryColors.surfaceWarm),
+              video,
+              if (pipSelf)
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  width: 96,
+                  height: 96 * 16 / 9,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AgoraVideoView(
+                      controller: VideoViewController(
+                        rtcEngine: engine,
+                        canvas: const VideoCanvas(uid: 0),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // END OF FILE - lib/widgets/live_stage_bits.dart
