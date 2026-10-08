@@ -202,18 +202,41 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
       );
     }
 
-    final List<AdminCall> waiting =
-        _calls.where((AdminCall c) => c.status == 'requested').toList();
+    final List<AdminCall> waiting = _calls
+        .where((AdminCall c) => c.status == 'requested')
+        .toList()
+      // Oldest ask first - nobody should wait longer because
+      // somebody newer came along.
+      ..sort((AdminCall a, AdminCall b) => a.id.compareTo(b.id));
     final List<AdminCall> confirmed = _calls
         .where((AdminCall c) =>
             c.status == 'accepted' || c.status == 'active')
-        .toList();
+        .toList()
+      // SOONEST FIRST. The one you have to be ready for next
+      // belongs at the top; a session three weeks out does not.
+      // Anything with no time chosen sits below the dated ones,
+      // because there is nothing to be ready for yet.
+      ..sort((AdminCall a, AdminCall b) {
+        final DateTime? x = a.requestedFor;
+        final DateTime? y = b.requestedFor;
+        if (x == null && y == null) return b.id.compareTo(a.id);
+        if (x == null) return 1;
+        if (y == null) return -1;
+        return x.compareTo(y);
+      });
     final List<AdminCall> past = _calls
         .where((AdminCall c) =>
             c.status == 'completed' ||
             c.status == 'missed' ||
             c.status == 'declined')
-        .toList();
+        .toList()
+      // The most recently finished first - that is the one you
+      // are most likely to be looking for.
+      ..sort((AdminCall a, AdminCall b) {
+        final DateTime x = a.requestedFor ?? DateTime(1970);
+        final DateTime y = b.requestedFor ?? DateTime(1970);
+        return y.compareTo(x);
+      });
 
     return RefreshIndicator(
       color: IvoryColors.amber,
