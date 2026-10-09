@@ -426,7 +426,16 @@ class _CallWishSheetState extends State<CallWishSheet> {
                         fontWeight: FontWeight.w700,
                         color: IvoryColors.plum),
                   ),
-                if (c.canJoin && c.requestedFor != null)
+                if (c.status == 'active')
+                  Text(
+                    'This session is still open. Tap REJOIN to go '
+                    'straight back in - nothing is lost.',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: IvoryColors.plum),
+                  )
+                else if (c.canJoin && c.requestedFor != null)
                   Text(
                     c.windowEnd == null
                         ? 'Agreed for ${_when(c.requestedFor!)} - JOIN '
@@ -450,7 +459,10 @@ class _CallWishSheetState extends State<CallWishSheet> {
           else if (c.canJoin)
             TextButton(
               onPressed: () => _join(c),
-              child: const Text('JOIN'),
+              // A session already running means they were in it
+              // and dropped out. JOIN reads like starting over
+              // and makes people think they have lost it.
+              child: Text(c.status == 'active' ? 'REJOIN' : 'JOIN'),
             ),
         ],
       ),
@@ -464,24 +476,9 @@ class _CallWishSheetState extends State<CallWishSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _sectionLabel('How it works'),
-        const CallStep(
-          number: 1,
-          title: 'Ask for the session',
-          body: 'I am told straight away and confirm it from my side.',
-        ),
-        const CallStep(
-          number: 2,
-          title: 'You pick the time',
-          body: 'Once I confirm, choose your day and time right here in '
-              'Ivory. Nothing to book anywhere else.',
-        ),
-        const CallStep(
-          number: 3,
-          title: 'Come back to Ivory',
-          body: 'At your chosen time, open this sheet and tap JOIN. The '
-              'call happens here, never on another app.',
-        ),
+        // The three steps that used to sit here said the same
+        // thing as the manual on the Profile page, in slightly
+        // different words. One text, one place.
         const SizedBox(height: 18),
         if (canAskFree)
           IvoryGradientButton(
