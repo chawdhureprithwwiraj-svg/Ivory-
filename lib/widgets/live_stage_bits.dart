@@ -31,12 +31,36 @@ class PresenceWords {
   final String heading;
   final String? note;
 
+  /// WHO THE OTHER PERSON IS, IN WORDS.
+  ///
+  /// On a one-to-one session both handsets run the same screen,
+  /// so the side asking has to be told whether it is Ivory's own
+  /// phone. When it is, the other person is the member, and we
+  /// use the name already shown in the title bar rather than a
+  /// flat "They" - being spoken to by name is the whole point of
+  /// this room.
+  static String other(bool host, String? name) {
+    if (!host) return 'Ivory';
+    final String n = (name ?? '').trim();
+    return n.isEmpty ? 'They' : n;
+  }
+
+  /// "They have" but "Thea has" - the verb has to follow.
+  static String _has(String who) => who == 'They' ? 'have' : 'has';
+
+  /// "They are" but "Thea is".
+  static String _is(String who) => who == 'They' ? 'are' : 'is';
+
+  /// "Waiting for They" is not English. Only the bare pronoun
+  /// needs the swap; a real name reads correctly as it stands.
+  static String _forWhom(String who) => who == 'They' ? 'them' : who;
+
   /// Used by the live status line as well as the stage, so the
   /// two can never say different things about the same moment.
-  static String steppedOutNote(bool host) {
-    final String them = host ? 'They have' : 'Ivory has';
-    return '$them stepped out. The room is still open - stay '
-        'here and they can come straight back.';
+  static String steppedOutNote(bool host, [String? name]) {
+    final String them = other(host, name);
+    return '$them ${_has(them)} stepped out. The room is still '
+        'open - stay here and they can come straight back.';
   }
 
   factory PresenceWords.of({
@@ -44,23 +68,36 @@ class PresenceWords {
     required bool present,
     required bool left,
     String? subtitle,
+    String? name,
+    bool broadcast = false,
   }) {
-    final String them = host ? 'They' : 'Ivory';
+    // A BROADCAST HAS NOBODY TO WAIT FOR.
+    //
+    // Ivory opens the room and speaks; whoever is entitled walks
+    // in while she is already talking. Telling her she is
+    // "waiting for them" made the one surface that should feel
+    // confident read like a failed connection.
+    if (broadcast) {
+      return PresenceWords(
+        'You are on air',
+        'Your camera and microphone are open. Everyone who is '
+            'entitled can see and hear you from this moment.',
+      );
+    }
+
+    final String them = other(host, name);
 
     if (present) {
-      return PresenceWords(
-        host ? 'They are here' : 'Ivory is here',
-        subtitle,
-      );
+      return PresenceWords('$them ${_is(them)} here', subtitle);
     }
     if (left) {
       return PresenceWords(
-        '$them stepped out',
+        '$them ${_has(them)} stepped out',
         '$them may come straight back. Stay here.',
       );
     }
     return PresenceWords(
-      host ? 'Waiting for them' : 'Waiting for Ivory',
+      host ? 'Waiting for ${_forWhom(them)}' : 'Waiting for Ivory',
       host
           ? 'You are in. They will see that you are here the '
               'moment they come in.'
@@ -287,6 +324,36 @@ class LiveTopBar extends StatelessWidget {
   final VoidCallback? onGift;
   final String? note;
 
+  /// THE WHOLE TOP STRIP, DECIDED IN ONE PLACE.
+  ///
+  /// Which parts of the strip appear depends only on what kind
+  /// of room this is and whether it is still running, so the
+  /// decisions belong beside the thing being drawn rather than
+  /// scattered through the screen.
+  static Widget forRoom({
+    required String title,
+    required String clock,
+    required bool live,
+    required bool isCall,
+    required bool hosting,
+    required bool watching,
+    required VoidCallback onClose,
+    VoidCallback? onGift,
+  }) {
+    return LiveTopBar(
+      title: title,
+      clock: clock,
+      showClock: live,
+      clockPrefix: isCall ? '' : 'LIVE  ',
+      note: hosting && live ? 'Only you see this count' : null,
+      // Gifts belong to a broadcast, where the room is watching
+      // together. In a one-to-one session they were only ever
+      // decoration, and they did nothing when tapped.
+      onGift: live && watching ? onGift : null,
+      onClose: onClose,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -392,6 +459,25 @@ Future<bool> confirmEndSession(BuildContext context) async {
 /// never stretched and never onto black.
 class LiveVideoStage {
   LiveVideoStage._();
+
+  /// HER OWN PICTURE WHILE SHE IS BROADCASTING.
+  ///
+  /// A broadcast audience never publishes, so the host has no
+  /// remote picture and never will. Her stage is her own camera
+  /// and depends on nobody else being in the room.
+  static Widget? hostSelf({
+    required RtcEngine engine,
+    required String channel,
+  }) {
+    return build(
+      engine: engine,
+      selfView: true,
+      remoteUid: null,
+      channel: channel,
+      portrait: false,
+      pipSelf: false,
+    );
+  }
 
   static Widget? build({
     required RtcEngine engine,
