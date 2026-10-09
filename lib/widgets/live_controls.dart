@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/ivory_theme.dart';
 import 'call_owner_controls.dart';
 import 'live_stage_bits.dart';
 
@@ -105,12 +106,29 @@ class LiveControls extends StatelessWidget {
             label: isCall ? 'LEAVE' : null,
             onTap: onLeave,
           ),
-          if (isCall && isOwner)
+          // KEEPING THE TWO EXITS APART.
+          //
+          // LEAVE keeps the room open; END SESSION closes it for
+          // both people and cannot be undone. They were sitting
+          // shoulder to shoulder, the same shape and the same
+          // warm colour, which is how a thumb makes the one
+          // mistake this screen cannot forgive. A hairline and
+          // real space now separate Ivory's two owner buttons
+          // from the way out that everybody shares.
+          if (isCall && isOwner) ...<Widget>[
+            const SizedBox(width: 13),
+            Container(
+              width: 1,
+              height: 36,
+              color: IvoryColors.cream.withValues(alpha: 0.3),
+            ),
+            const SizedBox(width: 13),
             CallOwnerControls(
               callId: callId,
               premium: premium,
               onEnd: onEnd,
             ),
+          ],
         ],
       ),
     );
