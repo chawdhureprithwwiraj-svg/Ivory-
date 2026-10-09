@@ -29,6 +29,17 @@ class CallAllowanceCard extends StatelessWidget {
   final int minutes;
   final int priceInr;
 
+  /// Came across with the card. It was left behind in
+  /// call_wish_sheet.dart by the lift in sprint 27c, which is
+  /// what broke that build.
+  String _dmy(DateTime d) {
+    const List<String> m = <String>[
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${d.day} ${m[d.month - 1]} ${d.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool included = balance.isIncluded;
