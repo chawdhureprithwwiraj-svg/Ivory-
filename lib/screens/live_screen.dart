@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/ivory_errors.dart';
@@ -14,7 +13,6 @@ import '../theme/ivory_theme.dart';
 import '../widgets/house_consent.dart';
 import '../widgets/gift_sheet.dart';
 import '../widgets/gift_moment.dart';
-import '../widgets/call_extension_prompt.dart';
 import '../widgets/live_chat.dart';
 import '../widgets/call_time_watch.dart';
 import '../widgets/live_controls.dart';
@@ -48,6 +46,7 @@ class LiveScreen extends StatefulWidget {
     this.mode = LiveMode.watch,
     this.videoEnabled = true,
     this.subtitle,
+    this.startedAt,
   });
 
   final int sessionId;
@@ -57,6 +56,11 @@ class LiveScreen extends StatefulWidget {
   /// False for an audio-only call: no camera is ever opened.
   final bool videoEnabled;
   final String? subtitle;
+
+  /// When the broadcast opened, as the database stamped it.
+  /// Handed to every handset so every clock agrees. Null on a
+  /// session, which counts from connection instead.
+  final DateTime? startedAt;
 
   @override
   State<LiveScreen> createState() => _LiveScreenState();
@@ -83,13 +87,10 @@ class _LiveScreenState extends State<LiveScreen> {
   /// else - the call carries on exactly as before.
   bool _timeUp = false;
 
-  Duration _elapsed = Duration.zero;
+  /// Counts from one shared moment, not from this handset's
+  /// own arrival, so both screens agree. See RoomClock.
+  final RoomClock _clk = RoomClock();
   Timer? _timer;
-
-  /// Seconds this session had already used before this visit.
-  /// A mistap, an incoming phone call or a lost signal must not
-  /// hand anybody free minutes, nor steal paid ones.
-  int _spent = 0;
 
   /// The other side has left the room, but the room is open.
   bool _remoteLeft = false;
@@ -169,7 +170,7 @@ class _LiveScreenState extends State<LiveScreen> {
         return;
       }
       try {
-        _spent = await LiveService.instance.callEnter(widget.sessionId);
+        _clk.prior = await LiveService.instance.callEnter(widget.sessionId);
       } catch (e) {
         if (!mounted) return;
         setState(() => _error = houseMessage(e));
@@ -178,23 +179,12 @@ class _LiveScreenState extends State<LiveScreen> {
     }
     try {
       // 1. Permissions. Audio-only never asks for the camera.
-      final List<Permission> needed = <Permission>[
-        if (_publishes) Permission.microphone,
-        if (_publishes && widget.videoEnabled) Permission.camera,
-      ];
-      if (needed.isNotEmpty) {
-        setState(() => _status = 'Checking permissions...');
-        final Map<Permission, PermissionStatus> granted =
-            await needed.request();
-        final bool ok =
-            granted.values.every((PermissionStatus s) => s.isGranted);
-        if (!ok) {
-          setState(() => _error =
-              'Ivory needs the microphone'
-              '${widget.videoEnabled ? ' and camera' : ''} to take part. '
-              'You can allow it in Settings and come back.');
-          return;
-        }
+      setState(() => _status = 'Checking permissions...');
+      final String? refused = await RoomEntry.permissions(
+          publishes: _publishes, video: widget.videoEnabled);
+      if (refused != null) {
+        setState(() => _error = refused);
+        return;
       }
 
       // 2. The signed ticket. Every entitlement check happens here.
@@ -203,6 +193,13 @@ class _LiveScreenState extends State<LiveScreen> {
           ? await LiveService.instance.joinCall(widget.sessionId)
           : await LiveService.instance.joinLive(widget.sessionId);
       _ticket = ticket;
+
+      // The ticket is what stamps the session as begun, so the
+      // one true moment exists from here on. Ask for it before
+      // the camera opens. See RoomClock.anchorFromDatabase.
+      if (widget.mode == LiveMode.call) {
+        await _clk.anchorFromDatabase(widget.sessionId);
+      }
 
       // 3. The engine.
       final RtcEngine engine = createAgoraRtcEngine();
@@ -222,6 +219,11 @@ class _LiveScreenState extends State<LiveScreen> {
             _status = widget.mode == LiveMode.host
                 ? 'You are on air'
                 : 'Waiting for the stream...';
+            // A broadcast counts from when it opened - the one
+            // moment every handset is handed. See RoomClock.
+            if (widget.mode != LiveMode.call) {
+              _clk.startAt(widget.startedAt ?? DateTime.now());
+            }
           });
           _startClock();
         },
@@ -231,6 +233,11 @@ class _LiveScreenState extends State<LiveScreen> {
             _remoteUid = uid;
             _remoteLeft = false;
             _status = '';
+            // A session counts from connection, so whoever
+            // arrived first is not charged for waiting.
+            if (widget.mode == LiveMode.call) {
+              _clk.startAt(DateTime.now());
+            }
           });
         },
         onUserOffline: (RtcConnection _, int uid, UserOfflineReasonType __) {
@@ -290,19 +297,23 @@ class _LiveScreenState extends State<LiveScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() => _elapsed += const Duration(seconds: 1));
+      setState(() {});
       _extTick++;
-      if (widget.mode == LiveMode.call && _joined && !_timeUp &&
-          _extTick % 60 == 0) {
-        CallTimeWatch.isOver(widget.sessionId, _total).then((bool over) {
-          if (mounted && over) setState(() => _timeUp = true);
-        });
-      }
-      if (widget.mode == LiveMode.call && !_extShown && _joined &&
-          _remoteUid != null && _extTick % 15 == 0) {
-        CallExtensionPrompt.tick(context, callId: widget.sessionId,
-            elapsed: _elapsed, onShown: () => _extShown = true);
-      }
+      if (widget.mode != LiveMode.call || !_joined) return;
+      RoomDuties.tick(
+        context: context,
+        tick: _extTick,
+        callId: widget.sessionId,
+        total: _clk.total,
+        visit: _clk.visit,
+        timeUpKnown: _timeUp,
+        offerShown: _extShown,
+        connected: _remoteUid != null,
+        onTimeUp: () {
+          if (mounted) setState(() => _timeUp = true);
+        },
+        onOfferShown: () => _extShown = true,
+      );
     });
   }
 
@@ -310,24 +321,21 @@ class _LiveScreenState extends State<LiveScreen> {
     _timer?.cancel();
     final RtcEngine? e = _engine;
     _engine = null;
-    if (e != null) {
-      try {
-        await e.leaveChannel();
-        await e.release();
-      } catch (_) {}
-    }
-    if (widget.mode == LiveMode.watch) {
-      await LiveService.instance.leaveLive(widget.sessionId);
-    }
-    // LEAVING IS NOT ENDING. A mistap, a lost signal or a phone
-    // call coming in must never destroy minutes that were paid
-    // for. The session closes only when the minutes are gone or
-    // the owner taps END SESSION.
-    if (widget.mode == LiveMode.call && !_wroteExit) {
-      _wroteExit = true;
-      await LiveService.instance
-          .callExit(widget.sessionId, _total.inSeconds);
-    }
+    await RoomExit.leaveRoom(
+      engine: e,
+      sessionId: widget.sessionId,
+      watching: widget.mode == LiveMode.watch,
+      writeExit: _claimExit(),
+      total: _clk.total,
+    );
+  }
+
+  /// True once, for whichever path gets there first, so the
+  /// count can never be written twice.
+  bool _claimExit() {
+    if (widget.mode != LiveMode.call || _wroteExit) return false;
+    _wroteExit = true;
+    return true;
   }
 
   @override
@@ -339,9 +347,6 @@ class _LiveScreenState extends State<LiveScreen> {
   }
 
   /// Everything this session has used, including earlier visits.
-  Duration get _total => _elapsed + Duration(seconds: _spent);
-
-  String get _clock => CallTimeWatch.elapsedText(_total);
 
   @override
   Widget build(BuildContext context) {
@@ -413,8 +418,8 @@ class _LiveScreenState extends State<LiveScreen> {
     // counting underneath the words "the broadcast has ended".
     return LiveTopBar.forRoom(
       title: widget.title,
-      clock: _clock,
-      live: _joined && _error == null && !_ended,
+      clock: _clk.text,
+      live: _joined && _error == null && !_ended && _clk.running,
       isCall: widget.mode == LiveMode.call,
       hosting: widget.mode == LiveMode.host,
       watching: widget.mode == LiveMode.watch,
@@ -423,24 +428,19 @@ class _LiveScreenState extends State<LiveScreen> {
     );
   }
 
-  /// END SESSION. The only thing in Ivory that truly closes a
-  /// call. Always asks first, because it cannot be undone.
   Future<void> _endSession() async {
-    final bool sure = await confirmEndSession(context);
-    if (!sure || !mounted) return;
-    try {
-      if (widget.mode == LiveMode.call && !_wroteExit) {
-        _wroteExit = true;
-        await LiveService.instance
-            .callExit(widget.sessionId, _total.inSeconds);
-      }
-      await LiveService.instance.callFinish(widget.sessionId);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = houseMessage(e));
+    final String? problem = await RoomExit.endSession(
+      context,
+      sessionId: widget.sessionId,
+      claimExit: _claimExit,
+      total: _clk.total,
+    );
+    if (!mounted || RoomExit.keptOpen(problem)) return;
+    if (problem != null) {
+      setState(() => _error = problem);
       return;
     }
-    if (mounted) Navigator.of(context).pop();
+    Navigator.of(context).pop();
   }
 
   Widget _stage() {
