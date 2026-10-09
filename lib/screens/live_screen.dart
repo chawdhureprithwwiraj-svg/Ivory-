@@ -430,14 +430,27 @@ class _LiveScreenState extends State<LiveScreen> {
     final RtcEngine? engine = _engine;
     if (engine == null || !_joined) return LiveNotice(_status);
 
+    // WHO IS IN THE ROOM - the words live in live_stage_bits
+    // so both surfaces below say exactly the same thing.
+    final PresenceWords p = PresenceWords.of(
+      host: widget.mode == LiveMode.host,
+      present: _remoteUid != null,
+      left: _remoteLeft,
+      subtitle: widget.subtitle,
+    );
+
     // Audio only: a warm panel, not a black rectangle.
     if (!widget.videoEnabled) {
       return LiveAudioStage(
-        heading: _remoteUid == null
-            ? (_remoteLeft ? 'They stepped out' : 'Connecting...')
-            : 'Connected',
-        subtitle: _remoteLeft ? _roomOpenNote : widget.subtitle,
+        heading: p.heading,
+        subtitle: _remoteLeft ? _roomOpenNote : p.note,
       );
+    }
+
+    // Video, but nobody opposite yet: the same words rather than
+    // a silent empty frame.
+    if (_remoteUid == null) {
+      return LiveAudioStage(heading: p.heading, subtitle: p.note);
     }
 
     final Widget? video = LiveVideoStage.build(
