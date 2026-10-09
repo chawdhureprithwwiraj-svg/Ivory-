@@ -16,6 +16,7 @@ import '../widgets/gift_sheet.dart';
 import '../widgets/gift_moment.dart';
 import '../widgets/call_extension_prompt.dart';
 import '../widgets/live_chat.dart';
+import '../widgets/call_time_watch.dart';
 import '../widgets/live_stage_bits.dart';
 import '../widgets/call_owner_controls.dart';
 import '../widgets/call_offer_layer.dart';
@@ -77,6 +78,11 @@ class _LiveScreenState extends State<LiveScreen> {
   bool _camOn = true;
   bool _frontCamera = true;
 
+  /// True once the session has passed the length it was booked
+  /// for. It changes what is written on the screen and nothing
+  /// else - the call carries on exactly as before.
+  bool _timeUp = false;
+
   Duration _elapsed = Duration.zero;
   Timer? _timer;
 
@@ -96,10 +102,6 @@ class _LiveScreenState extends State<LiveScreen> {
   bool _speaker = true;
 
   bool get _isOwner => AuthService.instance.isAdminCached;
-
-  static const String _roomOpenNote =
-      'They have stepped out. The room is still open - stay here '
-      'and they can come straight back.';
 
   bool get _publishes =>
       widget.mode == LiveMode.host || widget.mode == LiveMode.call;
@@ -222,7 +224,7 @@ class _LiveScreenState extends State<LiveScreen> {
             if (_remoteUid == uid) _remoteUid = null;
             if (widget.mode == LiveMode.call) {
               _remoteLeft = true;
-              _status = _roomOpenNote;
+              _status = PresenceWords.steppedOutNote(_isOwner);
             } else {
               _status = widget.mode == LiveMode.host
                   ? 'You are on air'
@@ -274,6 +276,12 @@ class _LiveScreenState extends State<LiveScreen> {
       if (!mounted) return;
       setState(() => _elapsed += const Duration(seconds: 1));
       _extTick++;
+      if (widget.mode == LiveMode.call && _joined && !_timeUp &&
+          _extTick % 60 == 0) {
+        CallTimeWatch.isOver(widget.sessionId, _total).then((bool over) {
+          if (mounted && over) setState(() => _timeUp = true);
+        });
+      }
       if (widget.mode == LiveMode.call && !_extShown && _joined &&
           _remoteUid != null && _extTick % 15 == 0) {
         CallExtensionPrompt.tick(context, callId: widget.sessionId,
@@ -317,11 +325,7 @@ class _LiveScreenState extends State<LiveScreen> {
   /// Everything this session has used, including earlier visits.
   Duration get _total => _elapsed + Duration(seconds: _spent);
 
-  String get _clock {
-    final int m = _total.inMinutes;
-    final String s = (_total.inSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
+  String get _clock => CallTimeWatch.elapsedText(_total);
 
   @override
   Widget build(BuildContext context) {
@@ -336,6 +340,11 @@ class _LiveScreenState extends State<LiveScreen> {
           child: Stack(
             children: <Widget>[
               _room(context),
+              if (_timeUp && !_ended)
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: TimeUpBar(owner: _isOwner),
+                ),
               if (widget.mode == LiveMode.call && !_isOwner)
                 CallOfferLayer(
                   callId: widget.sessionId,
@@ -443,7 +452,7 @@ class _LiveScreenState extends State<LiveScreen> {
     if (!widget.videoEnabled) {
       return LiveAudioStage(
         heading: p.heading,
-        subtitle: _remoteLeft ? _roomOpenNote : p.note,
+        subtitle: p.note,
       );
     }
 
