@@ -8,6 +8,7 @@ import '../services/payment_service.dart';
 import '../services/notification_service.dart';
 import '../services/push_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/push_refused_note.dart';
 import '../widgets/sessions_panel.dart';
 import '../widgets/member_pulse.dart';
 import '../widgets/premium_badge.dart';
@@ -83,6 +84,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 22, 16, 40),
           children: <Widget>[
+            const PushRefusedNote(),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 70),
