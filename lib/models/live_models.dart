@@ -495,6 +495,7 @@ class PostGifter {
     required this.giftName,
     required this.emoji,
     required this.amountInr,
+    this.note,
   });
 
   final String sender;
@@ -502,12 +503,29 @@ class PostGifter {
   final String emoji;
   final int amountInr;
 
+  /// The line they wrote with it, or null. Null covers BOTH
+  /// "they wrote nothing" and "she took it down" - the wall
+  /// treats those the same, because a removed line must leave
+  /// no trace that there was ever a line to remove.
+  final String? note;
+
   factory PostGifter.fromDb(Map<String, dynamic> m) => PostGifter(
         sender: (m['sender'] as String?) ?? 'A member',
         giftName: (m['gift_name'] as String?) ?? 'A gift',
         emoji: (m['emoji'] as String?) ?? '',
         amountInr: ((m['amount_inr'] as num?) ?? 0).toInt(),
+        note: (m['note'] as String?),
       );
+}
+
+/// Two facts about a gift send that `list_gift_sends` does not
+/// return: whether it sits under a post, and whether she has
+/// taken its line down.
+class GiftNoteFlag {
+  const GiftNoteFlag({this.postId, this.hidden = false});
+
+  final int? postId;
+  final bool hidden;
 }
 
 // END OF FILE - lib/models/live_models.dart
