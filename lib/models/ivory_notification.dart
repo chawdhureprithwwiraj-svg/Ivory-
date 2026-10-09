@@ -63,8 +63,7 @@ class IvoryNotification {
     }
   }
 
-  String get whenLabel {
-    final DateTime? c = createdAt;
+  String get whenLabel {    final DateTime? c = createdAt;
     if (c == null) return '';
     final Duration d = DateTime.now().difference(c);
     if (d.inDays > 30) return '${d.inDays ~/ 30}mo ago';
@@ -74,3 +73,52 @@ class IvoryNotification {
     return 'just now';
   }
 }
+
+/// ============================================================
+/// WHICH OFFER OF MORE TIME IS STILL THE REAL ONE.
+///
+/// Ivory may push an offer onto the screen whenever she likes,
+/// and each one leaves its own message behind in the inbox. On
+/// the owner's test two arrived a minute apart - thirty minutes
+/// for one price, then eighty for another - and both sat there
+/// afterwards wearing the same gold ring, both saying "open the
+/// call to accept". Only one of them could possibly be real,
+/// and nothing on either card said which.
+///
+/// Only the NEWEST offer for a session can stand. Every earlier
+/// one has been replaced by definition, because a second offer
+/// is Ivory changing her mind about the first.
+///
+/// This is decided here, from the messages themselves, rather
+/// than asked of the database: the inbox already holds every
+/// fact needed, and no price, payment or tier is touched by
+/// reading it.
+/// ============================================================
+extension IvoryOfferMessages on IvoryNotification {
+  /// An offer of more minutes, rather than any other message.
+  /// Both halves are checked so that an unrelated message can
+  /// never be dimmed by accident.
+  bool get isTimeOffer =>
+      title.toLowerCase().contains('more time') &&
+      body.toLowerCase().contains('more minutes');
+}
+
+/// The ids of every offer that a later offer has replaced.
+/// The newest is left out, because it is the one that stands.
+Set<int> supersededOffers(List<IvoryNotification> all) {
+  IvoryNotification? newest;
+  for (final IvoryNotification n in all) {
+    if (!n.isTimeOffer) continue;
+    final DateTime? at = n.createdAt;
+    if (at == null) continue;
+    final DateTime? best = newest?.createdAt;
+    if (best == null || at.isAfter(best)) newest = n;
+  }
+  if (newest == null) return <int>{};
+  return all
+      .where((IvoryNotification n) => n.isTimeOffer && n.id != newest!.id)
+      .map((IvoryNotification n) => n.id)
+      .toSet();
+}
+
+// END OF FILE - lib/models/ivory_notification.dart
