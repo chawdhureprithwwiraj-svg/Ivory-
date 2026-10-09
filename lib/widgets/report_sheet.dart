@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../screens/legal_screen.dart';
+import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 
 /// ============================================================
@@ -162,7 +163,7 @@ class _ReportSheetState extends State<_ReportSheet> {
         left: 20,
         right: 20,
         top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        bottom: ivorySheetFoot(context, extra: 20),
       ),
       child: SingleChildScrollView(
         child: Column(
