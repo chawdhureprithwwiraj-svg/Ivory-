@@ -70,18 +70,38 @@ class PresenceWords {
     String? subtitle,
     String? name,
     bool broadcast = false,
+    bool audience = false,
   }) {
-    // A BROADCAST HAS NOBODY TO WAIT FOR.
+    // THREE DIFFERENT ROOMS, THREE DIFFERENT VOICES.
     //
-    // Ivory opens the room and speaks; whoever is entitled walks
-    // in while she is already talking. Telling her she is
-    // "waiting for them" made the one surface that should feel
-    // confident read like a failed connection.
+    // A BROADCAST is Ivory on air and everyone else watching.
+    // She waits for nobody; they are not seen, not counted to
+    // her, and not spoken to one by one.
+    //
+    // A SESSION is two people, each able to see that the other
+    // has arrived.
+    //
+    // These must never borrow each other's words. Telling a
+    // member of the audience "I can see that you are in" would
+    // be a promise the broadcast cannot keep.
     if (broadcast) {
       return PresenceWords(
         'You are on air',
         'Your camera and microphone are open. Everyone who is '
             'entitled can see and hear you from this moment.',
+      );
+    }
+
+    // Watching a broadcast. Nobody is waiting on this member,
+    // and nothing is expected of them but to stay.
+    if (audience) {
+      return PresenceWords(
+        left ? 'Ivory has stepped away' : 'Ivory is not on camera yet',
+        left
+            ? 'The broadcast is still open. Stay here - she can '
+                'come straight back.'
+            : 'You are in. The moment Ivory appears she will be '
+                'here on this screen.',
       );
     }
 
