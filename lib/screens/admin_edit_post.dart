@@ -337,7 +337,7 @@ class _AdminEditPostState extends State<AdminEditPost> {
           ),
         ],
         const SizedBox(height: 20),
-        AdminEditBits.currentFile(_mediaRef, busy: _busy),
+        AdminEditBits.currentFile(context, _mediaRef, busy: _busy),
         const SizedBox(height: 10),
         AdminAttachPanel(
           key: _attach,
