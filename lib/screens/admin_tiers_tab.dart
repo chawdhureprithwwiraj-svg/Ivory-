@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/admin_service.dart';
+import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/premium_badge.dart';
 
@@ -256,7 +257,7 @@ class _AdminTiersTabState extends State<AdminTiersTab> {
             left: 18,
             right: 18,
             top: 18,
-            bottom: MediaQuery.of(c).viewInsets.bottom + 22,
+            bottom: ivorySheetFoot(c, extra: 22),
           ),
           child: SingleChildScrollView(
             child: Column(
@@ -421,3 +422,5 @@ class _AdminTiersTabState extends State<AdminTiersTab> {
     return max + 1;
   }
 }
+
+// END OF FILE - lib/screens/admin_tiers_tab.dart
