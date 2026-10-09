@@ -7,12 +7,14 @@ import '../screens/main_shell.dart';
 import '../services/auth_service.dart';
 import '../services/content_service.dart';
 import 'gift_sheet.dart';
+import 'gift_wall.dart';
 import '../theme/ivory_theme.dart';
 import 'ivory_media_view.dart';
 import 'post_media_body.dart';
 import 'post_poll.dart';
 import 'post_surface.dart';
 import 'post_unlock_sheet.dart';
+import 'gift_mark.dart';
 
 /// Everything that happens when a story card is tapped, shared by
 /// Home and Explore. A locked post with a price of its own opens the
@@ -119,17 +121,50 @@ Widget postDoorStamp(IvoryPost post) =>
           );
 
 /// Shared with post_media_body.dart - see above.
+/// THE WALL SITS ABOVE THE BUTTON, AND THE ORDER MATTERS.
+///
+/// A member reads the names FIRST and the invitation second.
+/// Reversed, the button is just another control; this way the
+/// button is the answer to a question the wall has already
+/// put in their head.
+///
+/// The button itself was almost invisible - faint grey text,
+/// the quietest thing on the post. It now carries the house
+/// gold, because asking for money in a whisper helps nobody.
 Widget postGiftRow(BuildContext context, IvoryPost post) => Padding(
-      padding: const EdgeInsets.only(top: 26),
-      child: Center(
-        child: TextButton.icon(
-          onPressed: () => showGiftSheet(context, postId: post.id),
-          icon: const Text('💌', style: TextStyle(fontSize: 15)),
-          label: Text(
-            'send a gift',
-            style: TextStyle(color: IvoryColors.textFaint, fontSize: 12.5),
+      padding: const EdgeInsets.only(top: 22),
+      child: Column(
+        children: <Widget>[
+          GiftWall(postId: post.id),
+          const SizedBox(height: 12),
+          Center(
+            child: TextButton.icon(
+              onPressed: () => showGiftSheet(context, postId: post.id),
+              style: TextButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                backgroundColor: IvoryColors.gold.withValues(alpha: 0.13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  side: BorderSide(
+                    color: IvoryColors.gold.withValues(alpha: 0.75),
+                  ),
+                ),
+              ),
+              // Drawn, not an emoji: this mark is the same on
+              // every handset because Ivory draws it.
+              icon: const GiftMarkLetter(size: 19),
+              label: const Text(
+                'send a gift',
+                style: TextStyle(
+                  color: IvoryColors.plum,
+                  fontSize: 12.8,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
 
