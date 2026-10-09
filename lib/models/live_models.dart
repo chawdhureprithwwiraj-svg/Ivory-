@@ -171,6 +171,7 @@ class CallRequest {
     this.createdAt,
     this.extensionPrice,
     this.extensionPaid = false,
+    this.startedAt,
   });
 
   final int id;
@@ -184,6 +185,11 @@ class CallRequest {
   final DateTime? createdAt;
   final int? extensionPrice;
   final bool extensionPaid;
+
+  /// The one moment the two of you were first connected, as
+  /// the database stamped it. Both handsets subtract from this,
+  /// so leaving and coming back cannot put them out of step.
+  final DateTime? startedAt;
 
   bool get isVideo => kind == 'video';
   bool get canJoin => status == 'accepted' || status == 'active';
@@ -217,6 +223,7 @@ class CallRequest {
         createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
         extensionPrice: (m['extension_price'] as num?)?.toInt(),
         extensionPaid: (m['extension_paid'] as bool?) ?? false,
+        startedAt: DateTime.tryParse((m['started_at'] as String?) ?? ''),
       );
 }
 
