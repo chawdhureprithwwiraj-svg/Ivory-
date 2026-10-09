@@ -5,6 +5,7 @@ import '../models/live_models.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 import 'call_sheet_bits.dart';
+import 'call_allowance_card.dart';
 import 'call_book_flow.dart';
 
 /// ============================================================
@@ -185,7 +186,12 @@ class _CallWishSheetState extends State<CallWishSheet> {
                 ),
               )
             else ...<Widget>[
-              _allowanceCard(),
+              CallAllowanceCard(
+                balance: _balance,
+                kind: _kind,
+                minutes: _minutes,
+                priceInr: widget.category.basePriceInr,
+              ),
               const SizedBox(height: 16),
               if (_mine.isNotEmpty) ...<Widget>[
                 _sectionLabel('Your sessions'),
@@ -263,114 +269,6 @@ class _CallWishSheetState extends State<CallWishSheet> {
           ),
         ],
       ],
-    );
-  }
-
-  Widget _allowanceCard() {
-    final bool included = _balance.isIncluded;
-    return Container(
-      padding: const EdgeInsets.all(17),
-      decoration: IvoryTheme.card(highlighted: true),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IvoryEyebrow(
-            included ? 'Included with your membership' : 'Available as a wish',
-            icon: included ? Icons.verified_rounded : Icons.auto_awesome,
-          ),
-          const SizedBox(height: 12),
-          if (included) ...<Widget>[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: <Widget>[
-                Text(
-                  '${_balance.remaining}',
-                  style: const TextStyle(
-                    color: IvoryColors.burgundy,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w900,
-                    height: 1,
-                  ),
-                ),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    'of ${_balance.allowed} minutes left ${_balance.periodLabel}',
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      color: IvoryColors.textSoft,
-                    ),
-                ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: 1 - _balance.fraction,
-                minHeight: 8,
-                backgroundColor: IvoryColors.hairlineStrong,
-                valueColor:
-                    const AlwaysStoppedAnimation<Color>(IvoryColors.gold),
-              ),
-            ),
-            if (_balance.resetsAt != null) ...<Widget>[
-              const SizedBox(height: 9),
-              Text(
-                _balance.period == 'membership'
-                    ? 'This cycle ends when your membership ends. Minutes '
-                        'do not carry over.'
-                    : 'Your cycle renews on ${_dmy(_balance.resetsAt!)} - '
-                        'counted from the day you joined this tier, not '
-                        'the calendar month. Minutes do not carry over.',
-                style: TextStyle(
-                  fontSize: 12,
-                  height: 1.45,
-                  color: IvoryColors.textFaint,
-                ),
-              ),
-            ],
-            if (_balance.noShows > 0) ...<Widget>[
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(11),
-                decoration: BoxDecoration(
-                  color: IvoryColors.surfaceWarm,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: IvoryColors.amber, width: 1),
-                ),
-                child: Text(
-                  _balance.noShows == 1
-                      ? 'One session was missed this cycle. Missing a second '
-                          'is still free - after that, a missed session uses '
-                          'its minutes.'
-                      : 'Two sessions have been missed this cycle. The next '
-                          'one that is missed will use its minutes.',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    height: 1.45,
-                    color: IvoryColors.textSoft,
-                  ),
-                ),
-              ),
-            ],
-          ] else
-            Text(
-              'Your tier does not carry ${_kind == 'video' ? 'video' : 'audio'} '
-              'minutes yet. You can still have this session by making it a '
-              'wish - Rs.${widget.category.basePriceInr} for $_minutes minutes.',
-              style: TextStyle(
-                fontSize: 13.5,
-                height: 1.55,
-                color: IvoryColors.textSoft,
-              ),
-            ),
-        ],
-      ),
     );
   }
 
