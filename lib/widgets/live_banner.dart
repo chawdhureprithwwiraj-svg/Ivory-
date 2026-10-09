@@ -83,6 +83,9 @@ class _LiveBannerState extends State<LiveBanner>
           sessionId: s.id,
           title: s.title,
           subtitle: s.subtitle,
+          // Everyone counts from the moment it opened, so two
+          // members sitting together read the same clock.
+          startedAt: s.startedAt,
         ),
       ),
     );
