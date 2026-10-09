@@ -24,6 +24,14 @@ class MainShell extends StatefulWidget {
   /// story sends them to Premium, a gift to the Wish, and so on.
   static void Function(String tab)? onOpenTab;
 
+  /// Which tab was last opened from a notification, and a
+  /// counter that changes even when the same tab is opened
+  /// twice running. A screen listens to the tick and reacts
+  /// only when `arrivals` names it.
+  static final ValueNotifier<String> arrivals =
+      ValueNotifier<String>('');
+  static final ValueNotifier<int> arrivalTick = ValueNotifier<int>(0);
+
   @override
   State<MainShell> createState() => _MainShellState();
 }
@@ -77,6 +85,20 @@ class _MainShellState extends State<MainShell> {
     final String key = name == 'feed' ? 'home' : name;
     final int i = _tabKeys.indexOf(key);
     if (i >= 0) setState(() => _index = i);
+
+    // ARRIVING IS NOT THE SAME AS BEING THERE.
+    //
+    // The tabs are kept alive so nothing is lost when a member
+    // moves between them - which means a tab opened from a
+    // notification shows them EXACTLY where they left off, half
+    // way down, with no idea why they were sent. They tapped
+    // "your session is confirmed" and landed in the middle of a
+    // menu they had already used. Of course they were lost.
+    //
+    // So the tab is TOLD it has been arrived at, and can bring
+    // the member to the thing they were sent for.
+    MainShell.arrivals.value = key;
+    MainShell.arrivalTick.value++;
   }
 
   @override
