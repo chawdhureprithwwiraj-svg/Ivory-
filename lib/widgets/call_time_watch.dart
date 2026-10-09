@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -202,6 +204,93 @@ class RoomEntry {
     return 'Ivory needs the microphone'
         '${video ? ' and camera' : ''} to take part. '
         'You can allow it in Settings and come back.';
+  }
+
+  /// THE TICKET, WITH AN END TO THE WAITING.
+  ///
+  /// This was the Opening the room hang. The ticket call had
+  /// no time limit, so a request that never came back left
+  /// that sentence on the screen for ever - no error, no way
+  /// out, nothing to tap. On a phone that has wandered
+  /// between two bars of signal, that is not rare.
+  ///
+  /// Twenty seconds is deliberately generous: long enough
+  /// that a slow but working connection is never cut off,
+  /// short enough that nobody sits staring at a dead screen.
+  ///
+  /// The message says what to do next, because an error a
+  /// member cannot act on is only bad news delivered politely.
+  static Future<AgoraTicket> ticket({
+    required bool isCall,
+    required int id,
+  }) async {
+    try {
+      return await (isCall
+              ? LiveService.instance.joinCall(id)
+              : LiveService.instance.joinLive(id))
+          .timeout(const Duration(seconds: 20));
+    } on TimeoutException {
+      throw Exception(isCall
+          ? 'The room did not open. Check your signal and tap '
+              'JOIN again - your session and its minutes are '
+              'untouched.'
+          : 'The room did not open. Check your signal and try '
+              'again in a moment.');
+    }
+  }
+
+  /// BRINGING THE ENGINE UP.
+  ///
+  /// Creating it, choosing the profile, turning on audio and
+  /// only then video, and setting the role. Lifted out of
+  /// live_screen.dart whole, because that file sits on the
+  /// paste ceiling and shaving comments off it has never once
+  /// been the right answer.
+  ///
+  /// The order matters and is easy to get wrong: audio first
+  /// so a call still works when the camera is refused, and
+  /// the preview started only for somebody who is actually
+  /// publishing video.
+  static Future<RtcEngine> engine({
+    required String appId,
+    required bool isCall,
+  }) async {
+    final RtcEngine e = createAgoraRtcEngine();
+    await e.initialize(RtcEngineContext(
+      appId: appId,
+      channelProfile: isCall
+          ? ChannelProfileType.channelProfileCommunication
+          : ChannelProfileType.channelProfileLiveBroadcasting,
+    ));
+    return e;
+  }
+
+  /// Audio, video and role, after the handlers are attached -
+  /// so nothing can happen before anyone is listening.
+  static Future<void> ready({
+    required RtcEngine engine,
+    required bool video,
+    required bool publishes,
+  }) async {
+    await engine.enableAudio();
+    if (video) await engine.enableVideo();
+    if (publishes) {
+      await engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+      if (video) await engine.startPreview();
+    } else {
+      await engine.setClientRole(role: ClientRoleType.clientRoleAudience);
+    }
+  }
+
+  /// The same guard around the moment of actually connecting.
+  /// Agora can accept the request and then never report back.
+  static Future<void> connect(Future<void> joining) async {
+    try {
+      await joining.timeout(const Duration(seconds: 25));
+    } on TimeoutException {
+      throw Exception('Could not connect to the room. Check your '
+          'signal and try again.');
+    }
   }
 }
 
