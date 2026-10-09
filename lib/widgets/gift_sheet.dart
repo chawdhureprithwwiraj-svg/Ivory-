@@ -244,14 +244,58 @@ class _GiftSheetState extends State<GiftSheet> {
       ];
 
   List<Widget> _chooseStep(BuildContext context) => <Widget>[
+        // WHICH SET THIS IS, SAID BEFORE ANYTHING ELSE.
+        //
+        // There are two catalogues and they are not
+        // interchangeable: one is something I DO, the other is
+        // what a post DID. A member who has sent gifts in the
+        // room will open this on a post and expect the nine
+        // they already know. This line is how they learn,
+        // without being taught, that these are different.
+        //
+        // It is a line, not a card - it states a fact and asks
+        // for nothing.
+        Row(
+          children: <Widget>[
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: _surface == 'post'
+                    ? IvoryColors.plum.withValues(alpha: 0.10)
+                    : IvoryColors.gold.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _surface == 'post'
+                      ? IvoryColors.plum.withValues(alpha: 0.45)
+                      : IvoryColors.gold,
+                ),
+              ),
+              child: Text(
+                _surface == 'post' ? 'FOR THIS POST' : 'FOR THE ROOM',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.8,
+                  color: _surface == 'post'
+                      ? IvoryColors.plum
+                      : IvoryColors.burgundy,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 9),
         Text(_surface == 'post' ? 'Tell me what it did' : 'Send me something',
             style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 6),
         Text(
           _surface == 'post'
-              ? 'Some things a comment cannot carry. Pick the one '
-                  'that is true and I will know exactly what you meant.'
-              : 'It appears on my screen straight away.',
+              ? 'These nine are different to the ones in the room. '
+                  'Each is something this post did to you. Pick the '
+                  'one that is true and I will know what you meant.'
+              : 'These nine are things I do, here, while I am '
+                  'on air. It appears on my screen straight away.',
           style: TextStyle(fontSize: 13, color: IvoryColors.textSoft),
         ),
         const SizedBox(height: 16),
