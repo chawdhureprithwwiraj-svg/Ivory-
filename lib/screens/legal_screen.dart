@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/ivory_theme.dart';
 import '../widgets/report_sheet.dart';
+import 'policy_doc_screen.dart';
 
 /// ============================================================
 /// IVORY - THE QUIET PAGE
@@ -111,6 +112,35 @@ class _LegalScreenState extends State<LegalScreen> {
   TextStyle get _soft =>
       TextStyle(color: IvoryColors.textSoft, fontSize: 13.5, height: 1.55);
 
+  /// One row per document. A line, not a card - these are
+  /// facts you may want to read, never a decision being asked
+  /// of you.
+  Widget _docLink(BuildContext context, String label, PolicyDoc doc) {
+    return InkWell(
+      onTap: () => PolicyDocScreen.open(context, doc),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w700,
+                  color: IvoryColors.burgundy,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                size: 19, color: IvoryColors.gold),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _h(String t) => Padding(
         padding: const EdgeInsets.only(top: 22, bottom: 8),
         child: Text(t, style: _serif),
@@ -157,6 +187,18 @@ class _LegalScreenState extends State<LegalScreen> {
                   onPressed: () => showReportSheet(context),
                   child: const Text("SOMETHING'S NOT RIGHT?"),
                 ),
+                _h('the documents themselves'),
+                Text(
+                  'Everything above in full, in the app rather than on '
+                  'a website - so it opens with no signal and cannot be '
+                  'quietly rewritten behind your back.',
+                  style: _soft,
+                ),
+                const SizedBox(height: 10),
+                _docLink(context, 'TERMS OF USE', PolicyDoc.terms),
+                _docLink(context, 'PRIVACY', PolicyDoc.privacy),
+                _docLink(context, 'REFUNDS', PolicyDoc.refunds),
+                _docLink(context, 'CONTENT & CONDUCT', PolicyDoc.content),
                 _h('refunds - the ticket rule'),
                 Text(
                   'A purchase in Ivory is a ticket to a private '
