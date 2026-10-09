@@ -61,7 +61,11 @@ class AdminEditBits {
   /// happens to it if she replaces it.
   /// Whether a file is already attached, and what replacing
   /// it would mean.
-  static Widget currentFile(String? mediaRef, {required bool busy}) {
+  static Widget currentFile(
+    BuildContext context,
+    String? mediaRef, {
+    required bool busy,
+  }) {
     final bool has = mediaRef != null && mediaRef.trim().isNotEmpty;
     return Container(
       padding: const EdgeInsets.all(14),
