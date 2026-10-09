@@ -216,11 +216,6 @@ class LiveService {
     });
   }
 
-  /// Closes a session nobody joined. Forgiven twice per cycle.
-  Future<void> markMissed(int callId) async {
-    await _db.rpc<dynamic>('mark_call_missed',
-        params: <String, dynamic>{'call_id_in': callId});
-  }
 
   /// The member chooses the day and time inside Ivory. The
   /// database is the only gate: four hours' notice, the noon
@@ -357,18 +352,6 @@ class LiveService {
     }
   }
 
-  /// 'early', 'open', 'closed' or 'anytime'.
-  Future<String> callWindow(int callId) async {
-    try {
-      final dynamic res = await _db.rpc<dynamic>('call_window',
-          params: <String, dynamic>{'call_id_in': callId});
-      if (res is List && res.isNotEmpty) {
-        return ((res.first as Map<String, dynamic>)['state'] as String?) ??
-            'anytime';
-      }
-    } catch (_) {}
-    return 'anytime';
-  }
 
 
   // ---------------------------------------------------------------
@@ -440,13 +423,11 @@ class LiveService {
     return channel;
   }
 
-  /// The member picked a slot on cal.com and is telling Ivory when.
-  Future<void> confirmBooking(int callId, DateTime when) async {
-    await _db.rpc<dynamic>('confirm_my_booking', params: <String, dynamic>{
-      'call_id_in': callId,
-      'when_in': when.toUtc().toIso8601String(),
-    });
-  }
+  /// JUNK REMOVED IN SPRINT 27h: confirmBooking() was the
+  /// cal.com handshake and had no caller left; markMissed() and
+  /// callWindow() were called by nothing. Dead code on a money
+  /// and booking surface is worse than clutter - it reads like
+  /// a feature that exists.
 
   /// One call row, fresh - used by the extension prompt mid-call.
   Future<CallRequest?> fetchCall(int callId) async {
