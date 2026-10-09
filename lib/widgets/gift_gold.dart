@@ -179,4 +179,31 @@ void _burst(Canvas canvas, Offset c, double unit, double t, double at,
   }
 }
 
+/// The small caption a scene settles on. Fades in and STAYS -
+/// nothing in Ivory snaps back.
+///
+/// Shared by all nine scenes. It lived privately inside the
+/// first batch until the second needed it, and three copies of
+/// a thing is how three copies start disagreeing.
+void sceneLabel(Canvas canvas, Size size, double t, double from, double to,
+    String text,
+    {Color? colour}) {
+  if (t < from) return;
+  final double a = span(t, from, from + (to - from) * 0.4);
+  final TextPainter tp = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: TextStyle(
+        color: (colour ?? IvoryColors.danger).withValues(alpha: a),
+        fontSize: size.shortestSide * 0.085,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.1,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout(maxWidth: size.width);
+  tp.paint(canvas,
+      Offset((size.width - tp.width) / 2, size.height - tp.height - 2));
+}
+
 // END OF FILE - lib/widgets/gift_gold.dart
