@@ -35,10 +35,26 @@ class AdminCallPill extends StatelessWidget {
         bg = IvoryColors.gold;
         break;
       case 'active':
-        // A session with no agreed time was never really entered -
-        // it is a leftover. Saying IN THE ROOM about it is a lie.
-        text = c.requestedFor == null ? 'LEFT OPEN' : 'IN THE ROOM';
-        bg = c.requestedFor == null ? IvoryColors.amber : IvoryColors.gold;
+        // IN THE ROOM IS A CLAIM ABOUT RIGHT NOW, SO IT HAS TO
+        // EXPIRE.
+        //
+        // `call_finish` is the only thing that really ends a
+        // session, so a call whose app was closed stays
+        // 'active' in the database for ever. The pill then
+        // said IN THE ROOM about a session from last Tuesday.
+        //
+        // Two ways it can be a lie, and both are caught here:
+        // no agreed time means it was never really entered,
+        // and an agreed time long past means whatever happened
+        // is over. Six hours is far beyond the longest session
+        // Ivory sells, so nothing live can ever be mislabelled.
+        final DateTime? when = c.requestedFor;
+        final bool stale = when != null &&
+            DateTime.now().difference(when.toLocal()) >
+                const Duration(hours: 6);
+        final bool really = when != null && !stale;
+        text = really ? 'IN THE ROOM' : 'LEFT OPEN';
+        bg = really ? IvoryColors.gold : IvoryColors.amber;
         break;
       case 'completed':
         text = 'DONE';
