@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/wish.dart';
+import '../screens/wish_screen.dart';
 import '../theme/ivory_theme.dart';
 
 /// ============================================================
