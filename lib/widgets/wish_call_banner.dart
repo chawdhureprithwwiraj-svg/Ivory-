@@ -86,9 +86,31 @@ class _WishCallBannerState extends State<WishCallBanner> {
       final List<Wish> wishes = await WishService.instance.fetchMyWishes();
       if (!mounted) return;
       setState(() {
+        // LIST BY WHAT IS FINISHED, NOT BY WHAT IS NAMED.
+        //
+        // This used to admit only 'accepted' and 'active'. The
+        // moment a member picked a time the status moved on -
+        // to 'confirmed' or 'scheduled' - and the session
+        // DISAPPEARED from the Wish page altogether, while
+        // still showing correctly inside its own call sheet.
+        // That is exactly what she photographed.
+        //
+        // Naming every live status was the mistake. There is
+        // one short list of ways a session can be OVER, and it
+        // cannot grow by accident; anything not on it is still
+        // ahead of the member and belongs on this page.
         _calls = calls
-            .where((CallRequest c) =>
-                c.status == 'accepted' || c.status == 'active')
+            .where((CallRequest c) => !const <String>{
+                  'done',
+                  'completed',
+                  'ended',
+                  'cancelled',
+                  'canceled',
+                  'declined',
+                  'rejected',
+                  'missed',
+                  'expired',
+                }.contains(c.status))
             .toList();
         _wishes = wishes
             .where((Wish w) =>
