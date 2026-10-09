@@ -32,6 +32,10 @@ class _LiveChatState extends State<LiveChat> {
   final TextEditingController _input = TextEditingController();
   final ScrollController _scroll = ScrollController();
 
+  /// How many messages have landed while the member was reading
+  /// further up. Zero means they are at the foot and following.
+  int _behind = 0;
+
   List<LiveMessage> _messages = <LiveMessage>[];
   RealtimeChannel? _channel;
   bool _sending = false;
@@ -73,7 +77,31 @@ class _LiveChatState extends State<LiveChat> {
     }
   }
 
-  void _toBottom() {
+  /// Is the member already reading the newest words?
+  bool get _atFoot {
+    if (!_scroll.hasClients) return true;
+    return _scroll.position.pixels >=
+        _scroll.position.maxScrollExtent - 90;
+  }
+
+  /// THE RULE THAT WAS MISSING: **never drag a member away from
+  /// what they are reading.**
+  ///
+  /// This used to jump to the newest line every single time a
+  /// message arrived. During a busy broadcast that makes
+  /// scrolling back completely impossible - you reach up to
+  /// read something, a stranger types, and you are thrown to
+  /// the bottom again. It felt broken because it was.
+  ///
+  /// Now: if they are already at the foot, follow along as
+  /// before. If they have scrolled up, LEAVE THEM WHERE THEY
+  /// ARE and just mark that something new has landed.
+  void _toBottom({bool force = false}) {
+    if (!force && !_atFoot) {
+      if (mounted) setState(() => _behind += 1);
+      return;
+    }
+    if (_behind != 0 && mounted) setState(() => _behind = 0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scroll.hasClients) return;
       _scroll.animateTo(
@@ -82,6 +110,37 @@ class _LiveChatState extends State<LiveChat> {
         curve: Curves.easeOut,
       );
     });
+  }
+
+  /// The quiet way back down. It states a plain number and
+  /// nothing else - no "everyone is talking!", no urgency. A
+  /// count of what is actually there is a fact; anything
+  /// livelier would be manufactured excitement.
+  Widget _catchUp() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 0, 14, 6),
+        child: GestureDetector(
+          onTap: () => _toBottom(force: true),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: IvoryColors.gold,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              _behind == 1 ? '1 new word below' : '$_behind new below',
+              style: const TextStyle(
+                fontSize: 11.6,
+                fontWeight: FontWeight.w800,
+                color: IvoryColors.burgundy,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _send() async {
@@ -95,6 +154,9 @@ class _LiveChatState extends State<LiveChat> {
     try {
       await LiveService.instance.sendMessage(widget.sessionId, text);
       _input.clear();
+      // Their OWN words always bring them back down. Reading
+      // further up is a choice; speaking is a reason to return.
+      _toBottom(force: true);
     } catch (e) {
       if (mounted) {
         setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -133,14 +195,23 @@ class _LiveChatState extends State<LiveChat> {
                     ),
                   ),
                 )
-              : ListView.builder(
+              : NotificationListener<ScrollEndNotification>(
+                  onNotification: (ScrollEndNotification n) {
+                    if (_behind > 0 && _atFoot) {
+                      setState(() => _behind = 0);
+                    }
+                    return false;
+                  },
+                  child: ListView.builder(
                   controller: _scroll,
                   padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
                   itemCount: _messages.length,
                   itemBuilder: (BuildContext c, int i) =>
                       _bubble(_messages[i]),
                 ),
+                ),
         ),
+        if (_behind > 0) _catchUp(),
         if (_error != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
