@@ -40,6 +40,31 @@ extension IvoryGifts on LiveService {
         .toList();
   }
 
+  /// Which set every gift belongs to, by name.
+  ///
+  /// `list_gift_sends` does not return the surface, and that
+  /// function is live and working - rewriting it to add one
+  /// column would mean replacing a body this tree cannot see,
+  /// for a label. So the catalogue is asked directly instead.
+  ///
+  /// NO `is_active` FILTER HERE, DELIBERATELY. A gift she has
+  /// since retired must still be able to say which set it came
+  /// from, or old entries in her list would quietly lose their
+  /// label. The filter belongs on the sheet a member chooses
+  /// from, not on a question about history.
+  Future<Map<String, String>> giftSurfaces() async {
+    final List<dynamic> rows =
+        await _gdb.from('gifts').select('name, surface');
+    final Map<String, String> out = <String, String>{};
+    for (final dynamic r in rows) {
+      final Map<String, dynamic> m = r as Map<String, dynamic>;
+      final String? n = m['name'] as String?;
+      if (n == null) continue;
+      out[n] = (m['surface'] as String?) ?? 'live';
+    }
+    return out;
+  }
+
   /// Shows in the room immediately, marked pending. Returns the id
   /// so the reference can be attached a moment later.
   Future<int> sendGift({
