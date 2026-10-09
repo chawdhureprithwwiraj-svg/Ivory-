@@ -44,6 +44,11 @@ class _GiftSheetState extends State<GiftSheet> {
   final TextEditingController _note = TextEditingController();
   final TextEditingController _utr = TextEditingController();
 
+  /// 'post' when the sheet was opened from a post, 'live' in
+  /// the room. There is no third case - the sheet is only ever
+  /// opened with one of the two ids.
+  String get _surface => widget.postId != null ? 'post' : 'live';
+
   List<Gift> _gifts = <Gift>[];
   PaymentSettings? _settings;
   Gift? _chosen;
@@ -69,7 +74,11 @@ class _GiftSheetState extends State<GiftSheet> {
 
   Future<void> _load() async {
     try {
-      final List<Gift> g = await LiveService.instance.gifts();
+      // TWO WORLDS, AND THE SHEET MUST NOT MIX THEM.
+      // A gift sent under a post asks for the post nine; a gift
+      // sent in the live room asks for the live nine.
+      final List<Gift> g =
+          await LiveService.instance.gifts(surface: _surface);
       final PaymentSettings s = await PaymentService.instance.fetchSettings();
       final String m = await RazorpayService.instance.fetchMode();
       if (!mounted) return;
@@ -231,11 +240,14 @@ class _GiftSheetState extends State<GiftSheet> {
       ];
 
   List<Widget> _chooseStep(BuildContext context) => <Widget>[
-        Text('Send me something',
+        Text(_surface == 'post' ? 'Tell me what it did' : 'Send me something',
             style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 6),
         Text(
-          'It appears on my screen straight away.',
+          _surface == 'post'
+              ? 'Some things a comment cannot carry. Pick the one '
+                  'that is true and I will know exactly what you meant.'
+              : 'It appears on my screen straight away.',
           style: TextStyle(fontSize: 13, color: IvoryColors.textSoft),
         ),
         const SizedBox(height: 16),
