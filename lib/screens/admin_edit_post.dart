@@ -6,6 +6,7 @@ import '../services/admin_service.dart';
 import '../services/vault_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
+import '../widgets/admin_edit_bits.dart';
 import '../widgets/admin_post_chips.dart';
 import 'admin_attach_panel.dart';
 import 'admin_publish_media.dart';
@@ -260,13 +261,11 @@ class _AdminEditPostState extends State<AdminEditPost> {
   // ------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    // A transparent Scaffold shows whatever sits BEHIND the route, and
-    // behind a page route there is nothing - so it painted black at the
-    // top and broke the colour rule. Every other screen simply lets the
-    // theme's ivory through. Do the same here.
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('EDIT POST'),
+        backgroundColor: Colors.transparent,
       ),
       body: Container(
         decoration: const BoxDecoration(gradient: IvoryColors.pageGradient),
@@ -305,7 +304,7 @@ class _AdminEditPostState extends State<AdminEditPost> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 40),
       children: <Widget>[
-        _typeNotice(),
+        AdminEditBits.typeNotice(_type),
         const SizedBox(height: 16),
         TextField(
           controller: _title,
@@ -338,7 +337,7 @@ class _AdminEditPostState extends State<AdminEditPost> {
           ),
         ],
         const SizedBox(height: 20),
-        _currentFile(),
+        AdminEditBits.currentFile(_mediaRef, busy: _busy),
         const SizedBox(height: 10),
         AdminAttachPanel(
           key: _attach,
@@ -404,98 +403,6 @@ class _AdminEditPostState extends State<AdminEditPost> {
   /// The type is shown so she can see what she is editing, and locked
   /// so it cannot be changed. Changing it would send the post down a
   /// different detail route and strand whatever is attached to it.
-  Widget _typeNotice() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: IvoryTheme.card(),
-      child: Row(
-        children: <Widget>[
-          const Icon(Icons.lock_outline, size: 18, color: IvoryColors.plum),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'This is a ${_typeWord()}. The kind of post cannot be '
-              'changed - everything else can.',
-              style: const TextStyle(
-                fontSize: 13,
-                color: IvoryColors.burgundy,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _typeWord() {
-    switch (_type) {
-      case 'audio':
-        return 'voice note';
-      case 'video':
-        return 'film';
-      case 'image':
-        return 'photograph';
-      case 'poll':
-        return 'poll';
-      default:
-        return 'written story';
-    }
-  }
-
-  /// What is attached right now, and the plain truth about what
-  /// happens to it if she replaces it.
-  Widget _currentFile() {
-    final bool has = _mediaRef != null && _mediaRef!.trim().isNotEmpty;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: IvoryTheme.card(highlighted: has),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const AdminLabel('THE FILE ON IT NOW'),
-          const SizedBox(height: 8),
-          Text(
-            has
-                ? 'This post already carries a file. Attach something '
-                    'below only if you want to replace it. Leave the '
-                    'panel alone and the file stays exactly as it is.'
-                : 'Nothing is attached to this post. You can add '
-                    'something below.',
-            style: const TextStyle(
-              fontSize: 13,
-              height: 1.5,
-              color: IvoryColors.burgundy,
-            ),
-          ),
-          if (has) ...<Widget>[
-            const SizedBox(height: 10),
-            Text(
-              'If you do replace it, the old file is NOT deleted - '
-              'nothing ever leaves the Vault without you saying so. It '
-              'will keep taking up room until you clear it yourself.',
-              style: TextStyle(
-                fontSize: 12.5,
-                height: 1.5,
-                color: IvoryColors.textSoft,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: AdminButton(
-                label: 'MANAGE VAULT',
-                icon: Icons.folder_open_outlined,
-                strong: false,
-                onPressed:
-                    _busy ? null : () => VaultManager.open(context),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   Widget _liveSwitch() {
     return SwitchListTile(
       value: _live,
