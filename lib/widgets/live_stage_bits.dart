@@ -15,6 +15,53 @@ import '../theme/ivory_theme.dart';
 
 /// The audio-only stage. A warm gold disc, never a dark
 /// rectangle, because an audio call has nothing to show.
+/// WHAT TO SAY ABOUT WHO IS IN THE ROOM.
+///
+/// Whoever arrives first used to see "Connecting..." and had no
+/// way of telling whether the session was working, whether the
+/// other person was late, or whether they had come to the wrong
+/// place. On an audio session there is nothing on screen but
+/// these words, so they are the entire experience of waiting.
+///
+/// One source for both surfaces, so the video screen and the
+/// audio screen can never drift into saying different things.
+class PresenceWords {
+  const PresenceWords(this.heading, this.note);
+
+  final String heading;
+  final String? note;
+
+  factory PresenceWords.of({
+    required bool host,
+    required bool present,
+    required bool left,
+    String? subtitle,
+  }) {
+    final String them = host ? 'They' : 'Ivory';
+
+    if (present) {
+      return PresenceWords(
+        host ? 'They are here' : 'Ivory is here',
+        subtitle,
+      );
+    }
+    if (left) {
+      return PresenceWords(
+        '$them stepped out',
+        '$them may come straight back. Stay here.',
+      );
+    }
+    return PresenceWords(
+      host ? 'Waiting for them' : 'Waiting for Ivory',
+      host
+          ? 'You are in. They will see that you are here the '
+              'moment they come in.'
+          : 'You are in, and I can see that. Stay on this screen '
+              '- I will be with you.',
+    );
+  }
+}
+
 class LiveAudioStage extends StatelessWidget {
   const LiveAudioStage({
     super.key,
