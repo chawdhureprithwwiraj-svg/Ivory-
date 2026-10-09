@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/live_models.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/admin_call_pill.dart';
+import '../widgets/call_sheet_bits.dart';
 import '../widgets/admin_bits.dart';
 import 'live_screen.dart';
 
@@ -361,7 +363,7 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
                   ],
                 ),
               ),
-              _statusPill(c),
+              AdminCallPill(call: c),
             ],
           ),
           const SizedBox(height: 12),
@@ -385,7 +387,7 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
           const SizedBox(height: 6),
           Text(
             c.requestedFor != null
-                ? 'Agreed for ${_when(c.requestedFor!)}'
+                ? 'Agreed for ${ivoryWhen(c.requestedFor!)}'
                 : c.status == 'accepted'
                     ? 'Waiting for them to choose their time'
                     : 'No time agreed yet',
@@ -474,68 +476,6 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
         ],
       ),
     );
-  }
-
-  Widget _statusPill(AdminCall c) {
-    late final String text;
-    late final Color bg;
-    switch (c.status) {
-      case 'requested':
-        text = 'ASKED';
-        bg = IvoryColors.amber;
-        break;
-      case 'accepted':
-        text = 'CONFIRMED';
-        bg = IvoryColors.gold;
-        break;
-      case 'active':
-        // A session with no agreed time was never really entered -
-        // it is a leftover. Saying IN THE ROOM about it is a lie.
-        text = c.requestedFor == null ? 'LEFT OPEN' : 'IN THE ROOM';
-        bg = c.requestedFor == null ? IvoryColors.amber : IvoryColors.gold;
-        break;
-      case 'completed':
-        text = 'DONE';
-        bg = IvoryColors.success;
-        break;
-      case 'missed':
-        text = 'MISSED';
-        bg = IvoryColors.danger;
-        break;
-      default:
-        text = 'DECLINED';
-        bg = IvoryColors.plum;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: bg == IvoryColors.amber || bg == IvoryColors.gold
-              ? IvoryColors.burgundy
-              : IvoryColors.cream,
-          fontSize: 9.5,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1,
-        ),
-      ),
-    );
-  }
-
-  String _when(DateTime d) {
-    const List<String> m = <String>[
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    final DateTime l = d.toLocal();
-    final int h12 = l.hour % 12 == 0 ? 12 : l.hour % 12;
-    final String mm = l.minute.toString().padLeft(2, '0');
-    final String ap = l.hour < 12 ? 'am' : 'pm';
-    return '${l.day} ${m[l.month - 1]}, $h12:$mm $ap';
   }
 }
 
