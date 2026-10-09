@@ -268,6 +268,27 @@ class LiveService {
     }
   }
 
+  /// Has this session passed the length it was booked for?
+  ///
+  /// The database owns the rule, so the screen does not need to
+  /// know how long the session was or whether an extension has
+  /// since lengthened it. Nothing is ever cut off - a true here
+  /// only means the member may be told, calmly, and that Ivory
+  /// has been nudged once to offer more time.
+  Future<bool> callTimeUp(int callId, int seconds) async {
+    try {
+      final dynamic res = await _db.rpc<dynamic>('call_time_up',
+          params: <String, dynamic>{
+            'call_id_in': callId,
+            'seconds_in': seconds,
+          });
+      return res == true;
+    } catch (_) {
+      // A failed check must never interrupt a live session.
+      return false;
+    }
+  }
+
   /// Ending it for real - the owner's END SESSION.
   Future<void> callFinish(int callId) async {
     await _db.rpc<void>('call_finish',
