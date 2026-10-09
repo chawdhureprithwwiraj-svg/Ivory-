@@ -64,6 +64,7 @@ class GiftWall extends StatefulWidget {
 class _GiftWallState extends State<GiftWall> {
   List<PostGifter> _rows = <PostGifter>[];
   bool _done = false;
+  bool _failed = false;
 
   @override
   void initState() {
@@ -85,11 +86,24 @@ class _GiftWallState extends State<GiftWall> {
       if (!mounted) return;
       setState(() {
         _rows = r;
+        _failed = false;
         _done = true;
       });
     } catch (_) {
+      // THIS USED TO BE SILENT, AND THAT WAS A REAL FAULT.
+      // It showed the friendly "be the first" card no matter
+      // what had gone wrong, so a wall whose database function
+      // was missing looked EXACTLY like a wall nobody had
+      // gifted on. The owner had to notice and report it
+      // herself before anyone could even ask which it was.
+      //
+      // A failure and an emptiness are not the same thing and
+      // must never render the same way.
       if (!mounted) return;
-      setState(() => _done = true);
+      setState(() {
+        _failed = true;
+        _done = true;
+      });
     }
   }
 
@@ -101,7 +115,26 @@ class _GiftWallState extends State<GiftWall> {
     if (!_done) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: _rows.isEmpty ? _empty() : _wall(),
+      child: _failed
+          ? _unreachable()
+          : (_rows.isEmpty ? _empty() : _wall()),
+    );
+  }
+
+  /// We could not ask. Say so plainly and claim nothing about
+  /// who has or has not gifted. A LINE, not a card - it states
+  /// a fact and offers no decision.
+  Widget _unreachable() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Text(
+        'The names on this post could not be loaded just now.',
+        style: TextStyle(
+          fontSize: 12.3,
+          fontStyle: FontStyle.italic,
+          color: IvoryColors.textFaint,
+        ),
+      ),
     );
   }
 
@@ -220,6 +253,48 @@ class _GiftWallState extends State<GiftWall> {
               ),
             ],
           ),
+
+          // THE LINE THEY WROTE, AND ONLY THE TOP ONE'S.
+          //
+          // Twelve quotations would be a comment section, and
+          // nobody asked for a comment section. ONE is a
+          // dedication. It also gives the top of the wall a
+          // reward that is not simply a larger number: the
+          // person at the top is the one whose WORDS everybody
+          // reads. That is a better reason to give than a
+          // leaderboard.
+          //
+          // It is here at all only because she confirmed the
+          // gift. The database will not hand over a line from
+          // an unconfirmed send, and it returns null for one
+          // she has taken down - so there is no such thing on
+          // this wall as a line she has not seen first.
+          if (top.note != null) ...<Widget>[
+            const SizedBox(height: 11),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              decoration: BoxDecoration(
+                color: IvoryColors.surface.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(12),
+                border: Border(
+                  left: BorderSide(color: IvoryColors.gold, width: 2.4),
+                  top: BorderSide(color: IvoryColors.hairline),
+                  right: BorderSide(color: IvoryColors.hairline),
+                  bottom: BorderSide(color: IvoryColors.hairline),
+                ),
+              ),
+              child: Text(
+                '\u201C${top.note}\u201D',
+                style: const TextStyle(
+                  fontSize: 13.2,
+                  height: 1.45,
+                  fontStyle: FontStyle.italic,
+                  color: IvoryColors.burgundy,
+                ),
+              ),
+            ),
+          ],
 
           if (rest.isNotEmpty) ...<Widget>[
             const SizedBox(height: 11),
