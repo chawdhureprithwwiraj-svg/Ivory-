@@ -31,6 +31,14 @@ class PresenceWords {
   final String heading;
   final String? note;
 
+  /// Used by the live status line as well as the stage, so the
+  /// two can never say different things about the same moment.
+  static String steppedOutNote(bool host) {
+    final String them = host ? 'They have' : 'Ivory has';
+    return '$them stepped out. The room is still open - stay '
+        'here and they can come straight back.';
+  }
+
   factory PresenceWords.of({
     required bool host,
     required bool present,
@@ -58,6 +66,43 @@ class PresenceWords {
               'moment they come in.'
           : 'You are in, and I can see that. Stay on this screen '
               '- I will be with you.',
+    );
+  }
+}
+
+/// THE BOOKED TIME IS FINISHED - AND NOTHING HAPPENS.
+///
+/// The owner's standing instruction is that running out of
+/// minutes must NEVER cut a call off. So this is a line of
+/// text and nothing more: no countdown, no timer going red, no
+/// button. The session carries on exactly as it was, and Ivory
+/// has been nudged once, privately, to offer more time if she
+/// wants to.
+class TimeUpBar extends StatelessWidget {
+  const TimeUpBar({super.key, required this.owner});
+
+  final bool owner;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      color: IvoryColors.plum,
+      child: Text(
+        owner
+            ? 'Past the booked time. Still running - offer more '
+                'time, or close it when you are both done.'
+            : 'Your booked time is finished. Nothing has been cut '
+                'off - stay as long as Ivory is here.',
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 12.5,
+          height: 1.45,
+          fontWeight: FontWeight.w600,
+          color: IvoryColors.cream,
+        ),
+      ),
     );
   }
 }
