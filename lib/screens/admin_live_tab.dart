@@ -39,6 +39,7 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
 
   List<LiveSession> _sessions = <LiveSession>[];
   List<GiftSend> _gifts = <GiftSend>[];
+  Map<String, String> _giftSets = <String, String>{};
   Timer? _clock;
 
   @override
@@ -66,10 +67,13 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
           await LiveService.instance.fetchSessions();
       final List<GiftSend> gifts =
           await LiveService.instance.listGiftSends();
+      final Map<String, String> sets =
+          await LiveService.instance.giftSurfaces();
       if (!mounted) return;
       setState(() {
         _sessions = rows;
         _gifts = gifts;
+        _giftSets = sets;
       });
     } catch (_) {}
   }
@@ -346,6 +350,51 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
     );
   }
 
+  /// WHICH SET THIS GIFT CAME FROM.
+  ///
+  /// There are two catalogues now and they mean different
+  /// things, so a row in this list that does not say which is
+  /// a row she has to guess at. The tag answers it at a glance
+  /// and never needs reading twice.
+  ///
+  /// The words are kept apart on purpose. A post gift is about
+  /// something she MADE, so it says ON A POST. A live gift
+  /// arrived while she was on air, so it says ON AIR. Neither
+  /// borrows the other's language, and neither borrows the
+  /// session words - a call is a third thing entirely and has
+  /// no gifts at all.
+  ///
+  /// An unknown name shows nothing rather than a wrong guess.
+  Widget _setTag(String? surface) {
+    if (surface != 'post' && surface != 'live') {
+      return const SizedBox.shrink();
+    }
+    final bool post = surface == 'post';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: post
+            ? IvoryColors.plum.withValues(alpha: 0.10)
+            : IvoryColors.gold.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(
+          color: post
+              ? IvoryColors.plum.withValues(alpha: 0.45)
+              : IvoryColors.gold,
+        ),
+      ),
+      child: Text(
+        post ? 'ON A POST' : 'ON AIR',
+        style: TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.7,
+          color: post ? IvoryColors.plum : IvoryColors.burgundy,
+        ),
+      ),
+    );
+  }
+
   Widget _giftRow(GiftSend g) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -359,13 +408,23 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  '${g.name} - Rs.${g.amountInr}',
-                  style: const TextStyle(
-                    color: IvoryColors.burgundy,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
+                Row(
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        '${g.name} - Rs.${g.amountInr}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: IvoryColors.burgundy,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    _setTag(_giftSets[g.name]),
+                  ],
                 ),
                 Text(
                   '${g.sender ?? 'A member'}'
