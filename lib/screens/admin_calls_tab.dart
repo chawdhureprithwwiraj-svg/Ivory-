@@ -461,7 +461,7 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: IvoryGradientButton(
-                    label: 'JOIN',
+                    label: c.status == 'active' ? 'REJOIN' : 'JOIN',
                     icon: c.kind == 'audio'
                         ? Icons.phone_in_talk_rounded
                         : Icons.videocam_rounded,
