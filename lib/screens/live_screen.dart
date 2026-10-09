@@ -106,6 +106,21 @@ class _LiveScreenState extends State<LiveScreen> {
   bool get _publishes =>
       widget.mode == LiveMode.host || widget.mode == LiveMode.call;
 
+  /// WHOSE SIDE OF THE ROOM THIS IS.
+  ///
+  /// A one-to-one session runs the SAME screen in the SAME mode
+  /// on both handsets, so the mode alone cannot tell the two
+  /// people apart. Asking the mode was why Ivory's own phone
+  /// announced "Ivory stepped out" when it was the member who
+  /// had gone - she was reading her own name back at herself.
+  /// The only honest answer is who is signed in.
+  bool get _hostVoice => widget.mode == LiveMode.host || _isOwner;
+
+  /// The name to put in those words: on Ivory's phone the title
+  /// bar is already carrying the member's name.
+  String? get _otherName =>
+      widget.mode == LiveMode.call ? widget.title : null;
+
   @override
   void initState() {
     super.initState();
@@ -224,7 +239,8 @@ class _LiveScreenState extends State<LiveScreen> {
             if (_remoteUid == uid) _remoteUid = null;
             if (widget.mode == LiveMode.call) {
               _remoteLeft = true;
-              _status = PresenceWords.steppedOutNote(_isOwner);
+              _status =
+                  PresenceWords.steppedOutNote(_hostVoice, _otherName);
             } else {
               _status = widget.mode == LiveMode.host
                   ? 'You are on air'
@@ -371,7 +387,10 @@ class _LiveScreenState extends State<LiveScreen> {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: _stage(),
                 ),
-                if (_joined && _error == null)
+                // The writing box goes with the room. Leaving it
+                // on an ended broadcast invited members to type
+                // into somewhere nobody was listening.
+                if (_joined && _error == null && !_ended)
                   Expanded(
                     child: LiveChat(
                       sessionId: widget.sessionId,
@@ -390,21 +409,16 @@ class _LiveScreenState extends State<LiveScreen> {
 
   // ---------------------------------------------------------------
   Widget _bar(BuildContext context) {
-    final bool live = _joined && _error == null;
-    return LiveTopBar(
+    // ONCE IT IS OVER, IT IS OVER. The clock used to keep
+    // counting underneath the words "the broadcast has ended".
+    return LiveTopBar.forRoom(
       title: widget.title,
       clock: _clock,
-      showClock: live,
-      clockPrefix: widget.mode == LiveMode.call ? '' : 'LIVE  ',
-      note: widget.mode == LiveMode.host && _joined
-          ? 'Only you see this count'
-          : null,
-      // Gifts belong to a broadcast, where the room is watching
-      // together. In a one-to-one session they were only ever
-      // decoration, and they did nothing when tapped.
-      onGift: live && widget.mode == LiveMode.watch
-          ? () => showGiftSheet(context, sessionId: widget.sessionId)
-          : null,
+      live: _joined && _error == null && !_ended,
+      isCall: widget.mode == LiveMode.call,
+      hosting: widget.mode == LiveMode.host,
+      watching: widget.mode == LiveMode.watch,
+      onGift: () => showGiftSheet(context, sessionId: widget.sessionId),
       onClose: () => Navigator.of(context).maybePop(),
     );
   }
@@ -430,22 +444,47 @@ class _LiveScreenState extends State<LiveScreen> {
   }
 
   Widget _stage() {
+    // AN ENDED ROOM IS NEWS, NOT PROGRESS. It used to keep a
+    // spinner turning underneath the thank-you, which read as
+    // though something were still loading.
     if (_ended)
-      return LiveNotice(widget.mode == LiveMode.call
-          ? 'The session has ended. Thank you for your time.'
-          : 'The broadcast has ended. Thank you for being here.');
+      return LiveNotice(
+        widget.mode == LiveMode.call
+            ? 'The session has ended. Thank you for your time.'
+            : 'The broadcast has ended. Thank you for being here.',
+        isError: true,
+      );
     if (_error != null) return LiveNotice(_error!, isError: true);
 
     final RtcEngine? engine = _engine;
     if (engine == null || !_joined) return LiveNotice(_status);
 
+    final bool hosting = widget.mode == LiveMode.host;
+
+    // HER OWN CAMERA, ON HER OWN SCREEN.
+    //
+    // A broadcast audience never publishes, so on Ivory's phone
+    // there is no remote picture and there never will be. The
+    // old code checked for one before it built any video at all,
+    // so hosting always fell through to the audio panel and she
+    // was left looking at a burgundy screen while every member
+    // could see her perfectly. The host's picture is her own,
+    // and it does not depend on anybody else being there.
+    if (hosting && widget.videoEnabled) {
+      final Widget? mine = LiveVideoStage.hostSelf(
+        engine: engine, channel: _ticket?.channel ?? '');
+      if (mine != null) return mine;
+    }
+
     // WHO IS IN THE ROOM - the words live in live_stage_bits
     // so both surfaces below say exactly the same thing.
     final PresenceWords p = PresenceWords.of(
-      host: widget.mode == LiveMode.host,
+      host: _hostVoice,
       present: _remoteUid != null,
       left: _remoteLeft,
       subtitle: widget.subtitle,
+      name: _otherName,
+      broadcast: hosting,
     );
 
     // Audio only: a warm panel, not a black rectangle.
@@ -464,7 +503,7 @@ class _LiveScreenState extends State<LiveScreen> {
 
     final Widget? video = LiveVideoStage.build(
       engine: engine,
-      selfView: widget.mode == LiveMode.host,
+      selfView: false,
       remoteUid: _remoteUid,
       channel: _ticket?.channel ?? '',
       portrait: widget.mode == LiveMode.call,
@@ -475,7 +514,7 @@ class _LiveScreenState extends State<LiveScreen> {
 
   Widget _controls() {
     return LiveControls(
-      visible: _error == null && _joined,
+      visible: _error == null && _joined && !_ended,
       publishes: _publishes,
       videoEnabled: widget.videoEnabled,
       micOn: _micOn,
