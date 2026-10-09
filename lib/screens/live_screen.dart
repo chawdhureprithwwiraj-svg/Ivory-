@@ -17,8 +17,8 @@ import '../widgets/gift_moment.dart';
 import '../widgets/call_extension_prompt.dart';
 import '../widgets/live_chat.dart';
 import '../widgets/call_time_watch.dart';
+import '../widgets/live_controls.dart';
 import '../widgets/live_stage_bits.dart';
-import '../widgets/call_owner_controls.dart';
 import '../widgets/call_offer_layer.dart';
 
 /// ============================================================
@@ -474,80 +474,36 @@ class _LiveScreenState extends State<LiveScreen> {
   }
 
   Widget _controls() {
-    if (_error != null || !_joined) {
-      return const SizedBox(height: 28);
-    }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 22),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          if (_publishes)
-            LiveRoundButton(
-              icon: _micOn ? Icons.mic_rounded : Icons.mic_off_rounded,
-              active: _micOn,
-              onTap: () async {
-                setState(() => _micOn = !_micOn);
-                await _engine?.muteLocalAudioStream(!_micOn);
-              },
-            ),
-          // An audio session is held against the ear or across a
-          // room, and nothing on screen let them choose. A video
-          // call is already loudspeaker by its nature.
-          if (_publishes && !widget.videoEnabled) ...<Widget>[
-            const SizedBox(width: 14),
-            LiveRoundButton(
-              icon: _speaker
-                  ? Icons.volume_up_rounded
-                  : Icons.hearing_rounded,
-              active: _speaker,
-              onTap: () async {
-                setState(() => _speaker = !_speaker);
-                await _engine?.setEnableSpeakerphone(_speaker);
-              },
-            ),
-          ],
-          if (_publishes && widget.videoEnabled) ...<Widget>[
-            const SizedBox(width: 14),
-            LiveRoundButton(
-              icon: _camOn
-                  ? Icons.videocam_rounded
-                  : Icons.videocam_off_rounded,
-              active: _camOn,
-              onTap: () async {
-                setState(() => _camOn = !_camOn);
-                await _engine?.muteLocalVideoStream(!_camOn);
-              },
-            ),
-            const SizedBox(width: 14),
-            LiveRoundButton(
-              icon: Icons.cameraswitch_rounded,
-              active: true,
-              onTap: () async {
-                setState(() => _frontCamera = !_frontCamera);
-                await _engine?.switchCamera();
-              },
-            ),
-          ],
-          const SizedBox(width: 14),
-          LiveRoundButton(
-            icon: Icons.call_end_rounded,
-            active: true,
-            danger: true,
-            label: widget.mode == LiveMode.call ? 'LEAVE' : null,
-            onTap: () => Navigator.of(context).maybePop(),
-          ),
-          if (widget.mode == LiveMode.call && _isOwner)
-            CallOwnerControls(
-              callId: widget.sessionId,
-              premium: widget.subtitle
-                      ?.toLowerCase()
-                      .contains('premium') ??
-                  false,
-              onEnd: _endSession,
-            ),
-        ],
-      ),
+    return LiveControls(
+      visible: _error == null && _joined,
+      publishes: _publishes,
+      videoEnabled: widget.videoEnabled,
+      micOn: _micOn,
+      speakerOn: _speaker,
+      camOn: _camOn,
+      isCall: widget.mode == LiveMode.call,
+      isOwner: _isOwner,
+      callId: widget.sessionId,
+      premium:
+          widget.subtitle?.toLowerCase().contains('premium') ?? false,
+      onToggleMic: () async {
+        setState(() => _micOn = !_micOn);
+        await _engine?.muteLocalAudioStream(!_micOn);
+      },
+      onToggleSpeaker: () async {
+        setState(() => _speaker = !_speaker);
+        await _engine?.setEnableSpeakerphone(_speaker);
+      },
+      onToggleCam: () async {
+        setState(() => _camOn = !_camOn);
+        await _engine?.muteLocalVideoStream(!_camOn);
+      },
+      onSwitchCamera: () async {
+        setState(() => _frontCamera = !_frontCamera);
+        await _engine?.switchCamera();
+      },
+      onLeave: () => Navigator.of(context).maybePop(),
+      onEnd: _endSession,
     );
   }
 
