@@ -6,6 +6,7 @@ import '../models/payment.dart';
 import '../services/content_service.dart';
 import '../services/payment_service.dart';
 import '../services/razorpay_service.dart';
+import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 
 /// ============================================================
@@ -138,7 +139,7 @@ class _LivePassSheetState extends State<LivePassSheet> {
 
     return Padding(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+        bottom: ivorySheetFoot(context),
       ),
       child: Container(
         padding: const EdgeInsets.fromLTRB(22, 14, 22, 28),
