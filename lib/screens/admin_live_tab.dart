@@ -118,13 +118,16 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
     }
   }
 
-  Future<void> _open(int id, String title) async {
+  Future<void> _open(int id, String title, [DateTime? startedAt]) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => LiveScreen(
           sessionId: id,
           title: title,
           mode: LiveMode.host,
+          // The clock in the room must read the same as the
+          // clock on this tab, and as every member's.
+          startedAt: startedAt,
         ),
       ),
     );
@@ -221,7 +224,7 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
                     foregroundColor: IvoryColors.cream,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
-                  onPressed: () => _open(s.id, s.title),
+                  onPressed: () => _open(s.id, s.title, s.startedAt),
                   icon: const Icon(Icons.videocam_rounded, size: 19),
                   label: const Text('OPEN THE ROOM'),
                 ),
