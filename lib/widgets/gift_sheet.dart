@@ -10,6 +10,7 @@ import '../services/razorpay_service.dart';
 import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 import 'gift_moment.dart';
+import 'gift_scene.dart';
 
 /// ============================================================
 /// IVORY - SENDING A GIFT
@@ -223,8 +224,11 @@ class _GiftSheetState extends State<GiftSheet> {
 
   List<Widget> _payStep() => <Widget>[
         Center(
-          child: Text(_chosen?.emoji ?? '\u{1F48C}',
-              style: const TextStyle(fontSize: 46)),
+          child: _surface == 'post' && _chosen != null
+              ? GiftScene(
+                  name: _chosen!.name, emoji: _chosen!.emoji, size: 96)
+              : Text(_chosen?.emoji ?? '\u{1F48C}',
+                  style: const TextStyle(fontSize: 54)),
         ),
         const SizedBox(height: 10),
         Center(
@@ -346,7 +350,14 @@ class _GiftSheetState extends State<GiftSheet> {
           ),
           child: Row(
             children: <Widget>[
-              Text(g.emoji, style: const TextStyle(fontSize: 26)),
+              // A post gift plays its own scene. A live gift keeps
+              // its emblem - the live set was never designed to
+              // be animated and should not be made to look like
+              // something it is not.
+              if (_surface == 'post')
+                GiftScene(name: g.name, emoji: g.emoji, size: 46)
+              else
+                Text(g.emoji, style: const TextStyle(fontSize: 26)),
               const SizedBox(width: 13),
               Expanded(
                 child: Column(
