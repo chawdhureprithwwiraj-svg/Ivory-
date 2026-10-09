@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/ivory_profile.dart';
+import '../widgets/owner_house_card.dart';
 import 'legal_screen.dart';
 import '../models/payment.dart';
 import '../services/auth_service.dart';
@@ -178,10 +179,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _line(
                       Icons.workspace_premium_outlined,
                       IvoryColors.gold,
-                      _membership == null
-                          ? 'Free membership \u00b7 no plan active yet'
-                          : '${_membership!.tierName} \u00b7 '
-                              '${_membership!.daysLeft} days remaining',
+                      (p?.isAdmin ?? false)
+                          ? 'Every tier, every room, always open'
+                          : _membership == null
+                              ? 'Free membership \u00b7 no plan active yet'
+                              : '${_membership!.tierName} \u00b7 '
+                                  '${_membership!.daysLeft} days remaining',
                     ),
                     if (p?.isAdmin ?? false) ...<Widget>[
                       const SizedBox(height: 10),
@@ -201,16 +204,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 18),
 
               // ---- membership ----
+              //
+              // THE OWNER IS NOT A CUSTOMER OF HER OWN HOUSE.
+              //
+              // She has never bought a tier, so this card used to
+              // fall into its "no plan" branch and call her a Free
+              // Guest, then offer to sell her a membership. Her
+              // own app was advertising to her. She owns all of
+              // it; there is nothing here to buy, renew or count
+              // down. So she gets a different card: what she
+              // holds, not what she lacks. Deliberately plain -
+              // this is the back of the house, not a shop window.
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: IvoryTheme.card(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    const IvoryEyebrow('Your membership',
-                        icon: Icons.diamond_outlined),
+                    IvoryEyebrow(
+                      (p?.isAdmin ?? false) ? 'The house' : 'Your membership',
+                      icon: (p?.isAdmin ?? false)
+                          ? Icons.vpn_key_outlined
+                          : Icons.diamond_outlined,
+                    ),
                     const SizedBox(height: 12),
-                    if (_membership != null) ...<Widget>[
+                    if (p?.isAdmin ?? false) ...<Widget>[
+                      const OwnerHouseCard(),
+                    ] else if (_membership != null) ...<Widget>[
                       PremiumBadge.ribbon(
                         tierName: _membership!.tierName,
                         level: _membership!.tierLevel,
@@ -232,23 +252,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                     ],
-                    const SizedBox(height: 6),
-                    Text(
-                      _membership == null
-                          ? 'The open feed, polls and teasers. Unlock a tier '
-                              'to open the private rooms.'
-                          : '${_membership!.daysLeft} days remaining. '
-                              'Everything at this level is open to you.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    IvoryGradientButton(
-                      label: _membership == null
-                          ? 'SEE MEMBERSHIP TIERS'
-                          : 'MANAGE OR RENEW',
-                      icon: Icons.workspace_premium_outlined,
-                      onPressed: () => widget.onOpenTab?.call('premium'),
-                    ),
+                    // No price, no countdown and no way into
+                    // checkout on the owner's own page.
+                    if (!(p?.isAdmin ?? false)) ...<Widget>[
+                      const SizedBox(height: 6),
+                      Text(
+                        _membership == null
+                            ? 'The open feed, polls and teasers. Unlock a '
+                                'tier to open the private rooms.'
+                            : '${_membership!.daysLeft} days remaining. '
+                                'Everything at this level is open to you.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      IvoryGradientButton(
+                        label: _membership == null
+                            ? 'SEE MEMBERSHIP TIERS'
+                            : 'MANAGE OR RENEW',
+                        icon: Icons.workspace_premium_outlined,
+                        onPressed: () => widget.onOpenTab?.call('premium'),
+                      ),
+                    ],
                     if (_payments.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 18),
                       const IvoryEyebrow('Payment history',
