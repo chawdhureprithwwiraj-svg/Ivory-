@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/agora_config.dart';
 import '../models/live_models.dart';
+import '../models/live_night.dart';
 
 /// ============================================================
 /// IVORY - LIVE SESSIONS AND ONE-ON-ONE CALLS
@@ -27,6 +28,34 @@ class LiveService {
   // ---------------------------------------------------------------
   // Broadcasts
   // ---------------------------------------------------------------
+
+  /// The last fourteen finished broadcasts, with the real
+  /// length of each and - only where the night was actually
+  /// recorded - who was in it.
+  Future<List<LiveNight>> liveRecord({int limit = 14}) async {
+    final dynamic res = await _db.rpc<dynamic>('live_record',
+        params: <String, dynamic>{'limit_in': limit});
+    return <LiveNight>[
+      for (final dynamic r in (res as List<dynamic>? ?? <dynamic>[]))
+        LiveNight.fromDb(r as Map<String, dynamic>),
+    ];
+  }
+
+  /// "I am in this room." Called when a member opens a
+  /// broadcast and again while they stay, so the record of who
+  /// was there is built from presence rather than guessed from
+  /// who happened to type.
+  Future<void> enterLive(int sessionId) async {
+    try {
+      await _db.rpc<dynamic>('live_enter',
+          params: <String, dynamic>{'session_id_in': sessionId});
+    } catch (_) {
+      // Never let bookkeeping spoil a broadcast. If this fails
+      // the member still watches; the night simply records one
+      // fewer person, which is a far smaller harm than an error
+      // on screen mid-show.
+    }
+  }
 
   /// Everything on air or coming up, newest first.
   Future<List<LiveSession>> fetchSessions() async {
