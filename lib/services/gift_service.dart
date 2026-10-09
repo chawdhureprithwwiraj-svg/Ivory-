@@ -21,11 +21,19 @@ extension IvoryGifts on LiveService {
   SupabaseClient get _gdb => Supabase.instance.client;
 
 
-  Future<List<Gift>> gifts() async {
+  /// The gifts for ONE surface, never both.
+  ///
+  /// A live gift is something Ivory DOES - dance, sing, tour the
+  /// house. On a post she is not there, so that whole set was a
+  /// promise nobody could keep. The post nine describe what the
+  /// post did to the member instead, which fits a song, a face,
+  /// a lipstick swatch and a last sentence equally.
+  Future<List<Gift>> gifts({String surface = 'live'}) async {
     final List<dynamic> rows = await _gdb
         .from('gifts')
         .select()
         .eq('is_active', true)
+        .eq('surface', surface)
         .order('sort_order', ascending: true);
     return rows
         .map((dynamic r) => Gift.fromDb(r as Map<String, dynamic>))
