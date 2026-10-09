@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 
 /// ============================================================
@@ -213,7 +214,7 @@ class _DoorSheetState extends State<_DoorSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+        bottom: ivorySheetFoot(context),
       ),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 26),
