@@ -38,7 +38,7 @@ class PostMediaBody extends StatelessWidget {
       children: <Widget>[
         IvoryEyebrow(post.type.label, icon: PostCardIcons.of(post.type)),
         const SizedBox(height: 10),
-        _doorStamp(post),
+        postDoorStamp(post),
         Text(postCleanTitle(post.title),
             style: Theme.of(context).textTheme.headlineLarge),
         if (post.summary != null) ...<Widget>[
