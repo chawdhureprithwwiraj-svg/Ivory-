@@ -308,7 +308,21 @@ class _LiveChatState extends State<LiveChat> {
                       color: IvoryColors.peach,
                     ),
                   ),
-                  TextSpan(text: m.body),
+                  // A gift sent with a few words arrives as two
+                  // lines in one message: the gift, then what
+                  // they wrote. They are deliberately ONE
+                  // message - the words belong to the gift and
+                  // must never drift off as a loose comment.
+                  TextSpan(text: _said(m.body).$1),
+                  if (_said(m.body).$2 != null)
+                    TextSpan(
+                      text: '\n\u201C${_said(m.body).$2}\u201D',
+                      style: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        fontSize: 13.2,
+                        color: IvoryColors.gold.withValues(alpha: 0.95),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -316,6 +330,28 @@ class _LiveChatState extends State<LiveChat> {
         ],
         ),
       ),
+    );
+  }
+
+  /// Splits a gift line into the gift and the words, if any.
+  ///
+  /// The database sends them as one message with a line break
+  /// between, so the room shows the gift plainly and the
+  /// member's words in gold italics underneath - the same
+  /// treatment their words get on a post, so a member learns
+  /// one visual language and not two. The quotation marks are
+  /// added here rather than stored, so the stored text stays
+  /// clean.
+  static (String, String?) _said(String body) {
+    final int cut = body.indexOf('\n');
+    if (cut < 0) return (body, null);
+    final String note = body.substring(cut + 1).trim();
+    final String quoted = note.startsWith('"') && note.endsWith('"')
+        ? note.substring(1, note.length - 1)
+        : note;
+    return (
+      body.substring(0, cut),
+      quoted.isEmpty ? null : quoted,
     );
   }
 
