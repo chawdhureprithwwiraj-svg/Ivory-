@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/admin_service.dart';
 import '../services/notification_service.dart';
+import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
 
@@ -168,7 +169,7 @@ class _AdminBroadcastTabState extends State<AdminBroadcastTab> {
             left: 18,
             right: 18,
             top: 18,
-            bottom: MediaQuery.of(c).viewInsets.bottom + 18,
+            bottom: ivorySheetFoot(c, extra: 18),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
