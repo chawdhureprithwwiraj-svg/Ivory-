@@ -249,6 +249,10 @@ class _LiveScreenState extends State<LiveScreen> {
               _status =
                   PresenceWords.steppedOutNote(_hostVoice, _otherName);
             } else {
+              // A broadcast that loses its picture is Ivory
+              // stepping away from the camera, not a session
+              // partner leaving a room.
+              _remoteLeft = widget.mode == LiveMode.watch;
               _status = widget.mode == LiveMode.host
                   ? 'You are on air'
                   : 'The stream has paused.';
@@ -485,6 +489,7 @@ class _LiveScreenState extends State<LiveScreen> {
       subtitle: widget.subtitle,
       name: _otherName,
       broadcast: hosting,
+      audience: widget.mode == LiveMode.watch,
     );
 
     // Audio only: a warm panel, not a black rectangle.
