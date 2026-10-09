@@ -227,16 +227,61 @@ class _GiftWallState extends State<GiftWall> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      top.sender,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        height: 1.15,
-                        color: IvoryColors.burgundy,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        Flexible(
+                          child: Text(
+                            top.sender,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                              height: 1.15,
+                              color: IvoryColors.burgundy,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 7),
+                        // THE TITLE, BESIDE THE NAME.
+                        //
+                        // The crown says "someone is first"; it
+                        // does not say WHAT first means. A
+                        // stranger reading the post should not
+                        // have to work it out. So the position
+                        // is named, in gold, right beside the
+                        // person holding it.
+                        //
+                        // IT APPEARS EVEN WHEN ONLY ONE PERSON
+                        // HAS GIVEN. Being the only name is not
+                        // a lesser thing - it is the whole of
+                        // the wall - and a title that waits for
+                        // a crowd would insult the first giver,
+                        // who took the biggest risk of all.
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: <Color>[
+                                IvoryColors.gold,
+                                IvoryColors.amber,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            'TOP GIFTER',
+                            style: TextStyle(
+                              fontSize: 8.6,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.9,
+                              color: IvoryColors.burgundy,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     Text(
                       '${top.giftName}  \u00B7  Rs.${top.amountInr}',
