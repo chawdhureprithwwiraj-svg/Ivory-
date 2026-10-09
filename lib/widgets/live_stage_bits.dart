@@ -487,11 +487,21 @@ class LiveVideoStage {
     required bool portrait,
     required bool pipSelf,
   }) {
+    // FILL THE FRAME, DO NOT FLOAT INSIDE IT.
+    //
+    // Agora's default fits the whole camera picture inside the
+    // box, so a landscape phone held upright produced a thin
+    // strip of face with a large empty panel underneath - the
+    // face ended up smaller than the little corner preview.
+    // "Hidden" crops the edges instead, which is what every
+    // video call does and what the stage was shaped for.
+    const RenderModeType fill = RenderModeType.renderModeHidden;
+
     final Widget? video = selfView
         ? AgoraVideoView(
             controller: VideoViewController(
               rtcEngine: engine,
-              canvas: const VideoCanvas(uid: 0),
+              canvas: const VideoCanvas(uid: 0, renderMode: fill),
             ),
           )
         : (remoteUid == null
@@ -499,7 +509,7 @@ class LiveVideoStage {
             : AgoraVideoView(
                 controller: VideoViewController.remote(
                   rtcEngine: engine,
-                  canvas: VideoCanvas(uid: remoteUid),
+                  canvas: VideoCanvas(uid: remoteUid, renderMode: fill),
                   connection: RtcConnection(channelId: channel),
                 ),
               ));
@@ -527,7 +537,8 @@ class LiveVideoStage {
                     child: AgoraVideoView(
                       controller: VideoViewController(
                         rtcEngine: engine,
-                        canvas: const VideoCanvas(uid: 0),
+                        canvas: const VideoCanvas(
+                            uid: 0, renderMode: fill),
                       ),
                     ),
                   ),
