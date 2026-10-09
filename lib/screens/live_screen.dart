@@ -14,6 +14,7 @@ import '../widgets/house_consent.dart';
 import '../widgets/gift_sheet.dart';
 import '../widgets/gift_moment.dart';
 import '../widgets/live_chat.dart';
+import '../widgets/live_room_body.dart';
 import '../widgets/call_time_watch.dart';
 import '../widgets/live_controls.dart';
 import '../widgets/live_stage_bits.dart';
@@ -143,6 +144,13 @@ class _LiveScreenState extends State<LiveScreen> {
       );
       _boot();
       return;
+    }
+    // She is the one broadcasting; she is not in her own
+    // audience. Everyone else is recorded as having been here,
+    // so the record can say "you were there" truthfully
+    // instead of guessing from who happened to type.
+    if (widget.mode != LiveMode.host) {
+      LiveService.instance.enterLive(widget.sessionId);
     }
     _statusChannel = LiveService.instance.watchStatus(
       widget.sessionId,
@@ -379,37 +387,24 @@ class _LiveScreenState extends State<LiveScreen> {
   }
 
   Widget _room(BuildContext context) {
-    return Column(
-            children: <Widget>[
-              _bar(context),
-              // A broadcast gives the stage the top half and the
-              // members' words the rest. A 1:1 call has no chat -
-              // you are already talking.
-              if (widget.mode == LiveMode.call)
-                Expanded(child: Center(child: _stage()))
-              else ...<Widget>[
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: _stage(),
-                ),
-                // The writing box goes with the room. Leaving it
-                // on an ended broadcast invited members to type
-                // into somewhere nobody was listening.
-                if (_joined && _error == null && !_ended)
-                  Expanded(
-                    child: LiveChat(
-                      sessionId: widget.sessionId,
-                      onGift: (String emoji, String label, String? from) =>
-                          GiftMoment.show(context,
-                              emoji: emoji, name: label, from: from),
-                    ),
-                  )
-                else
-                  const Expanded(child: SizedBox.shrink()),
-              ],
-              _controls(),
-            ],
-          );
+    // HOW the room is arranged now lives in `live_room_body.dart`.
+    // This file was twenty bytes under the ceiling, and the fix
+    // for the letterbox chat was a layout change - so the layout
+    // was lifted out whole rather than squeezed in here.
+    return LiveRoomBody(
+      bar: _bar(context),
+      stage: _stage(),
+      controls: _controls(),
+      isCall: widget.mode == LiveMode.call,
+      chat: (_joined && _error == null && !_ended)
+          ? LiveChat(
+              sessionId: widget.sessionId,
+              onGift: (String emoji, String label, String? from) =>
+                  GiftMoment.show(context,
+                      emoji: emoji, name: label, from: from),
+            )
+          : null,
+    );
   }
 
   // ---------------------------------------------------------------
