@@ -473,10 +473,40 @@ class BookingLink {
 
   factory BookingLink.fromDb(Map<String, dynamic> m) => BookingLink(
         kind: (m['kind'] as String?) ?? 'video',
-        provider: (m['provider'] as String?) ?? 'cal_com',
+        // cal.com was removed in block B. Booking happens
+        // inside Ivory now, so the only honest default is
+        // the house itself.
+        provider: (m['provider'] as String?) ?? 'ivory',
         url: m['url'] as String?,
         headline: m['headline'] as String?,
         note: m['note'] as String?,
+      );
+}
+
+/// ONE NAME ON THE WALL OF A POST.
+///
+/// Returned by `post_gifters`, which gives back CONFIRMED
+/// sends only - so every one of these is a real member who
+/// really paid. See `lib/widgets/gift_wall.dart` for why that
+/// matters and must never be loosened.
+class PostGifter {
+  const PostGifter({
+    required this.sender,
+    required this.giftName,
+    required this.emoji,
+    required this.amountInr,
+  });
+
+  final String sender;
+  final String giftName;
+  final String emoji;
+  final int amountInr;
+
+  factory PostGifter.fromDb(Map<String, dynamic> m) => PostGifter(
+        sender: (m['sender'] as String?) ?? 'A member',
+        giftName: (m['gift_name'] as String?) ?? 'A gift',
+        emoji: (m['emoji'] as String?) ?? '',
+        amountInr: ((m['amount_inr'] as num?) ?? 0).toInt(),
       );
 }
 
