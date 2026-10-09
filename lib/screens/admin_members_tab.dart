@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
 
@@ -99,7 +100,7 @@ class _AdminMembersTabState extends State<AdminMembersTab> {
       builder: (BuildContext sheetContext) => StatefulBuilder(
         builder: (BuildContext c, StateSetter setSheet) => Container(
           padding: EdgeInsets.fromLTRB(
-            22, 18, 22, MediaQuery.of(c).viewInsets.bottom + 28,
+            22, 18, 22, ivorySheetFoot(c, extra: 28),
           ),
           decoration: const BoxDecoration(
             color: IvoryColors.surface,
