@@ -4,6 +4,7 @@ import '../models/live_models.dart';
 import '../models/wish.dart';
 import '../services/wish_service.dart';
 import '../services/razorpay_service.dart';
+import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/wish_call_banner.dart';
 import '../services/auth_service.dart';
@@ -495,7 +496,7 @@ class _WishScreenState extends State<WishScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: ivorySheetFoot(context),
         ),
         child: WishForm(
           category: c,
