@@ -50,6 +50,14 @@ class PushService {
     }
   }
 
+  /// TRUE WHEN THE MEMBER SAID NO TO NOTIFICATIONS.
+  ///
+  /// Until now that answer was written to the debug log and
+  /// nowhere else, so a member could sit for a week wondering
+  /// why Ivory never told them their session was confirmed.
+  /// The Profile page watches this and explains it.
+  static final ValueNotifier<bool> refused = ValueNotifier<bool>(false);
+
   /// Ask for permission, collect the token, store it against this member.
   /// Call it after sign-in.
   Future<void> start() async {
@@ -67,8 +75,10 @@ class PushService {
       );
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
         debugPrint('Ivory: member declined notifications');
+        refused.value = true;
         return;
       }
+      refused.value = false;
 
       final String? t = await fm.getToken();
       if (t == null) return;
@@ -135,3 +145,5 @@ class PushService {
     }
   }
 }
+
+// END OF FILE - lib/services/push_service.dart
