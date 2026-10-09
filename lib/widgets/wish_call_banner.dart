@@ -27,8 +27,38 @@ import 'sessions_panel.dart';
 /// at any time. Repeating them here would be one more place to go
 /// wrong, and it is not what the member needs at this moment. They
 /// need to know what is waiting and what to do about it.
+/// WHAT THIS WIDGET SHOWS DEPENDS ON WHERE IT IS PUT.
+///
+/// **CARD = DECISION. LINE = FACT.** A session still waiting for
+/// the member to choose a time is a DECISION, and decisions go
+/// above everything, because nothing else on the page matters
+/// until it is made. A session already settled is a FACT - there
+/// is nothing to do but turn up - and a fact should be a quiet
+/// line further down, not a block of gold shouting at somebody
+/// who has already done everything asked of them.
+enum WishBannerPart {
+  /// Things still needing the member to act. Goes at the top.
+  decisions,
+
+  /// Sessions already settled. A thin line under the hero.
+  settled,
+}
+
 class WishCallBanner extends StatefulWidget {
-  const WishCallBanner({super.key, this.onSomethingWaiting});
+  const WishCallBanner({
+    super.key,
+    this.onSomethingWaiting,
+    this.part = WishBannerPart.decisions,
+    this.pulse = false,
+  });
+
+  /// Which half of the strip this copy is responsible for.
+  final WishBannerPart part;
+
+  /// True for a few seconds after a member arrives from a
+  /// notification, so the thing they were sent for breathes
+  /// gently and their eye finds it without being shouted at.
+  final bool pulse;
 
   /// Called with true the moment there is a card to show, so the
   /// page above can take the member to the top of the screen.
@@ -91,9 +121,34 @@ class _WishCallBannerState extends State<WishCallBanner> {
     );
   }
 
+  /// A settled session: she has said yes AND a time is fixed.
+  bool _isSettled(CallRequest c) => c.requestedFor != null;
+
   @override
   Widget build(BuildContext context) {
-    if (_calls.isEmpty && _wishes.isEmpty) {
+    if (widget.part == WishBannerPart.settled) {
+      final List<CallRequest> settled = _calls.where(_isSettled).toList();
+      if (settled.isEmpty) return const SizedBox.shrink();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (final CallRequest c in settled)
+            _Breathing(
+              on: widget.pulse,
+              child: _settled(
+                  context,
+                  c.isVideo
+                      ? Icons.videocam_rounded
+                      : Icons.phone_in_talk_rounded,
+                  c),
+            ),
+        ],
+      );
+    }
+
+    final List<CallRequest> todo =
+        _calls.where((CallRequest c) => !_isSettled(c)).toList();
+    if (todo.isEmpty && _wishes.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -112,7 +167,8 @@ class _WishCallBannerState extends State<WishCallBanner> {
             ),
           ),
         ),
-        for (final CallRequest c in _calls) _callCard(context, c),
+        for (final CallRequest c in todo)
+          _Breathing(on: widget.pulse, child: _callCard(context, c)),
         for (final Wish w in _wishes) _wishCard(context, w),
         if (_message != null)
           Padding(
@@ -165,60 +221,63 @@ class _WishCallBannerState extends State<WishCallBanner> {
     );
   }
 
-  /// One quiet line: what it is, when it is, and a way in.
+  /// ONE THIN LINE: what it is, when it is, and the way to the
+  /// instructions.
+  ///
+  /// Deliberately slight. A member who has chosen, paid and
+  /// picked a time has done everything asked of them, and a
+  /// heavy gold block at the top of the page would be the app
+  /// shouting an instruction at somebody who is already
+  /// obedient. It now sits under the hero where the eye lands
+  /// anyway, taking a third of the room it used to, and it
+  /// stays there until the session is over.
+  ///
+  /// IT IS A DOOR, NOT AN EXPLANATION. It says only what is
+  /// booked and when. The instructions themselves live in one
+  /// place - `SessionGuideSheet` - and this is simply a way in.
   Widget _settled(BuildContext context, IconData icon, CallRequest c) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(11),
         onTap: () => SessionGuideSheet.open(context),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(13, 11, 11, 11),
+          padding: const EdgeInsets.fromLTRB(11, 8, 9, 8),
           decoration: BoxDecoration(
             color: IvoryColors.surfaceWarm,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: IvoryColors.gold, width: 1.2),
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(
+                color: IvoryColors.gold.withValues(alpha: 0.75), width: 1),
           ),
           child: Row(
             children: <Widget>[
-              Icon(icon, size: 17, color: IvoryColors.amber),
-              const SizedBox(width: 10),
+              Icon(icon, size: 14, color: IvoryColors.amber),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      c.isVideo ? 'Face to face' : 'Voice only',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 1,
-                        fontWeight: FontWeight.w800,
-                        color: IvoryColors.plum,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      ivoryWhen(c.requestedFor!),
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        color: IvoryColors.burgundy,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  '${c.isVideo ? 'Face to face' : 'Voice only'}'
+                  '  \u00B7  ${ivoryWhen(c.requestedFor!)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: IvoryColors.burgundy,
+                  ),
                 ),
               ),
+              const SizedBox(width: 6),
               Text(
                 'WHAT TO DO',
                 style: TextStyle(
-                  fontSize: 10,
-                  letterSpacing: 0.9,
+                  fontSize: 9,
+                  letterSpacing: 0.8,
                   fontWeight: FontWeight.w800,
-                  color: IvoryColors.textFaint,
+                  color: IvoryColors.plum.withValues(alpha: 0.85),
                 ),
               ),
               Icon(Icons.chevron_right_rounded,
-                  size: 19, color: IvoryColors.plum),
+                  size: 15, color: IvoryColors.plum),
             ],
           ),
         ),
@@ -335,6 +394,81 @@ class _WishCallBannerState extends State<WishCallBanner> {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+/// A slow gold breath, for a few seconds after a member arrives
+/// from a notification.
+///
+/// NOT A FLASH AND NOT A LOOP THAT NEVER ENDS. It swells and
+/// settles three times over about five seconds and then stops
+/// for good. Long enough for the eye to find it, short enough
+/// that it never becomes a thing to ignore - and it stops on
+/// its own, so a member who looks away is not nagged when they
+/// look back.
+class _Breathing extends StatefulWidget {
+  const _Breathing({required this.child, required this.on});
+
+  final Widget child;
+  final bool on;
+
+  @override
+  State<_Breathing> createState() => _BreathingState();
+}
+
+class _BreathingState extends State<_Breathing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1650),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.on) _c.repeat(reverse: true, count: 3);
+  }
+
+  @override
+  void didUpdateWidget(_Breathing old) {
+    super.didUpdateWidget(old);
+    if (widget.on && !old.on) {
+      _c
+        ..reset()
+        ..repeat(reverse: true, count: 3);
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.on) return widget.child;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (BuildContext context, Widget? child) {
+        final double t = Curves.easeInOut.transform(_c.value);
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: IvoryColors.gold.withValues(alpha: 0.42 * t),
+                blurRadius: 10 + 14 * t,
+                spreadRadius: 1 + 2 * t,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: widget.child,
     );
   }
 }
