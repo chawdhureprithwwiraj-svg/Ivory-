@@ -141,14 +141,6 @@ class _CallWishSheetState extends State<CallWishSheet> {
   // the member's own clock - never show UTC to a member.
   String _when(DateTime d) => ivoryWhen(d);
 
-  String _dmy(DateTime d) {
-    const List<String> m = <String>[
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${d.day} ${m[d.month - 1]} ${d.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
