@@ -100,7 +100,9 @@ class PostActions {
 /// Dart - which is exactly what broke the 27c build.
 String postCleanTitle(String title) => title.replaceFirst('[SAMPLE] ', '');
 
-Widget _doorStamp(IvoryPost post) =>
+/// Shared with post_media_body.dart, so it cannot stay
+/// private - the same reason as postCleanTitle above.
+Widget postDoorStamp(IvoryPost post) =>
     post.doorCredit == null
         ? const SizedBox.shrink()
         : Padding(
@@ -146,7 +148,7 @@ class _ReaderBody extends StatelessWidget {
       children: <Widget>[
         const IvoryEyebrow('Written story', icon: Icons.auto_stories),
         const SizedBox(height: 10),
-        _doorStamp(post),
+        postDoorStamp(post),
         Text(postCleanTitle(post.title),
             style: Theme.of(context).textTheme.headlineLarge),
         const SizedBox(height: 8),
