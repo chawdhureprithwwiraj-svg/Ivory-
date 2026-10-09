@@ -189,9 +189,13 @@ class _LiveScreenState extends State<LiveScreen> {
 
       // 2. The signed ticket. Every entitlement check happens here.
       setState(() => _status = 'Opening the room...');
-      final AgoraTicket ticket = widget.mode == LiveMode.call
-          ? await LiveService.instance.joinCall(widget.sessionId)
-          : await LiveService.instance.joinLive(widget.sessionId);
+      // Both the ticket and the connection now have an end to
+      // the waiting. See RoomEntry.ticket - this sentence used
+      // to be able to stay on screen for ever.
+      final AgoraTicket ticket = await RoomEntry.ticket(
+        isCall: widget.mode == LiveMode.call,
+        id: widget.sessionId,
+      );
       _ticket = ticket;
 
       // The ticket is what stamps the session as begun, so the
@@ -201,14 +205,12 @@ class _LiveScreenState extends State<LiveScreen> {
         await _clk.anchorFromDatabase(widget.sessionId);
       }
 
-      // 3. The engine.
-      final RtcEngine engine = createAgoraRtcEngine();
-      await engine.initialize(RtcEngineContext(
+      // 3. The engine. Brought up in RoomEntry so this file
+      // stays under the paste ceiling.
+      final RtcEngine engine = await RoomEntry.engine(
         appId: ticket.appId,
-        channelProfile: widget.mode == LiveMode.call
-            ? ChannelProfileType.channelProfileCommunication
-            : ChannelProfileType.channelProfileLiveBroadcasting,
-      ));
+        isCall: widget.mode == LiveMode.call,
+      );
       _engine = engine;
 
       engine.registerEventHandler(RtcEngineEventHandler(
@@ -265,19 +267,13 @@ class _LiveScreenState extends State<LiveScreen> {
         },
       ));
 
-      await engine.enableAudio();
-      if (widget.videoEnabled) {
-        await engine.enableVideo();
-      }
+      await RoomEntry.ready(
+        engine: engine,
+        video: widget.videoEnabled,
+        publishes: _publishes,
+      );
 
-      if (_publishes) {
-        await engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
-        if (widget.videoEnabled) await engine.startPreview();
-      } else {
-        await engine.setClientRole(role: ClientRoleType.clientRoleAudience);
-      }
-
-      await engine.joinChannel(
+      await RoomEntry.connect(engine.joinChannel(
         token: ticket.token,
         channelId: ticket.channel,
         uid: ticket.uid,
@@ -290,7 +286,7 @@ class _LiveScreenState extends State<LiveScreen> {
           autoSubscribeAudio: true,
           autoSubscribeVideo: widget.videoEnabled,
         ),
-      );
+      ));
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = houseMessage(e));
