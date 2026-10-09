@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/wish.dart';
 import '../services/wish_service.dart';
+import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 
 // =====================================================================
@@ -56,9 +57,13 @@ class _AdminWishesTabState extends State<AdminWishesTab> {
             left: 18,
             right: 18,
             top: 18,
-            bottom: MediaQuery.of(c).viewInsets.bottom + 18,
+            bottom: ivorySheetFoot(c, extra: 18),
           ),
-          child: Column(
+          // With the keyboard up this sheet is taller than the
+          // screen, so it must be able to scroll or the button
+          // is unreachable for a second reason.
+          child: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -128,6 +133,7 @@ class _AdminWishesTabState extends State<AdminWishesTab> {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),
