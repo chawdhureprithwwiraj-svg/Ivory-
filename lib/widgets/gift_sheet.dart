@@ -6,6 +6,7 @@ import '../models/payment.dart';
 import '../services/live_service.dart';
 import '../services/payment_service.dart';
 import '../services/razorpay_service.dart';
+import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 import 'gift_moment.dart';
 
@@ -162,7 +163,7 @@ class _GiftSheetState extends State<GiftSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+        bottom: ivorySheetFoot(context),
       ),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 26),
