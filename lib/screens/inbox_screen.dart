@@ -99,6 +99,7 @@ class _InboxScreenState extends State<InboxScreen> {
   @override
   Widget build(BuildContext context) {
     final int unread = _items.where((IvoryNotification n) => !n.isRead).length;
+    final Set<int> replaced = supersededOffers(_items);
 
     return Container(
       decoration: const BoxDecoration(gradient: IvoryColors.pageGradient),
@@ -171,6 +172,9 @@ class _InboxScreenState extends State<InboxScreen> {
               ..._items.map(
                 (IvoryNotification n) => _NotificationTile(
                   item: n,
+                  // An older offer of more time cannot still be
+                  // the live one. See supersededOffers.
+                  superseded: replaced.contains(n.id),
                   onTap: () => _open(n),
                   onLongPress: () => showReportSheet(
                     context,
@@ -191,15 +195,21 @@ class _NotificationTile extends StatelessWidget {
     required this.item,
     required this.onTap,
     this.onLongPress,
+    this.superseded = false,
   });
 
   final IvoryNotification item;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
+  /// An offer of more time that a later offer has replaced.
+  final bool superseded;
+
   @override
   Widget build(BuildContext context) {
-    final bool unread = !item.isRead;
+    // A replaced offer must never wear the gold ring of
+    // something waiting to be acted on.
+    final bool unread = !item.isRead && !superseded;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -256,12 +266,42 @@ class _NotificationTile extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 5),
+                      // WHICH OFFER IS THE REAL ONE.
+                      //
+                      // Two offers arrived a minute apart and
+                      // both said "open the call to accept".
+                      // Only the newest can stand, so the older
+                      // one says so in plain words rather than
+                      // leaving her member to guess at a price.
+                      if (superseded) ...<Widget>[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: IvoryColors.surfaceWarm,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'Ivory has since sent a newer offer. '
+                            'This one no longer stands.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.4,
+                              fontWeight: FontWeight.w700,
+                              color: IvoryColors.plum,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                      ],
                       Text(
                         item.body,
                         style: TextStyle(
                           fontSize: 13.5,
                           height: 1.45,
-                          color: IvoryColors.textSoft,
+                          color: superseded
+                              ? IvoryColors.textFaint
+                              : IvoryColors.textSoft,
                         ),
                       ),
                       if (item.actionUrl != null &&
