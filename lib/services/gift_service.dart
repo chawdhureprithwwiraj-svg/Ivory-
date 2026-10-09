@@ -108,6 +108,21 @@ extension IvoryGifts on LiveService {
         .toList();
   }
 
+  /// Who gifted on one post, largest first.
+  ///
+  /// CONFIRMED SENDS ONLY - that rule lives in the SQL, not
+  /// here, so no screen can ever ask for the pending ones. A
+  /// name goes on a post when the money has been seen, and not
+  /// a moment before.
+  Future<List<PostGifter>> postGifters(int postId) async {
+    final dynamic res = await _gdb.rpc<dynamic>('post_gifters',
+        params: <String, dynamic>{'post_id_in': postId});
+    if (res is! List) return <PostGifter>[];
+    return res
+        .map((dynamic r) => PostGifter.fromDb(r as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<void> confirmGift(int sendId, {bool accept = true}) async {
     await _gdb.rpc<dynamic>('confirm_gift', params: <String, dynamic>{
       'send_id_in': sendId,
