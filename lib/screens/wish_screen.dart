@@ -11,6 +11,7 @@ import '../services/auth_service.dart';
 import '../services/live_service.dart';
 import '../widgets/wish_category_card.dart';
 import '../widgets/wish_guide.dart';
+import 'main_shell.dart';
 import '../widgets/wish_status_card.dart';
 import '../widgets/call_wish_sheet.dart';
 import 'wish_form.dart';
@@ -58,6 +59,9 @@ class _WishScreenState extends State<WishScreen> {
   void initState() {
     super.initState();
     _load();
+    // Listen for a member being SENT here by a notification.
+    // See `_arrived`.
+    MainShell.arrivalTick.addListener(_arrived);
     RazorpayService.instance.fetchMode().then((String m) {
       if (mounted) setState(() => _mode = m);
     });
@@ -101,8 +105,36 @@ class _WishScreenState extends State<WishScreen> {
   bool _tookThemUp = false;
   bool _scrolledAway = false;
 
+  /// True for a few seconds after a member arrives here from a
+  /// notification. See `_arrived`.
+  bool _pulse = false;
+
+  /// THE MEMBER TAPPED "YOUR SESSION IS CONFIRMED" AND LANDED
+  /// NOWHERE. This is the fix.
+  ///
+  /// The tabs are kept alive, so opening Wish from a
+  /// notification used to drop them exactly where they last
+  /// were - usually half way down the menu they had already
+  /// used to book. Nothing reloaded, nothing moved, nothing
+  /// pointed anywhere. They had been told something had
+  /// happened and then shown no sign of it.
+  ///
+  /// Now arriving reloads, lifts them to the top, and makes the
+  /// session breathe for about five seconds.
+  void _arrived() {
+    if (MainShell.arrivals.value != 'wish') return;
+    if (!mounted) return;
+    _load();
+    _toTop();
+    setState(() => _pulse = true);
+    Future<void>.delayed(const Duration(seconds: 6), () {
+      if (mounted) setState(() => _pulse = false);
+    });
+  }
+
   @override
   void dispose() {
+    MainShell.arrivalTick.removeListener(_arrived);
     _scroll.dispose();
     super.dispose();
   }
@@ -173,9 +205,28 @@ class _WishScreenState extends State<WishScreen> {
             // The house does not need her own instructions, and
             // her gold cards belong in the CALLS tab, not here.
             if (!AuthService.instance.isAdminCached) ...<Widget>[
-              WishCallBanner(onSomethingWaiting: _somethingWaiting),
+              WishCallBanner(
+                onSomethingWaiting: _somethingWaiting,
+                pulse: _pulse,
+              ),
             ],
             _hero(),
+            // THE SETTLED SESSION SITS HERE, NOT AT THE TOP.
+            //
+            // Under the hero is where the eye lands on the way
+            // into the page, so it is seen without the page
+            // having to shout. And a member who has already
+            // chosen, paid and picked a time should not be met
+            // by a block of gold telling them to do something -
+            // they have done everything asked. A thin line is
+            // the honest weight for a fact.
+            if (!AuthService.instance.isAdminCached) ...<Widget>[
+              const SizedBox(height: 14),
+              WishCallBanner(
+                part: WishBannerPart.settled,
+                pulse: _pulse,
+              ),
+            ],
             const SizedBox(height: 24),
             Text(
               'What would you like made?',
