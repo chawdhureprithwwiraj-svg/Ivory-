@@ -9,6 +9,7 @@ import '../services/content_service.dart';
 import 'gift_sheet.dart';
 import '../theme/ivory_theme.dart';
 import 'ivory_media_view.dart';
+import 'post_media_body.dart';
 import 'post_poll.dart';
 import 'post_surface.dart';
 import 'post_unlock_sheet.dart';
@@ -68,7 +69,7 @@ class PostActions {
     // to, not watched, so it stays a sheet like the writing does.
     final bool immersive =
         full.type == PostType.video || full.type == PostType.image;
-    _sheet(context, _MediaBody(post: full), immersive: immersive);
+    _sheet(context, PostMediaBody(post: full), immersive: immersive);
   }
 
   /// A story, a voice note or a poll rises as a sheet that can reach
@@ -94,7 +95,10 @@ class PostActions {
   }
 }
 
-String _clean(String title) => title.replaceFirst('[SAMPLE] ', '');
+/// Shared with post_media_body.dart, so it cannot stay
+/// private. A private name does not cross a file boundary in
+/// Dart - which is exactly what broke the 27c build.
+String postCleanTitle(String title) => title.replaceFirst('[SAMPLE] ', '');
 
 Widget _doorStamp(IvoryPost post) =>
     post.doorCredit == null
@@ -112,7 +116,8 @@ Widget _doorStamp(IvoryPost post) =>
             ),
           );
 
-Widget _giftRow(BuildContext context, IvoryPost post) => Padding(
+/// Shared with post_media_body.dart - see above.
+Widget postGiftRow(BuildContext context, IvoryPost post) => Padding(
       padding: const EdgeInsets.only(top: 26),
       child: Center(
         child: TextButton.icon(
@@ -142,7 +147,7 @@ class _ReaderBody extends StatelessWidget {
         const IvoryEyebrow('Written story', icon: Icons.auto_stories),
         const SizedBox(height: 10),
         _doorStamp(post),
-        Text(_clean(post.title),
+        Text(postCleanTitle(post.title),
             style: Theme.of(context).textTheme.headlineLarge),
         const SizedBox(height: 8),
         Text(
@@ -162,7 +167,7 @@ class _ReaderBody extends StatelessWidget {
         // paragraph behaves exactly as it did before.
         ..._flow(post),
 
-        _giftRow(context, post),
+        postGiftRow(context, post),
       ],
     );
   }
@@ -268,127 +273,6 @@ class _StoryMedia extends StatelessWidget {
 // =====================================================================
 // Video / audio
 // =====================================================================
-class _MediaBody extends StatelessWidget {
-  const _MediaBody({required this.post});
-
-  final IvoryPost post;
-
-  @override
-  Widget build(BuildContext context) {
-    // A file Ivory can stream itself: Supabase Storage, Cloudflare R2 or
-    // any direct https link. YouTube and Telegram still open outside.
-    final String? playable = post.media.directUrl();
-    final String? external = post.media.externalUrl;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        IvoryEyebrow(post.type.label, icon: PostCardIcons.of(post.type)),
-        const SizedBox(height: 10),
-        _doorStamp(post),
-        Text(_clean(post.title),
-            style: Theme.of(context).textTheme.headlineLarge),
-        if (post.summary != null) ...<Widget>[
-          const SizedBox(height: 10),
-          Text(post.summary!, style: Theme.of(context).textTheme.bodyLarge),
-        ],
-        const SizedBox(height: 20),
-
-        // ---- in-app viewing / playback ----
-        if (playable != null && post.type == PostType.image)
-          IvoryImageView(url: playable)
-        else if (playable != null)
-          IvoryPlayer(
-            url: playable,
-            audioOnly: post.type == PostType.audio,
-            posterUrl: post.thumbnailFor(),
-          )
-        else
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: IvoryTheme.card(highlighted: true),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Icon(
-                      playable != null
-                          ? Icons.play_circle_fill
-                          : Icons.open_in_new_rounded,
-                      color: IvoryColors.amber,
-                      size: 21,
-                    ),
-                    const SizedBox(width: 9),
-                    Expanded(
-                      child: Text(
-                        playable != null ? 'PLAYS IN IVORY' : 'OPENS OUTSIDE',
-                        style: const TextStyle(
-                          color: IvoryColors.plum,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                    ),
-                    if (post.durationLabel != null)
-                      Text(
-                        post.durationLabel!,
-                        style: TextStyle(
-                          color: IvoryColors.textFaint,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (external != null)
-                  IvoryGradientButton(
-                    label: 'WATCH NOW',
-                    icon: Icons.play_arrow,
-                    onPressed: () => PostActions.launch(context, external),
-                  )
-                else
-                  Text(
-                    'No playable link is attached to this post yet.',
-                    style: TextStyle(
-                      color: IvoryColors.textSoft,
-                      fontSize: 14,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-
-        // ---- footer line ----
-        // SPRINT 24f - PRIVACY.
-        // This row used to end in an "Open externally" button that handed
-        // the member the raw storage address - the Supabase or Cloudflare
-        // R2 URL. One tap and they could see where Ivory keeps its files,
-        // which companies it depends on, and the shape of the back end.
-        // It is gone. So is the "Streaming inside Ivory" caption, which
-        // announced plumbing nobody asked to hear about.
-        //
-        // What remains is the only fact a member actually wants: how long
-        // the piece runs. Nothing here reveals an address.
-        if (playable != null && post.durationLabel != null) ...<Widget>[
-          const SizedBox(height: 12),
-          Text(
-            post.durationLabel!,
-            style: TextStyle(
-              fontSize: 12.5,
-              color: IvoryColors.textFaint,
-            ),
-          ),
-        ],
-        _giftRow(context, post),
-      ],
-    );
-  }
-}
-
-
-/// Tiny helper so the sheets can reuse the card's icon mapping.
 class PostCardIcons {
   PostCardIcons._();
   static IconData of(PostType t) {
@@ -438,7 +322,7 @@ class _LockedBody extends StatelessWidget {
         const SizedBox(height: 20),
         Center(
           child: Text(
-            _clean(post.title),
+            postCleanTitle(post.title),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
