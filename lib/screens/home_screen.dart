@@ -6,6 +6,7 @@ import '../services/content_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/ivory_logo.dart';
 import '../widgets/live_banner.dart';
+import '../widgets/ivory_signature.dart';
 import '../widgets/member_pulse.dart';
 import '../widgets/story_door.dart';
 import '../widgets/post_actions.dart';
@@ -180,6 +181,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                   ],
+                  // THE END OF THE LETTER.
+                  //
+                  // The signature and the member count close
+                  // home together. A signature is how a letter
+                  // ENDS - put it a third of the way down and
+                  // it signs off something nobody has finished
+                  // reading. Here, a member walks the whole
+                  // house, reaches the bottom, and finds she
+                  // signed it. That is the moment it is worth
+                  // something.
+                  const SizedBox(height: 30),
+                  const IvoryPromise(),
+                  const SizedBox(height: 16),
+                  const MemberPulseStrip(),
                 ],
               ),
             ),
@@ -208,31 +223,58 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 12),
         _heroCopy(),
         const SizedBox(height: 22),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: IvoryGradientButton(
-                label: 'MAKE A WISH',
-                icon: Icons.auto_awesome,
-                onPressed: () => _go('wish'),
-              ),
-            ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _go('explore'),
-                icon: const Icon(Icons.search, size: 18),
-                label: const Text('EXPLORE'),
-              ),
-            ),
-          ],
+        // ONE DECISION, NOT THREE.
+        //
+        // This was two gold buttons of equal weight with a third
+        // pill orphaned underneath - a lopsided triangle, and
+        // nothing said which one she wanted tapped. Worse, the
+        // third pill was a FACT dressed as a BUTTON: it read
+        // "Free Tier Forever." and could not be tapped at all.
+        // Card = decision, line = fact, and that pill broke it.
+        //
+        // It also used a banned word. A member is never "free"
+        // and never a "guest".
+        IvoryGradientButton(
+          label: 'MAKE A WISH',
+          icon: Icons.auto_awesome,
+          onPressed: () => _go('wish'),
         ),
-        const SizedBox(height: 20),
-        _freeForever(),
         const SizedBox(height: 14),
-        const StoryDoorBand(),
+        Center(
+          child: InkWell(
+            onTap: () => _go('explore'),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Text(
+                'Explore everything  \u2192',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: IvoryColors.burgundy,
+                  decoration: TextDecoration.underline,
+                  decorationColor: IvoryColors.gold,
+                  decorationThickness: 1.6,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // The promise itself now closes the page. All that is
+        // left here is the plain fact, as a line.
+        Center(
+          child: Text(
+            'The door is open to everyone.',
+            style: TextStyle(
+              fontSize: 12.5,
+              fontStyle: FontStyle.italic,
+              color: IvoryColors.textSoft,
+            ),
+          ),
+        ),
         const SizedBox(height: 18),
-        const MemberPulseStrip(),
+        const StoryDoorBand(),
         const SizedBox(height: 18),
         // Nothing at all unless a broadcast is actually on air.
         const LiveBanner(),
@@ -327,49 +369,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// The one promise worth saying out loud, dressed like the rest of the
-  /// Golden Edition: gold rule, serif italic, burgundy ink.
-  Widget _freeForever() {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: <Color>[Color(0xFFFFFCF2), Color(0xFFFDF1DC)],
-          ),
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color: IvoryColors.gold.withValues(alpha: 0.85),
-            width: 1.3,
-          ),
-          boxShadow: IvoryTheme.softShadow(blur: 14, y: 5),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            ShaderMask(
-              shaderCallback: (Rect b) =>
-                  IvoryColors.goldGradient.createShader(b),
-              child: const Icon(Icons.auto_awesome,
-                  size: 17, color: Colors.white),
-            ),
-            const SizedBox(width: 9),
-            const Text(
-              'Free Tier Forever.',
-              style: TextStyle(
-                fontFamily: IvoryTheme.displayFont,
-                fontSize: 17,
-                fontStyle: FontStyle.italic,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
-                color: IvoryColors.burgundy,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _errorBox() => Container(
         padding: const EdgeInsets.all(20),
         decoration: IvoryTheme.card(),
