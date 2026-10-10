@@ -129,9 +129,9 @@ class SignupDetailsFieldsState extends State<SignupDetailsFields> {
           ),
         const SizedBox(height: 5),
         Text(
-          'Share your real birthday if you would like Ivory to try to prepare '
-          'a small birthday token. It is optional and not guaranteed; '
-          'your date is not shown to other members.',
+          'Share your real birthday and Ivory will try to prepare a small '
+          'birthday token. You may end up getting a true surprise\n'
+          'Your birthday is optional and is not shown to other members.',
           style: TextStyle(
             color: IvoryColors.textFaint,
             fontSize: 11.8,
