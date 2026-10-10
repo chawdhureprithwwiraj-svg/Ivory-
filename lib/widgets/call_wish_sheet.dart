@@ -406,7 +406,7 @@ class _CallWishSheetState extends State<CallWishSheet> {
           IvoryGradientButton(
             label: _busy
                 ? 'ASKING...'
-                : 'MAKE THIS A WISH - RS.${widget.category.basePriceInr}',
+                : 'MAKE THIS A WISH',
             icon: Icons.auto_awesome,
             onPressed: _busy ? null : () => _request(paid: true),
           ),
