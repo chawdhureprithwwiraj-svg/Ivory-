@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/live_models.dart';
+import '../models/gift_surface.dart';
 import '../services/gift_service.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
@@ -39,6 +40,7 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
 
   List<LiveSession> _sessions = <LiveSession>[];
   List<GiftSend> _gifts = <GiftSend>[];
+  Map<int, GiftNoteFlag> _noteFlags = <int, GiftNoteFlag>{};
   Map<String, String> _giftSets = <String, String>{};
   Timer? _clock;
 
@@ -69,11 +71,14 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
           await LiveService.instance.listGiftSends();
       final Map<String, String> sets =
           await LiveService.instance.giftSurfaces();
+      final Map<int, GiftNoteFlag> flags =
+          await LiveService.instance.giftNoteFlags();
       if (!mounted) return;
       setState(() {
         _sessions = rows;
         _gifts = gifts;
         _giftSets = sets;
+        _noteFlags = flags;
       });
     } catch (_) {}
   }
@@ -312,7 +317,7 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Pick any mix - free members, one tier, several tiers, or '
+            'Pick any mix - Forever Members, one tier, several tiers, or '
             'nobody at all. Pay per view adds a paid way in for everyone '
             'not picked.',
             style: TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
@@ -352,47 +357,19 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
 
   /// WHICH SET THIS GIFT CAME FROM.
   ///
-  /// There are two catalogues now and they mean different
-  /// things, so a row in this list that does not say which is
-  /// a row she has to guess at. The tag answers it at a glance
-  /// and never needs reading twice.
-  ///
-  /// The words are kept apart on purpose. A post gift is about
-  /// something she MADE, so it says ON A POST. A live gift
-  /// arrived while she was on air, so it says ON AIR. Neither
-  /// borrows the other's language, and neither borrows the
-  /// session words - a call is a third thing entirely and has
-  /// no gifts at all.
+  /// The tag, its words and its colours are defined ONCE, in
+  /// `lib/models/gift_surface.dart`. Read that file before
+  /// changing anything about gifts - it is the only place the
+  /// two sets are described, and the member's sheet draws the
+  /// same tag from the same place so the two can never
+  /// disagree.
   ///
   /// An unknown name shows nothing rather than a wrong guess.
   Widget _setTag(String? surface) {
     if (surface != 'post' && surface != 'live') {
       return const SizedBox.shrink();
     }
-    final bool post = surface == 'post';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: post
-            ? IvoryColors.plum.withValues(alpha: 0.10)
-            : IvoryColors.gold.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(
-          color: post
-              ? IvoryColors.plum.withValues(alpha: 0.45)
-              : IvoryColors.gold,
-        ),
-      ),
-      child: Text(
-        post ? 'ON A POST' : 'ON AIR',
-        style: TextStyle(
-          fontSize: 9.5,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.7,
-          color: post ? IvoryColors.plum : IvoryColors.burgundy,
-        ),
-      ),
-    );
+    return GiftSurfaceTag(surface: GiftSurface.fromDb(surface), owner: true);
   }
 
   Widget _giftRow(GiftSend g) {
@@ -436,7 +413,14 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
                     color: IvoryColors.textFaint,
                   ),
                 ),
-                if (g.note != null && g.note!.trim().isNotEmpty)
+                // THE LINE THEY WROTE, AND YOUR CONTROL OVER IT.
+                //
+                // Confirming the money and publishing the words
+                // are two different decisions. Confirming puts
+                // this line on the post for everyone; HIDE takes
+                // it down and leaves the gift and the name
+                // exactly where they are. You can put it back.
+                if (g.note != null && g.note!.trim().isNotEmpty) ...<Widget>[
                   Text(
                     '"${g.note}"',
                     style: TextStyle(
@@ -445,6 +429,32 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
                       color: IvoryColors.textSoft,
                     ),
                   ),
+                  if (_noteFlags[g.id]?.postId != null)
+                    GestureDetector(
+                      onTap: () async {
+                        await LiveService.instance
+                            .setGiftNoteHidden(
+                                g.id, !(_noteFlags[g.id]?.hidden ?? false));
+                        _load();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 3, bottom: 1),
+                        child: Text(
+                          (_noteFlags[g.id]?.hidden ?? false)
+                              ? 'HIDDEN FROM THE POST - TAP TO SHOW'
+                              : 'HIDE THIS LINE FROM THE POST',
+                          style: TextStyle(
+                            fontSize: 10.2,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.7,
+                            color: (_noteFlags[g.id]?.hidden ?? false)
+                                ? IvoryColors.danger
+                                : IvoryColors.plum.withValues(alpha: 0.72),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ],
             ),
           ),
