@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../models/ivory_notification.dart';
 import '../models/ivory_profile.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/push_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/system_notice_banner.dart';
 import 'admin_screen.dart';
 import 'explore_screen.dart';
 import 'home_screen.dart';
@@ -152,7 +154,6 @@ class _MainShellState extends State<MainShell> {
           ],
         ),
         actions: <Widget>[
-          _BellButton(onTap: () => _openTab('inbox')),
           if (_isAdmin)
             IconButton(
               tooltip: 'Admin console',
@@ -173,7 +174,36 @@ class _MainShellState extends State<MainShell> {
           const SizedBox(width: 4),
         ],
       ),
-      body: SafeArea(child: IndexedStack(index: _index, children: pages)),
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            ValueListenableBuilder<IvoryNotification?>(
+              valueListenable:
+                  NotificationService.instance.latestPriorityArrival,
+              builder: (
+                BuildContext context,
+                IvoryNotification? notice,
+                Widget? _,
+              ) {
+                if (notice == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: SystemNoticeBanner(
+                    notice: notice,
+                    onOpenInbox: () {
+                      NotificationService.instance.dismissPriorityArrival();
+                      _openTab('inbox');
+                    },
+                    onDismiss:
+                        NotificationService.instance.dismissPriorityArrival,
+                  ),
+                );
+              },
+            ),
+            Expanded(child: IndexedStack(index: _index, children: pages)),
+          ],
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: IvoryColors.hairline)),
@@ -181,44 +211,56 @@ class _MainShellState extends State<MainShell> {
         child: ValueListenableBuilder<int>(
           valueListenable: NotificationService.instance.unreadCount,
           builder: (BuildContext context, int unread, _) {
-            return BottomNavigationBar(
-              currentIndex: _index,
-              type: BottomNavigationBarType.fixed,
-              onTap: (int i) => setState(() => _index = i),
-              items: <BottomNavigationBarItem>[
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.home_outlined),
-                  activeIcon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.explore_outlined),
-                  activeIcon: Icon(Icons.explore),
-                  label: 'Explore',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.auto_awesome_outlined),
-                  activeIcon: Icon(Icons.auto_awesome),
-                  label: 'Wish',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.diamond_outlined),
-                  activeIcon: Icon(Icons.diamond),
-                  label: 'Premium',
-                ),
-                BottomNavigationBarItem(
-                  icon: _Badged(
-                      count: unread, child: const Icon(Icons.mail_outline)),
-                  activeIcon:
-                      _Badged(count: unread, child: const Icon(Icons.mail)),
-                  label: 'Inbox',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline),
-                  activeIcon: Icon(Icons.person),
-                  label: 'Profile',
-                ),
-              ],
+            return ValueListenableBuilder<bool>(
+              valueListenable:
+                  NotificationService.instance.hasUnreadPriorityNotice,
+              builder: (BuildContext context, bool priority, _) {
+                return BottomNavigationBar(
+                  currentIndex: _index,
+                  type: BottomNavigationBarType.fixed,
+                  onTap: (int i) => setState(() => _index = i),
+                  items: <BottomNavigationBarItem>[
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.home_outlined),
+                      activeIcon: Icon(Icons.home),
+                      label: 'Home',
+                    ),
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.explore_outlined),
+                      activeIcon: Icon(Icons.explore),
+                      label: 'Explore',
+                    ),
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.auto_awesome_outlined),
+                      activeIcon: Icon(Icons.auto_awesome),
+                      label: 'Wish',
+                    ),
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.diamond_outlined),
+                      activeIcon: Icon(Icons.diamond),
+                      label: 'Premium',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: _Badged(
+                        count: unread,
+                        priority: priority,
+                        child: const Icon(Icons.mail_outline),
+                      ),
+                      activeIcon: _Badged(
+                        count: unread,
+                        priority: priority,
+                        child: const Icon(Icons.mail),
+                      ),
+                      label: 'Inbox',
+                    ),
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.person_outline),
+                      activeIcon: Icon(Icons.person),
+                      label: 'Profile',
+                    ),
+                  ],
+                );
+              },
             );
           },
         ),
@@ -227,65 +269,71 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-class _BellButton extends StatelessWidget {
-  const _BellButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<int>(
-      valueListenable: NotificationService.instance.unreadCount,
-      builder: (BuildContext context, int unread, _) => IconButton(
-        tooltip: 'Notifications',
-        onPressed: onTap,
-        icon: _Badged(
-          count: unread,
-          child: const Icon(Icons.notifications_none),
-        ),
-      ),
-    );
-  }
-}
-
-/// A small gold badge with a number, used on the bell and the Inbox tab.
+/// A total-unread badge; priority notices get a deeper, gold-edged treatment.
 class _Badged extends StatelessWidget {
-  const _Badged({required this.count, required this.child});
+  const _Badged({
+    required this.count,
+    required this.child,
+    this.priority = false,
+  });
 
   final int count;
   final Widget child;
+  final bool priority;
 
   @override
   Widget build(BuildContext context) {
-    if (count <= 0) return child;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: <Widget>[
-        child,
-        Positioned(
-          right: -7,
-          top: -5,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-            constraints: const BoxConstraints(minWidth: 17),
-            decoration: BoxDecoration(
-              gradient: IvoryColors.goldGradient,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: IvoryColors.surface, width: 1.2),
-            ),
-            child: Text(
-              count > 99 ? '99+' : '$count',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: IvoryColors.burgundy,
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                height: 1.25,
+    if (count <= 0 && !priority) return child;
+    final String badgeText =
+        count <= 0 ? '!' : (count > 99 ? '99+' : '$count');
+    return Semantics(
+      label: priority
+          ? (count > 0
+              ? '$count unread messages, including a priority notice'
+              : 'Priority message unread')
+          : '$count unread messages',
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          child,
+          Positioned(
+            right: -7,
+            top: -5,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+              constraints: const BoxConstraints(minWidth: 17),
+              decoration: BoxDecoration(
+                color: priority ? IvoryColors.burgundy : null,
+                gradient: priority ? null : IvoryColors.goldGradient,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: priority ? IvoryColors.amber : IvoryColors.surface,
+                  width: priority ? 1.7 : 1.2,
+                ),
+                boxShadow: priority
+                    ? <BoxShadow>[
+                        BoxShadow(
+                          color: IvoryColors.gold.withValues(alpha: 0.34),
+                          blurRadius: 8,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Text(
+                badgeText,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: priority ? IvoryColors.ivory : IvoryColors.burgundy,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  height: 1.25,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
