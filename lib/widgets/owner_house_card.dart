@@ -7,10 +7,9 @@ import '../theme/ivory_theme.dart';
 ///
 /// THE OWNER IS NOT A CUSTOMER OF HER OWN HOUSE.
 ///
-/// She has never bought a tier, so the Profile page used to
-/// fall into its "no plan" branch, call her a Free Guest, and
-/// then offer to sell her a membership. Her own app was
-/// advertising to her.
+/// She has not bought a tier, so Profile used to fall into the
+/// default-access branch and offer to sell her a membership.
+/// Her own app was advertising to her.
 ///
 /// So she gets a different card: what she HOLDS, not what she
 /// lacks. One deep burgundy panel edged in gold - the same
