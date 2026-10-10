@@ -58,6 +58,7 @@ class _WishScreenState extends State<WishScreen> {
   @override
   void initState() {
     super.initState();
+    _targetCallId = MainShell.arrivalCallId.value;
     _load();
     // Listen for a member being SENT here by a notification.
     // See `_arrived`.
@@ -105,37 +106,22 @@ class _WishScreenState extends State<WishScreen> {
   bool _tookThemUp = false;
   bool _scrolledAway = false;
 
-  /// True while the three arrival breaths are visible.
-  bool _pulse = false;
+  /// The exact booking named by the most recent call notification.
+  int? _targetCallId;
   int _arrivalToken = 0;
 
-  /// THE MEMBER TAPPED "YOUR SESSION IS CONFIRMED" AND LANDED
-  /// NOWHERE. This is the fix.
-  ///
-  /// The tabs are kept alive, so opening Wish from a
-  /// notification used to drop them exactly where they last
-  /// were - usually half way down the menu they had already
-  /// used to book. Nothing reloaded, nothing moved, nothing
-  /// pointed anywhere. They had been told something had
-  /// happened and then shown no sign of it.
-  ///
-  /// Now arriving reloads the page and both booking strips, lifts
-  /// them to the top, and gives the relevant rows three slow breaths.
+  /// The notification carries the accepted call's ID. Keep that exact
+  /// booking in focus; its glow is controlled by requestedFor in the row,
+  /// not a timer, so it ends only after the member chooses a time.
   void _arrived() {
     if (MainShell.arrivals.value != 'wish' || !mounted) return;
     _load();
-    final int token = _arrivalToken + 1;
     setState(() {
-      _arrivalToken = token;
-      _pulse = true;
+      _targetCallId = MainShell.arrivalCallId.value;
+      _arrivalToken++;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _toTop();
-    });
-    Future<void>.delayed(const Duration(seconds: 6), () {
-      if (mounted && _arrivalToken == token) {
-        setState(() => _pulse = false);
-      }
     });
   }
 
@@ -214,7 +200,7 @@ class _WishScreenState extends State<WishScreen> {
             if (!AuthService.instance.isAdminCached) ...<Widget>[
               WishCallBanner(
                 onSomethingWaiting: _somethingWaiting,
-                pulse: _pulse,
+                targetCallId: _targetCallId,
                 pulseKey: _arrivalToken,
               ),
             ],
@@ -232,7 +218,7 @@ class _WishScreenState extends State<WishScreen> {
               const SizedBox(height: 14),
               WishCallBanner(
                 part: WishBannerPart.settled,
-                pulse: _pulse,
+                targetCallId: _targetCallId,
                 pulseKey: _arrivalToken,
               ),
             ],
