@@ -356,7 +356,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Pick any mix - free members, one tier, several tiers, or '
+            'Pick any mix - Forever Members, one tier, several tiers, or '
             'nobody at all so everyone pays.',
             style: TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
           ),
@@ -364,7 +364,7 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
           const AdminLabel('OR SELL IT ON ITS OWN'),
           const SizedBox(height: 6),
           Text(
-            'Give it a price and everyone sees a lock - free members and '
+            'Give it a price and everyone sees a lock - Forever Members and '
             'paying members alike - until they buy it or reach the tier '
             'you choose below. Leave it empty to use the tier rule above.',
             style: TextStyle(
