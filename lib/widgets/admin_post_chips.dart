@@ -84,7 +84,7 @@ List<Widget> postFreeFromChips({
 }
 
 
-/// The exact-audience mix: nobody-all-pay, free members, any tiers.
+/// The exact-audience mix: nobody-all-pay, Forever Members, any tiers.
 /// Used by CREATE, LIVE and anywhere the house picks who gets in.
 List<Widget> audienceMixChips({
   required Set<int> who,
@@ -109,7 +109,7 @@ List<Widget> audienceMixChips({
       onTap: () => onChange(<int>{}),
     ),
     AdminSelectChip(
-      label: 'Free members',
+      label: 'Forever Members',
       icon: Icons.public_rounded,
       selected: who.contains(0),
       onTap: () => onChange(toggle(who, 0)),
