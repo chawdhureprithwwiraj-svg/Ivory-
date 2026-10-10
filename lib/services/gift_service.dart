@@ -83,6 +83,36 @@ extension IvoryGifts on LiveService {
     return (res as num).toInt();
   }
 
+  /// Which sends belong to a post, and whose line she has taken
+  /// down. Kept separate from `list_gift_sends` on purpose - see
+  /// the note in sprint30_gift_notes.sql. The admin screen joins
+  /// the two by id.
+  Future<Map<int, GiftNoteFlag>> giftNoteFlags() async {
+    final dynamic res = await _gdb.rpc<dynamic>('gift_note_flags');
+    final Map<int, GiftNoteFlag> out = <int, GiftNoteFlag>{};
+    for (final dynamic r in (res as List<dynamic>? ?? <dynamic>[])) {
+      final Map<String, dynamic> m = r as Map<String, dynamic>;
+      final int id = ((m['id'] as num?) ?? 0).toInt();
+      if (id == 0) continue;
+      out[id] = GiftNoteFlag(
+        postId: (m['post_id'] as num?)?.toInt(),
+        hidden: (m['note_hidden'] as bool?) ?? false,
+      );
+    }
+    return out;
+  }
+
+  /// Takes a gift's line down, or puts it back. Hers alone -
+  /// the database refuses anyone else. Confirming the money and
+  /// publishing the words stay two separate decisions.
+  Future<void> setGiftNoteHidden(int sendId, bool hidden) async {
+    await _gdb.rpc<dynamic>('set_gift_note_hidden',
+        params: <String, dynamic>{
+          'send_id_in': sendId,
+          'hidden_in': hidden,
+        });
+  }
+
   Future<void> attachGiftUtr(int sendId, String utr) async {
     await _gdb.rpc<dynamic>('attach_gift_utr', params: <String, dynamic>{
       'send_id_in': sendId,
