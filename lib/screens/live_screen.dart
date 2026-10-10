@@ -488,6 +488,7 @@ class _LiveScreenState extends State<LiveScreen> {
       return LiveAudioStage(
         heading: p.heading,
         subtitle: p.note,
+        pulse: _remoteUid != null,
       );
     }
 
@@ -504,6 +505,7 @@ class _LiveScreenState extends State<LiveScreen> {
       channel: _ticket?.channel ?? '',
       portrait: widget.mode == LiveMode.call,
       pipSelf: widget.mode == LiveMode.call && _camOn,
+      fill: widget.mode != LiveMode.call,
     );
     return video ?? LiveNotice(_status);
   }
