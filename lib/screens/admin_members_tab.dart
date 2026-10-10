@@ -139,7 +139,7 @@ class _AdminMembersTabState extends State<AdminMembersTab> {
                 runSpacing: 8,
                 children: <Widget>[
                   AdminSelectChip(
-                    label: 'Free',
+                    label: 'Forever Member',
                     icon: Icons.lock_open_rounded,
                     selected: chosen == 0,
                     onTap: () => setSheet(() => chosen = 0),
@@ -183,7 +183,7 @@ class _AdminMembersTabState extends State<AdminMembersTab> {
               const SizedBox(height: 22),
               IvoryGradientButton(
                 label: chosen == 0
-                    ? 'MOVE BACK TO FREE'
+                    ? 'SET AS FOREVER MEMBER'
                     : 'OPEN THIS TIER',
                 icon: chosen == 0
                     ? Icons.lock_outline_rounded
@@ -224,7 +224,7 @@ class _AdminMembersTabState extends State<AdminMembersTab> {
         'note_in': 'Opened by hand from the admin console',
       });
       _say(level == 0
-          ? 'Moved back to free.'
+          ? 'Set as Forever Member.'
           : 'Opened ${res ?? 'the tier'}'
               '${days == null ? ' with no end date.' : ' for $days days.'}');
     } catch (e) {
@@ -287,7 +287,7 @@ class _AdminMembersTabState extends State<AdminMembersTab> {
     final int level = ((m['tier_level'] as num?) ?? 0).toInt();
     final bool manual = (m['is_manual'] as bool?) ?? false;
     final bool isAdmin = (m['role'] as String?) == 'admin';
-    final String tier = (m['tier_name'] as String?) ?? 'Free';
+    final String tier = (m['tier_name'] as String?) ?? 'Tier $level';
 
     return InkWell(
       borderRadius: BorderRadius.circular(18),
@@ -345,7 +345,7 @@ class _AdminMembersTabState extends State<AdminMembersTab> {
                   const SizedBox(height: 4),
                   Text(
                     level == 0
-                        ? 'Free member'
+                        ? 'Forever Member'
                         : '$tier${manual ? ' - opened by you' : ' - paid'}'
                             '${_until(m['expires_at'] as String?)}',
                     style: TextStyle(
