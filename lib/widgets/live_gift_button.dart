@@ -65,17 +65,17 @@ class _LiveGiftButtonState extends State<LiveGiftButton>
                 ? 0
                 : Curves.easeInOutCubic.transform(_pulse.value);
             return Transform.scale(
-              scale: 1 + 0.035 * breath,
+              scale: 1 + 0.06 * breath,
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
                       color: IvoryColors.gold.withValues(
-                        alpha: motionOff ? 0.18 : 0.18 + 0.2 * breath,
+                        alpha: motionOff ? 0.20 : 0.20 + 0.24 * breath,
                       ),
-                      blurRadius: motionOff ? 9 : 9 + 7 * breath,
-                      spreadRadius: motionOff ? 0 : 1.5 * breath,
+                      blurRadius: motionOff ? 10 : 10 + 10 * breath,
+                      spreadRadius: motionOff ? 0 : 2.5 * breath,
                     ),
                   ],
                 ),
@@ -97,28 +97,36 @@ class _LiveGiftButtonState extends State<LiveGiftButton>
               child: InkWell(
                 onTap: widget.onPressed,
                 borderRadius: BorderRadius.circular(22),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      const Icon(
-                        Icons.card_giftcard_rounded,
-                        color: IvoryColors.burgundy,
-                        size: 17,
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        'GIFT',
-                        style: TextStyle(
+                // The label stays tappable even when reduced motion
+                // stops the pulse entirely.
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: 72,
+                    minHeight: 48,
+                  ),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Icon(
+                          Icons.card_giftcard_rounded,
                           color: IvoryColors.burgundy,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.8,
+                          size: 18,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 5),
+                        const Text(
+                          'GIFT',
+                          style: TextStyle(
+                            color: IvoryColors.burgundy,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
