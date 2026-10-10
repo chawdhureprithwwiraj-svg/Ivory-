@@ -286,7 +286,7 @@ class _AdminBroadcastTabState extends State<AdminBroadcastTab> {
             children: <Widget>[
               for (int level = 0; level <= 4; level++)
                 AdminSelectChip(
-                  label: level == 0 ? 'Free members' : 'Tier $level',
+                  label: level == 0 ? 'Forever Members' : 'Tier $level',
                   icon: level == 0
                       ? Icons.public_rounded
                       : Icons.workspace_premium_rounded,
