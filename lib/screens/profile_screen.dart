@@ -14,6 +14,7 @@ import '../widgets/sessions_panel.dart';
 import '../widgets/member_pulse.dart';
 import '../widgets/premium_badge.dart';
 import '../widgets/report_sheet.dart';
+import '../widgets/profile_photo_editor.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.onOpenTab});
@@ -102,25 +103,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: <Widget>[
                     Row(
                       children: <Widget>[
-                        Container(
-                          width: 62,
-                          height: 62,
-                          decoration: BoxDecoration(
-                            gradient: IvoryColors.goldGradient,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: IvoryTheme.softShadow(blur: 12, y: 5),
-                          ),
-                          child: Center(
-                            child: Text(
-                              initial,
-                              style: const TextStyle(
-                                fontFamily: IvoryTheme.displayFont,
-                                fontSize: 27,
-                                fontWeight: FontWeight.w700,
-                                color: IvoryColors.burgundy,
-                              ),
-                            ),
-                          ),
+                        ProfilePhotoEditor(
+                          displayName: p?.displayName ?? initial,
+                          avatarPath: p?.avatarPath,
+                          legacyAvatarUrl: p?.avatarUrl,
+                          isActivePaidMember: !(p?.isAdmin ?? false) &&
+                              (_membership?.tierLevel ?? 0) > 0,
+                          onPathChanged: (String? path) {
+                            if (p == null) return;
+                            setState(() => _profile = p.withAvatarPath(path));
+                          },
                         ),
                         const SizedBox(width: 15),
                         Expanded(
@@ -192,7 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           'Connected to Supabase. Profile loaded.'),
                       const SizedBox(height: 10),
                       _line(Icons.shield_outlined, IvoryColors.plum,
-                          'No phone number stored. Identity is a UUID.'),
+                          'Phone and birthday details stay separate from public profile data.'),
                     ],
                     if (_error != null) ...<Widget>[
                       const SizedBox(height: 10),
