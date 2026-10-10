@@ -8,6 +8,7 @@ import '../theme/ivory_theme.dart';
 import '../widgets/ivory_field.dart';
 import '../widgets/ivory_logo.dart';
 import '../widgets/house_consent.dart';
+import '../widgets/signup_details_fields.dart';
 
 /// Sign in / create account, in the Ivory Golden Edition style.
 ///
@@ -23,6 +24,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<SignupDetailsFieldsState> _signupDetailsKey =
+      GlobalKey<SignupDetailsFieldsState>();
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _passwordCtrl = TextEditingController();
@@ -110,6 +113,8 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordCtrl.text,
           displayName:
               _nameCtrl.text.isEmpty ? 'Anonymous Reader' : _nameCtrl.text,
+          phoneNumber: _signupDetailsKey.currentState?.details.phoneNumber,
+          dateOfBirth: _signupDetailsKey.currentState?.details.dateOfBirth,
         );
 
         // The tick is recorded even before email confirmation, through
@@ -228,8 +233,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 14),
-                            // The first thing anyone reads. It has to
-                            // promise, not greet.
                             Text(
                               // Warm, promising, and clean: it sells
                               // the library and the voice, never a
@@ -309,6 +312,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ? 'Password must be at least 6 characters'
                                       : null,
                             ),
+
+                            if (_isSignUp) ...<Widget>[
+                              const SizedBox(height: 14),
+                              SignupDetailsFields(key: _signupDetailsKey),
+                            ],
 
                             // ---- the house promise (sign-up only) ----
                             if (_isSignUp) ...<Widget>[
