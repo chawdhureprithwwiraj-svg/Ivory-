@@ -13,7 +13,7 @@
 library;
 
 const String kPrivacyTitle = 'Privacy';
-const String kPrivacyUpdated = 'Last updated 9 October 2026';
+const String kPrivacyUpdated = 'Last updated 11 October 2026';
 
 const String kPrivacyBody = '''
 1. THE SHORT VERSION
@@ -24,9 +24,14 @@ pixels and no advertising networks anywhere in this app.
 
 2. WHAT IS COLLECTED
 
-Your account: the email address or phone number you signed in
-with, the name you chose to show, and your photograph if you
-set one.
+Your account: the email address you use to sign in and the name
+you choose to show. At signup you may also provide an optional
+phone number and date of birth. Those details are kept apart
+from your public profile and are not shown to other members.
+
+Your profile photo, if you choose one. It appears on your
+Profile page and beside your messages in live chat. Only people
+allowed to view that broadcast can view the chat photo.
 
 Your membership: which tier you hold, when it started and when
 it renews.
@@ -46,32 +51,42 @@ you, and it is deleted when you sign out.
 
 3. WHAT IS NOT COLLECTED
 
-No location. No contacts. No photo library. No microphone or
-camera except during a session you joined yourself, and
-nothing from them is recorded or stored. No browsing of other
-apps. No advertising identifier.
+No location. No contacts. No browsing of other apps. The app
+reads only the photo you deliberately choose for your profile;
+it does not scan your photo library. No microphone or camera
+except during a session you joined yourself, and nothing from
+them is recorded or stored. No advertising identifier.
 
 4. WHY
 
 To let you in, to show you what your membership includes, to
 run the sessions you book, to confirm payments, to answer you
 when you write, and to meet the record-keeping the law
-requires of anyone taking money.
+requires of anyone taking money. A phone number is optional,
+is not a sign-in method, and is not displayed publicly. If you
+share your real birthday, Ivory will try to prepare a small
+birthday token; it is not guaranteed.
 
 5. WHO ELSE SEES IT
 
-Only the services that make the app work, and only the part
-each needs: Supabase holds the database and sign-in; Google
-Firebase delivers notifications; Agora carries the live audio
-and video; Cloudflare R2 stores film and voice files;
-Razorpay, where used, handles payment. Each is bound by its
-own contract and none receives your information to use for its
-own purposes.
+Supabase holds sign-in, the database and private profile-photo
+files; Google Firebase delivers notifications; Agora carries
+the live audio and video; Cloudflare R2 stores film and voice
+files; Razorpay, where used, handles payment. Each receives
+only what is needed to make that service work.
 
-No one else. Not an advertiser, not a data broker, not another
-member. The only exception is a demand the house is legally
-required to answer, and the house will tell you if that
-happens unless forbidden.
+The Ivory house can access optional phone and birthday details
+for account administration and the possible birthday token.
+Other members cannot see those details. A member who is allowed
+to view the same live broadcast can see your chat messages and,
+if you chose a photo, that photo beside them. Photo files are
+private; the app uses time-limited links to display them. Anyone
+given such a link may view it until it expires.
+
+No advertiser or data broker receives your information. The
+only other exception is a demand the house is legally required
+to answer, and the house will tell you if that happens unless
+forbidden.
 
 6. CALLS ARE NOT RECORDED
 
@@ -82,11 +97,13 @@ yourself is forbidden by the terms of use.
 
 7. HOW LONG IT IS KEPT
 
-Your account details stay while the account exists. Payment
-records are kept for eight years because tax law requires it.
-Messages to the house are kept while the matter is open and
-for a reasonable time after. Notification tokens die when you
-sign out. Nothing is auto-deleted behind your back.
+Your account details stay while the account exists. Optional
+phone and birthday details are stored separately from the
+public profile. Profile photos stay until you remove or replace
+them, or ask for erasure. Payment records are kept for eight years because tax law
+requires it. Messages to the house are kept while the matter is
+open and for a reasonable time after. Notification tokens die
+when you sign out. Nothing is auto-deleted behind your back.
 
 8. YOUR RIGHTS
 
@@ -109,9 +126,10 @@ data of anyone under 18, and deletes it on discovery.
 
 Everything travels encrypted. Access to the database is
 restricted by rules that run on the server, not in the app, so
-one member can never read another's rows. No system is beyond
-failure; if one happens and it affects you, the house will
-tell you and tell the authorities, as the law requires.
+one member cannot read another's private account details. No
+system is beyond failure; if one happens and it affects you,
+the house will tell you and tell the authorities, as the law
+requires.
 
 11. WHERE IT LIVES
 
