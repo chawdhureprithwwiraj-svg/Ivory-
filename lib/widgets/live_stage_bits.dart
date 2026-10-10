@@ -2,7 +2,7 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
-import 'gift_mark.dart';
+import 'live_gift_button.dart';
 
 // LIFTED, NOT TRIMMED.
 //
@@ -232,29 +232,60 @@ class _LiveAudioStageState extends State<LiveAudioStage>
   @override
   Widget build(BuildContext context) {
     final bool motionOff = MediaQuery.of(context).disableAnimations;
+    final String? stageSubtitle =
+        widget.pulse ? 'Together, here' : widget.subtitle;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 26),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          AnimatedBuilder(
-            animation: _pulse,
-            builder: (BuildContext context, Widget? child) {
-              final double scale = widget.pulse && !motionOff
-                  ? 1 + 0.035 * Curves.easeInOut.transform(_pulse.value)
-                  : 1;
-              return Transform.scale(scale: scale, child: child);
-            },
-            child: Container(
-              width: 132,
-              height: 132,
-              decoration: BoxDecoration(
-                gradient: IvoryColors.goldGradient,
-                shape: BoxShape.circle,
-                boxShadow: IvoryTheme.softShadow(blur: 26, y: 10),
+          SizedBox(
+            width: 168,
+            height: 168,
+            child: AnimatedBuilder(
+              animation: _pulse,
+              builder: (BuildContext context, Widget? child) {
+                final bool animate = widget.pulse && !motionOff;
+                final double breath = animate
+                    ? Curves.easeInOutCubic.transform(_pulse.value)
+                    : 0;
+                return Stack(
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    if (animate)
+                      Transform.scale(
+                        scale: 1 + 0.22 * breath,
+                        child: Container(
+                          width: 132,
+                          height: 132,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: IvoryColors.gold.withValues(
+                                  alpha: 0.46 * (1 - breath)),
+                              width: 2.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    Transform.scale(
+                      scale: 1 + 0.06 * breath,
+                      child: child,
+                    ),
+                  ],
+                );
+              },
+              child: Container(
+                width: 132,
+                height: 132,
+                decoration: BoxDecoration(
+                  gradient: IvoryColors.goldGradient,
+                  shape: BoxShape.circle,
+                  boxShadow: IvoryTheme.softShadow(blur: 26, y: 10),
+                ),
+                child: const Icon(Icons.graphic_eq_rounded,
+                    color: IvoryColors.burgundy, size: 58),
               ),
-              child: const Icon(Icons.graphic_eq_rounded,
-                  color: IvoryColors.burgundy, size: 58),
             ),
           ),
           const SizedBox(height: 22),
@@ -267,10 +298,10 @@ class _LiveAudioStageState extends State<LiveAudioStage>
               fontWeight: FontWeight.w800,
             ),
           ),
-          if (widget.subtitle != null) ...<Widget>[
+          if (stageSubtitle != null) ...<Widget>[
             const SizedBox(height: 8),
             Text(
-              widget.subtitle!,
+              stageSubtitle,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: IvoryColors.cream.withValues(alpha: 0.8),
@@ -466,12 +497,7 @@ class LiveTopBar extends StatelessWidget {
             const SizedBox(width: 10),
           ],
           if (onGift != null) ...<Widget>[
-            IconButton(
-              tooltip: 'Send a gift',
-              padding: EdgeInsets.zero,
-              icon: const GiftMarkBell(size: 21),
-              onPressed: onGift,
-            ),
+            LiveGiftButton(onPressed: onGift!),
             const SizedBox(width: 2),
           ],
           Expanded(
