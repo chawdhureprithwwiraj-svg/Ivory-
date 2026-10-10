@@ -227,12 +227,12 @@ class _HomeScreenState extends State<HomeScreen> {
         // This was two gold buttons of equal weight with a third
         // pill orphaned underneath - a lopsided triangle, and
         // nothing said which one she wanted tapped. Worse, the
-        // third pill was a FACT dressed as a BUTTON: it read
-        // "Free Tier Forever." and could not be tapped at all.
+        // third pill was a FACT dressed as a BUTTON: it stated
+        // a tier as if it were an action and could not be tapped.
         // Card = decision, line = fact, and that pill broke it.
         //
-        // It also used a banned word. A member is never "free"
-        // and never a "guest".
+        // Membership identity is Forever Ivory Member; paid tiers
+        // change access, not whether someone belongs.
         IvoryGradientButton(
           label: 'MAKE A WISH',
           icon: Icons.auto_awesome,
