@@ -524,6 +524,9 @@ class PostGifter {
     required this.emoji,
     required this.amountInr,
     this.note,
+    this.avatarPath,
+    this.avatarUrl,
+    this.hasActivePaidTier = false,
   });
 
   final String sender;
@@ -531,18 +534,41 @@ class PostGifter {
   final String emoji;
   final int amountInr;
 
+  /// Private profile photo path, available only to viewers who can
+  /// open this post and see its confirmed gift wall.
+  final String? avatarPath;
+  final String? avatarUrl;
+
+  /// Current paid status controls the gold frame. It does not change
+  /// the member's tier name, gift, or other membership entitlements.
+  final bool hasActivePaidTier;
+
   /// The line they wrote with it, or null. Null covers BOTH
   /// "they wrote nothing" and "she took it down" - the wall
   /// treats those the same, because a removed line must leave
   /// no trace that there was ever a line to remove.
   final String? note;
 
+  PostGifter withAvatarUrl(String? value) => PostGifter(
+        sender: sender,
+        giftName: giftName,
+        emoji: emoji,
+        amountInr: amountInr,
+        note: note,
+        avatarPath: avatarPath,
+        avatarUrl: value,
+        hasActivePaidTier: hasActivePaidTier,
+      );
+
   factory PostGifter.fromDb(Map<String, dynamic> m) => PostGifter(
         sender: (m['sender'] as String?) ?? 'A member',
         giftName: (m['gift_name'] as String?) ?? 'A gift',
         emoji: (m['emoji'] as String?) ?? '',
         amountInr: ((m['amount_inr'] as num?) ?? 0).toInt(),
-        note: (m['note'] as String?),
+        note: m['note'] as String?,
+        avatarPath: m['sender_avatar_path'] as String?,
+        hasActivePaidTier:
+            (m['sender_has_active_paid_tier'] as bool?) ?? false,
       );
 }
 
