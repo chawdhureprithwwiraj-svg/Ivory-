@@ -7,6 +7,7 @@ import '../services/wish_service.dart';
 import '../theme/ivory_theme.dart';
 import 'call_book_flow.dart';
 import 'call_sheet_bits.dart';
+import 'wish_call_breath.dart';
 import 'sessions_panel.dart';
 
 /// WHERE YOUR WISHES ARE.
@@ -50,15 +51,18 @@ class WishCallBanner extends StatefulWidget {
     this.onSomethingWaiting,
     this.part = WishBannerPart.decisions,
     this.pulse = false,
+    this.pulseKey = 0,
   });
 
   /// Which half of the strip this copy is responsible for.
   final WishBannerPart part;
 
-  /// True for a few seconds after a member arrives from a
-  /// notification, so the thing they were sent for breathes
-  /// gently and their eye finds it without being shouted at.
+  /// True for the three slow breaths after a notification arrival.
   final bool pulse;
+
+  /// Changes on every arrival, even if two notices are tapped close
+  /// together. It restarts the breath and refreshes this strip's data.
+  final int pulseKey;
 
   /// Called with true the moment there is a card to show, so the
   /// page above can take the member to the top of the screen.
@@ -73,6 +77,7 @@ class _WishCallBannerState extends State<WishCallBanner> {
   List<CallRequest> _calls = <CallRequest>[];
   List<Wish> _wishes = <Wish>[];
   String? _message;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
@@ -80,11 +85,18 @@ class _WishCallBannerState extends State<WishCallBanner> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(covariant WishCallBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.pulseKey != oldWidget.pulseKey) _load();
+  }
+
   Future<void> _load() async {
+    final int generation = ++_loadGeneration;
     try {
       final List<CallRequest> calls = await LiveService.instance.myCalls();
       final List<Wish> wishes = await WishService.instance.fetchMyWishes();
-      if (!mounted) return;
+      if (!mounted || generation != _loadGeneration) return;
       setState(() {
         // LIST BY WHAT IS FINISHED, NOT BY WHAT IS NAMED.
         //
@@ -122,8 +134,8 @@ class _WishCallBannerState extends State<WishCallBanner> {
       widget.onSomethingWaiting
           ?.call(_calls.isNotEmpty || _wishes.isNotEmpty);
     } catch (_) {
-      // Quiet. The page below is perfectly usable, and the strip
-      // comes back on the next pull-to-refresh.
+      // Quiet. A newer arrival may already have started a better read.
+      if (!mounted || generation != _loadGeneration) return;
     }
   }
 
@@ -155,8 +167,9 @@ class _WishCallBannerState extends State<WishCallBanner> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           for (final CallRequest c in settled)
-            _Breathing(
+            WishCallBreath(
               on: widget.pulse,
+              pulseKey: widget.pulseKey,
               child: _settled(
                   context,
                   c.isVideo
@@ -190,7 +203,11 @@ class _WishCallBannerState extends State<WishCallBanner> {
           ),
         ),
         for (final CallRequest c in todo)
-          _Breathing(on: widget.pulse, child: _callCard(context, c)),
+          WishCallBreath(
+            on: widget.pulse,
+            pulseKey: widget.pulseKey,
+            child: _callCard(context, c),
+          ),
         for (final Wish w in _wishes) _wishCard(context, w),
         if (_message != null)
           Padding(
@@ -233,7 +250,9 @@ class _WishCallBannerState extends State<WishCallBanner> {
     return _shell(
       context,
       icon: icon,
-      heading: 'Your session is agreed',
+      heading: c.isVideo
+          ? 'Your video session is agreed'
+          : 'Your audio session is agreed',
       body: 'I have said yes. All that is left is for you to '
           'choose when - pick a day and a time that suits you.',
       actionLabel: 'PICK YOUR TIME',
@@ -277,7 +296,7 @@ class _WishCallBannerState extends State<WishCallBanner> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${c.isVideo ? 'Face to face' : 'Voice only'}'
+                  '${c.isVideo ? 'Video call' : 'Audio call'}'
                   '  \u00B7  ${ivoryWhen(c.requestedFor!)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -420,79 +439,5 @@ class _WishCallBannerState extends State<WishCallBanner> {
   }
 }
 
-
-/// A slow gold breath, for a few seconds after a member arrives
-/// from a notification.
-///
-/// NOT A FLASH AND NOT A LOOP THAT NEVER ENDS. It swells and
-/// settles three times over about five seconds and then stops
-/// for good. Long enough for the eye to find it, short enough
-/// that it never becomes a thing to ignore - and it stops on
-/// its own, so a member who looks away is not nagged when they
-/// look back.
-class _Breathing extends StatefulWidget {
-  const _Breathing({required this.child, required this.on});
-
-  final Widget child;
-  final bool on;
-
-  @override
-  State<_Breathing> createState() => _BreathingState();
-}
-
-class _BreathingState extends State<_Breathing>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1650),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.on) _c.repeat(reverse: true, count: 3);
-  }
-
-  @override
-  void didUpdateWidget(_Breathing old) {
-    super.didUpdateWidget(old);
-    if (widget.on && !old.on) {
-      _c
-        ..reset()
-        ..repeat(reverse: true, count: 3);
-    }
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!widget.on) return widget.child;
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (BuildContext context, Widget? child) {
-        final double t = Curves.easeInOut.transform(_c.value);
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(13),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: IvoryColors.gold.withValues(alpha: 0.42 * t),
-                blurRadius: 10 + 14 * t,
-                spreadRadius: 1 + 2 * t,
-              ),
-            ],
-          ),
-          child: child,
-        );
-      },
-      child: widget.child,
-    );
-  }
-}
 
 // END OF FILE - lib/widgets/wish_call_banner.dart
