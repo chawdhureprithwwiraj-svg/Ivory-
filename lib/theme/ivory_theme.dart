@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'ivory_colors.dart';
+
+// The palette moved to ivory_colors.dart when this file reached
+// the paste ceiling. It is re-exported so that every existing
+// `import '../theme/ivory_theme.dart';` still sees IvoryColors
+// and not one call site had to change.
+export 'ivory_colors.dart';
+
 /// ============================================================
 /// IVORY DESIGN SYSTEM - v2, "Golden Edition"
 ///
@@ -11,78 +19,6 @@ import 'package:flutter/services.dart';
 /// this file. The darkest tone permitted is Deep Burgundy #4A0E17, and
 /// even shadows are burgundy-tinted.
 /// ============================================================
-class IvoryColors {
-  IvoryColors._();
-
-  // ---- Backgrounds -------------------------------------------------
-  static const Color ivory = Color(0xFFFAF5E9);
-  static const Color cream = Color(0xFFFFFDD0);
-
-  /// Card face. A warm near-white that sits above the page.
-  static const Color surface = Color(0xFFFFFCF2);
-
-  /// Softly tinted surface for secondary panels and chips.
-  static const Color surfaceWarm = Color(0xFFFDF1DC);
-
-  // ---- Deep tones (accents only, never large areas) ----------------
-  static const Color burgundy = Color(0xFF4A0E17);
-  static const Color plum = Color(0xFF5C1222);
-
-  // ---- Highlights ---------------------------------------------------
-  static const Color gold = Color(0xFFD4AF37);
-  static const Color amber = Color(0xFFE3A857);
-  static const Color peach = Color(0xFFFFB366);
-
-  // ---- Status --------------------------------------------------------
-  static const Color success = Color(0xFF6B8E4E);
-  static const Color warning = Color(0xFFE3A857);
-  static const Color danger = Color(0xFFA8323E);
-
-  // ---- Text ----------------------------------------------------------
-  static const Color text = burgundy;
-  static Color get textSoft => burgundy.withValues(alpha: 0.72);
-  static Color get textFaint => burgundy.withValues(alpha: 0.52);
-
-  // ---- Lines ----------------------------------------------------------
-  static Color get hairline => gold.withValues(alpha: 0.42);
-  static Color get hairlineStrong => gold.withValues(alpha: 0.85);
-
-  // ---- Gradients -------------------------------------------------------
-  /// The page itself: warm cream falling to ivory.
-  static const LinearGradient pageGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: <Color>[Color(0xFFFFFDF6), Color(0xFFFDF3DF)],
-  );
-
-  /// Light card face with the faintest warm tint.
-  static const LinearGradient cardGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFFFFFDF7), Color(0xFFFDF4E2)],
-  );
-
-  /// Buttons, badges, the lock medallion.
-  static const LinearGradient goldGradient = LinearGradient(
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-    colors: <Color>[gold, amber],
-  );
-
-  /// Warmer call-to-action gradient, closer to the reference's glow.
-  static const LinearGradient warmGradient = LinearGradient(
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-    colors: <Color>[amber, peach],
-  );
-
-  /// Reserved for the few deep panels: the hero, premium banners.
-  static const LinearGradient deepGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: <Color>[burgundy, plum],
-  );
-}
 
 class IvoryTheme {
   IvoryTheme._();
