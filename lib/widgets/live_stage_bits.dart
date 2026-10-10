@@ -254,7 +254,7 @@ class _LiveAudioStageState extends State<LiveAudioStage>
                   children: <Widget>[
                     if (animate)
                       Transform.scale(
-                        scale: 1 + 0.22 * breath,
+                        scale: 1 + 0.25 * breath,
                         child: Container(
                           width: 132,
                           height: 132,
@@ -262,14 +262,14 @@ class _LiveAudioStageState extends State<LiveAudioStage>
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: IvoryColors.gold.withValues(
-                                  alpha: 0.46 * (1 - breath)),
-                              width: 2.5,
+                                  alpha: 0.62 * (1 - breath)),
+                              width: 3,
                             ),
                           ),
                         ),
                       ),
                     Transform.scale(
-                      scale: 1 + 0.06 * breath,
+                      scale: 1 + 0.10 * breath,
                       child: child,
                     ),
                   ],
