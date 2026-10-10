@@ -21,11 +21,22 @@ class AuthService {
     required String email,
     required String password,
     required String displayName,
+    String? phoneNumber,
+    String? dateOfBirth,
   }) async {
+    final Map<String, dynamic> metadata = <String, dynamic>{
+      'display_name': displayName.trim(),
+    };
+    if (phoneNumber?.trim().isNotEmpty ?? false) {
+      metadata['phone_number'] = phoneNumber!.trim();
+    }
+    if (dateOfBirth?.trim().isNotEmpty ?? false) {
+      metadata['date_of_birth'] = dateOfBirth!.trim();
+    }
     await _client.auth.signUp(
       email: email.trim(),
       password: password,
-      data: <String, dynamic>{'display_name': displayName.trim()},
+      data: metadata,
     );
   }
 
@@ -75,6 +86,25 @@ class AuthService {
         .from('profiles')
         .update(<String, dynamic>{'display_name': displayName.trim()})
         .eq('id', user.id);
+  }
+
+  Future<void> updateAvatarPath(String? path) async {
+    final User? user = currentUser;
+    if (user == null) throw StateError('Sign in to update your photo.');
+    final Map<String, dynamic>? row = await _client
+        .from('profiles')
+        .update(<String, dynamic>{
+          'avatar_path': path,
+          'avatar_url': null,
+        })
+        .eq('id', user.id)
+        .select('id')
+        .maybeSingle();
+    if (row == null) {
+      throw StateError('Your profile could not be found. Please sign in again.');
+    }
+    final IvoryProfile? cached = cachedProfile;
+    if (cached?.id == user.id) cachedProfile = cached!.withAvatarPath(path);
   }
 
   /// Turns raw Supabase errors into wording a reader would understand.
