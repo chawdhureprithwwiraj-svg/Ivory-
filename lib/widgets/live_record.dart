@@ -39,6 +39,7 @@ class _LiveRecordState extends State<LiveRecord> {
   List<LiveNight> _nights = <LiveNight>[];
   bool _done = false;
   bool _failed = false;
+  bool _expanded = false;
 
   @override
   void initState() {
@@ -48,7 +49,7 @@ class _LiveRecordState extends State<LiveRecord> {
 
   Future<void> _load() async {
     try {
-      final List<LiveNight> r = await LiveService.instance.liveRecord();
+      final List<LiveNight> r = await LiveService.instance.liveRecord(limit: 15);
       if (!mounted) return;
       setState(() {
         _nights = r;
@@ -118,7 +119,19 @@ class _LiveRecordState extends State<LiveRecord> {
               const SizedBox(height: 11),
               _rhythm(),
               const SizedBox(height: 13),
-              ..._nights.take(14).map(_entry),
+              ..._nights.take(_expanded ? 15 : 1).map(_entry),
+              if (_expanded) ...<Widget>[
+                const SizedBox(height: 11),
+                Text(
+                  'Only the last 15 live broadcasting sessions are listed here.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.4,
+                    fontStyle: FontStyle.italic,
+                    color: IvoryColors.emeraldWash.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -126,7 +139,7 @@ class _LiveRecordState extends State<LiveRecord> {
     );
   }
 
-  // ---- the heading, and the only summary line ----
+  // ---- the heading, summary and expand/collapse control ----
   Widget _heading() {
     final int counted = _nights.where((LiveNight n) => n.tracked).length;
     final int attended =
@@ -134,45 +147,65 @@ class _LiveRecordState extends State<LiveRecord> {
     final int totalMinutes = _nights.fold<int>(
         0, (int a, LiveNight n) => a + (n.minutes ?? 0));
 
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          'EVERY TIME I HAVE BEEN THERE',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.25,
-            color: IvoryColors.gold,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'EVERY TIME I HAVE BEEN THERE',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.25,
+                  color: IvoryColors.gold,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                <String>[
+                  '${_nights.length} ${_nights.length == 1 ? 'night' : 'nights'}',
+                  if (totalMinutes > 0) _span(totalMinutes),
+                  // Only claimed where the nights were actually
+                  // recorded. Never count nights Ivory cannot describe.
+                  if (counted > 0) 'you were there for $attended',
+                ].join('  \u00B7  '),
+                style: TextStyle(
+                  fontSize: 12.4,
+                  height: 1.4,
+                  color: IvoryColors.emeraldWash.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 5),
-        Text(
-          <String>[
-            '${_nights.length} ${_nights.length == 1 ? 'night' : 'nights'}',
-            if (totalMinutes > 0) _span(totalMinutes),
-            // Only claimed where the nights were actually
-            // recorded. Never a count over nights Ivory cannot
-            // speak about.
-            if (counted > 0) 'you were there for $attended',
-          ].join('  \u00B7  '),
-          style: TextStyle(
-            fontSize: 12.4,
-            height: 1.4,
-            color: IvoryColors.emeraldWash.withValues(alpha: 0.9),
+        IconButton(
+          onPressed: () => setState(() => _expanded = !_expanded),
+          tooltip: _expanded ? 'Show fewer sessions' : 'Show more sessions',
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          icon: Icon(
+            _expanded
+                ? Icons.keyboard_arrow_up_rounded
+                : Icons.keyboard_arrow_down_rounded,
+            size: 26,
+            color: IvoryColors.gold,
           ),
         ),
       ],
     );
   }
 
-  // ---- fourteen nights, as a rhythm ----
+  // ---- fifteen sessions, as a rhythm ----
   //
   // Not a chart. A chart invites comparison and argument; this
   // is a pulse, and all it says is "here is how often, and how
   // long". Height is the real length of the night.
   Widget _rhythm() {
-    final List<LiveNight> strip = _nights.take(14).toList().reversed.toList();
+    final List<LiveNight> strip = _nights.take(15).toList().reversed.toList();
     int longest = 1;
     for (final LiveNight n in strip) {
       if ((n.minutes ?? 0) > longest) longest = n.minutes ?? 1;
