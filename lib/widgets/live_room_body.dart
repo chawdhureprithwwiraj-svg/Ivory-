@@ -19,19 +19,17 @@ import '../theme/ivory_theme.dart';
 /// three lines tall. **The thing that shrank was the only thing
 /// they were looking at.**
 ///
-/// THE NEW ARRANGEMENT.
-///   * The conversation FLOATS over the lower part of the
-///     picture instead of being parked below it, so the words
-///     and her face occupy the same screen rather than
-///     competing for it.
-///   * **When the keyboard opens, the PICTURE gives up the
-///     room, not the conversation.** The stage eases down, the
-///     words keep their height. That is the correct trade: a
-///     member who is typing is reading, not staring.
-///   * A soft fall of ivory sits where the picture meets the
-///     words, so the one dissolves into the other. A hard edge
-///     between a face and a list of text looks like two apps
-///     stacked on top of each other.
+/// THE REFINED ARRANGEMENT.
+///   * The conversation FLOATS over a short, capped lower rail
+///     rather than covering nearly half the picture.
+///   * **When the keyboard opens, the rail grows only to a
+///     measured cap.** The composer remains usable, but most of
+///     the video stays visible behind it.
+///   * Ivory's own line keeps its gold name/accent and a quiet
+///     burgundy backing, but becomes a compact callout instead
+///     of a full-width slab. Member messages and reporting stay.
+///   * A soft, translucent fall helps the words read against
+///     the picture without turning it into a burgundy panel.
 ///
 /// NOTHING SNAPS. The stage EASES between its two heights over
 /// 260 ms. A picture that jumped would be worse than the
@@ -92,16 +90,18 @@ class LiveRoomBody extends StatelessWidget {
               // conversation lies ON it. There is nothing left
               // over to waste.
               //
-              // The words keep their height when the keyboard
-              // opens; it is the picture behind them that gives
-              // way, because the keyboard has already taken the
-              // room from the bottom. A member who is typing is
-              // reading, not staring.
-              // Keep the video visibly present beneath the chat.
-              // The rail still has room for words, but its veil must
-              // not turn the lower half into a solid burgundy panel.
-              final double chatHeight =
-                  box.maxHeight * (typing ? 0.76 : 0.42);
+              // The keyboard may give the rail a little more room,
+              // but the rail is capped. It must never expand over
+              // most of the picture. Ivory's compact, gold-marked
+              // line remains distinct without becoming a burgundy slab.
+              // Keep the video visibly present beneath the chat; the
+              // veil stays translucent enough to show it through.
+              final double proportionalHeight =
+                  box.maxHeight * (typing ? 0.62 : 0.30);
+              final double heightCap = typing ? 360 : 270;
+              final double chatHeight = proportionalHeight < heightCap
+                  ? proportionalHeight
+                  : heightCap;
               return Stack(
                 children: <Widget>[
                   Positioned.fill(child: stage),
@@ -140,10 +140,10 @@ class _Veiled extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: <Color>[
             IvoryColors.burgundy.withValues(alpha: 0),
-            IvoryColors.burgundy.withValues(alpha: 0.30),
-            IvoryColors.burgundy.withValues(alpha: 0.62),
+            IvoryColors.burgundy.withValues(alpha: 0.16),
+            IvoryColors.burgundy.withValues(alpha: 0.42),
           ],
-          stops: const <double>[0, 0.18, 0.48],
+          stops: const <double>[0, 0.22, 0.56],
         ),
       ),
       child: child,
