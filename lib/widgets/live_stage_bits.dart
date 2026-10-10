@@ -2,6 +2,15 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
+import 'gift_mark.dart';
+
+// LIFTED, NOT TRIMMED.
+//
+// This file reached the paste ceiling, so the whole video
+// stage moved out into `live_video_stage.dart` and is exported
+// from here. **No call site changes.** Lift a responsibility;
+// never shave comments to make room.
+export 'live_video_stage.dart';
 
 /// ============================================================
 /// IVORY - PIECES OF THE LIVE ROOM
@@ -59,8 +68,8 @@ class PresenceWords {
   /// two can never say different things about the same moment.
   static String steppedOutNote(bool host, [String? name]) {
     final String them = other(host, name);
-    return '$them ${_has(them)} stepped out. The room is still '
-        'open - stay here and they can come straight back.';
+    return '$them ${_has(them)} stepped out for some unavoidable '
+        'reasons, may be back very soon.';
   }
 
   factory PresenceWords.of({
@@ -113,7 +122,7 @@ class PresenceWords {
     if (left) {
       return PresenceWords(
         '$them ${_has(them)} stepped out',
-        '$them may come straight back. Stay here.',
+        'for some unavoidable reasons, may be back very soon.',
       );
     }
     return PresenceWords(
@@ -164,37 +173,93 @@ class TimeUpBar extends StatelessWidget {
   }
 }
 
-class LiveAudioStage extends StatelessWidget {
+class LiveAudioStage extends StatefulWidget {
   const LiveAudioStage({
     super.key,
     required this.heading,
     this.subtitle,
+    this.pulse = false,
   });
 
   final String heading;
   final String? subtitle;
+  final bool pulse;
+
+  @override
+  State<LiveAudioStage> createState() => _LiveAudioStageState();
+}
+
+class _LiveAudioStageState extends State<LiveAudioStage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncPulse();
+  }
+
+  @override
+  void didUpdateWidget(covariant LiveAudioStage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pulse != widget.pulse) _syncPulse();
+  }
+
+  void _syncPulse() {
+    if (!widget.pulse || MediaQuery.of(context).disableAnimations) {
+      _pulse.stop();
+      _pulse.value = 0;
+    } else if (!_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bool motionOff = MediaQuery.of(context).disableAnimations;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 26),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Container(
-            width: 132,
-            height: 132,
-            decoration: BoxDecoration(
-              gradient: IvoryColors.goldGradient,
-              shape: BoxShape.circle,
-              boxShadow: IvoryTheme.softShadow(blur: 26, y: 10),
+          AnimatedBuilder(
+            animation: _pulse,
+            builder: (BuildContext context, Widget? child) {
+              final double scale = widget.pulse && !motionOff
+                  ? 1 + 0.035 * Curves.easeInOut.transform(_pulse.value)
+                  : 1;
+              return Transform.scale(scale: scale, child: child);
+            },
+            child: Container(
+              width: 132,
+              height: 132,
+              decoration: BoxDecoration(
+                gradient: IvoryColors.goldGradient,
+                shape: BoxShape.circle,
+                boxShadow: IvoryTheme.softShadow(blur: 26, y: 10),
+              ),
+              child: const Icon(Icons.graphic_eq_rounded,
+                  color: IvoryColors.burgundy, size: 58),
             ),
-            child: const Icon(Icons.graphic_eq_rounded,
-                color: IvoryColors.burgundy, size: 58),
           ),
           const SizedBox(height: 22),
           Text(
-            heading,
+            widget.heading,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: IvoryColors.ivory,
@@ -202,10 +267,10 @@ class LiveAudioStage extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          if (subtitle != null) ...<Widget>[
+          if (widget.subtitle != null) ...<Widget>[
             const SizedBox(height: 8),
             Text(
-              subtitle!,
+              widget.subtitle!,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: IvoryColors.cream.withValues(alpha: 0.8),
@@ -404,7 +469,7 @@ class LiveTopBar extends StatelessWidget {
             IconButton(
               tooltip: 'Send a gift',
               padding: EdgeInsets.zero,
-              icon: const Text('\u{1F48C}', style: TextStyle(fontSize: 18)),
+              icon: const GiftMarkBell(size: 21),
               onPressed: onGift,
             ),
             const SizedBox(width: 2),
@@ -472,103 +537,4 @@ Future<bool> confirmEndSession(BuildContext context) async {
   );
   return sure == true;
 }
-
-/// The video stage. A broadcast shares the screen with the chat
-/// rail so its frame is wider; a call keeps the full portrait
-/// stage. A landscape camera is letterboxed onto warm cream,
-/// never stretched and never onto black.
-class LiveVideoStage {
-  LiveVideoStage._();
-
-  /// HER OWN PICTURE WHILE SHE IS BROADCASTING.
-  ///
-  /// A broadcast audience never publishes, so the host has no
-  /// remote picture and never will. Her stage is her own camera
-  /// and depends on nobody else being in the room.
-  static Widget? hostSelf({
-    required RtcEngine engine,
-    required String channel,
-  }) {
-    return build(
-      engine: engine,
-      selfView: true,
-      remoteUid: null,
-      channel: channel,
-      portrait: false,
-      pipSelf: false,
-    );
-  }
-
-  static Widget? build({
-    required RtcEngine engine,
-    required bool selfView,
-    required int? remoteUid,
-    required String channel,
-    required bool portrait,
-    required bool pipSelf,
-  }) {
-    // FILL THE FRAME, DO NOT FLOAT INSIDE IT.
-    //
-    // Agora's default fits the whole camera picture inside the
-    // box, so a landscape phone held upright produced a thin
-    // strip of face with a large empty panel underneath - the
-    // face ended up smaller than the little corner preview.
-    // "Hidden" crops the edges instead, which is what every
-    // video call does and what the stage was shaped for.
-    const RenderModeType fill = RenderModeType.renderModeHidden;
-
-    final Widget? video = selfView
-        ? AgoraVideoView(
-            controller: VideoViewController(
-              rtcEngine: engine,
-              canvas: const VideoCanvas(uid: 0, renderMode: fill),
-            ),
-          )
-        : (remoteUid == null
-            ? null
-            : AgoraVideoView(
-                controller: VideoViewController.remote(
-                  rtcEngine: engine,
-                  canvas: VideoCanvas(uid: remoteUid, renderMode: fill),
-                  connection: RtcConnection(channelId: channel),
-                ),
-              ));
-    if (video == null) return null;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: AspectRatio(
-        aspectRatio: portrait ? 9 / 16 : 4 / 5,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            fit: StackFit.expand,
-            children: <Widget>[
-              Container(color: IvoryColors.surfaceWarm),
-              video,
-              if (pipSelf)
-                Positioned(
-                  right: 10,
-                  top: 10,
-                  width: 96,
-                  height: 96 * 16 / 9,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: AgoraVideoView(
-                      controller: VideoViewController(
-                        rtcEngine: engine,
-                        canvas: const VideoCanvas(
-                            uid: 0, renderMode: fill),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // END OF FILE - lib/widgets/live_stage_bits.dart
