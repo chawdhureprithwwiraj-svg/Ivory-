@@ -368,11 +368,32 @@ class _CallWishSheetState extends State<CallWishSheet> {
               child: const Text('BOOK TIME'),
             )
           else if (c.canJoin)
-            TextButton(
+            FilledButton(
               onPressed: () => _join(c),
+              style: FilledButton.styleFrom(
+                backgroundColor: IvoryColors.gold,
+                foregroundColor: IvoryColors.burgundy,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
+                minimumSize: const Size(76, 42),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(17),
+                ),
+              ),
               // Either person can make the call active. Use this
               // member's own join flag, not status, to choose the verb.
-              child: Text(c.joinedMember ? 'REJOIN' : 'JOIN'),
+              child: Text(
+                c.joinedMember ? 'REJOIN' : 'JOIN',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.6,
+                ),
+              ),
             ),
         ],
       ),
