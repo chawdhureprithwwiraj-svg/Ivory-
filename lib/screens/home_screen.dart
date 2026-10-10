@@ -7,6 +7,7 @@ import '../theme/ivory_theme.dart';
 import '../widgets/ivory_logo.dart';
 import '../widgets/live_banner.dart';
 import '../widgets/ivory_signature.dart';
+import '../widgets/live_record.dart';
 import '../widgets/member_pulse.dart';
 import '../widgets/story_door.dart';
 import '../widgets/post_actions.dart';
@@ -122,7 +123,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   _hero(),
-                  const SizedBox(height: 30),
+                  // HER RECENT BROADCASTS BELONG NEAR THE FRONT DOOR,
+                  // not after a member has walked the whole feed.
+                  // After the hero is high enough to be easy to find,
+                  // but not the first thing on the page.
+                  const SizedBox(height: 22),
+                  const LiveRecord(),
+                  const SizedBox(height: 26),
                   if (_loading)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 50),
@@ -181,16 +188,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                   ],
-                  // THE END OF THE LETTER.
-                  //
-                  // The signature and the member count close
-                  // home together. A signature is how a letter
-                  // ENDS - put it a third of the way down and
-                  // it signs off something nobody has finished
-                  // reading. Here, a member walks the whole
-                  // house, reaches the bottom, and finds she
-                  // signed it. That is the moment it is worth
-                  // something.
+                  // THE END OF THE LETTER. The promise still
+                  // closes the page, after the stories themselves.
                   const SizedBox(height: 30),
                   const IvoryPromise(),
                   const SizedBox(height: 16),
