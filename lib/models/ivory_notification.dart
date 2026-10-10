@@ -26,6 +26,9 @@ class IvoryNotification {
   final String? actionUrl;
   final DateTime? createdAt;
 
+  /// Plain owner/system notices receive priority treatment in the single Inbox.
+  bool get isPriorityNotice => kind == 'system';
+
   factory IvoryNotification.fromMap(Map<String, dynamic> m) =>
       IvoryNotification(
         id: (m['id'] as num).toInt(),
