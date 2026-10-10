@@ -86,7 +86,9 @@ class LiveVideoStage {
         fit: StackFit.expand,
         children: <Widget>[
           Container(color: IvoryColors.surfaceWarm),
-          video,
+          // Native Agora surfaces do not always honor loose Stack
+          // constraints on every handset; make the fill explicit.
+          Positioned.fill(child: video),
           if (pipSelf)
             Positioned(
               right: 10,
