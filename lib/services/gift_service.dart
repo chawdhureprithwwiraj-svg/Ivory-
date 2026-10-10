@@ -138,14 +138,14 @@ extension IvoryGifts on LiveService {
         .toList();
   }
 
-  /// Who gifted on one post, largest first.
+  /// Who gifted on one post, largest first, with only the
+  /// private avatar fields needed by the entitled post-gift wall.
   ///
-  /// CONFIRMED SENDS ONLY - that rule lives in the SQL, not
-  /// here, so no screen can ever ask for the pending ones. A
-  /// name goes on a post when the money has been seen, and not
-  /// a moment before.
+  /// The SQL returns confirmed sends only and checks that this
+  /// viewer can open the post before returning photo paths.
   Future<List<PostGifter>> postGifters(int postId) async {
-    final dynamic res = await _gdb.rpc<dynamic>('post_gifters',
+    final dynamic res = await _gdb.rpc<dynamic>(
+        'post_gifters_with_profile_photos',
         params: <String, dynamic>{'post_id_in': postId});
     if (res is! List) return <PostGifter>[];
     return res
