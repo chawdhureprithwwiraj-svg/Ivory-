@@ -326,8 +326,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                // A member from the moment they arrive.
                 const Text(
-                  'Free Guest',
+                  'Forever Ivory Member',
                   style: TextStyle(
                     color: IvoryColors.burgundy,
                     fontSize: 15.5,
