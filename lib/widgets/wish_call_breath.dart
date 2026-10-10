@@ -1,14 +1,10 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
 
-/// A slow gold breath for the booking a member was sent to find.
-///
-/// Exactly three swells over 5.2 seconds, then it stops. The
-/// changing key restarts it if another notice is tapped before
-/// the first breath finishes. It never loops or keeps nagging.
+/// A continuous, slow gold breath on the one call named by a notice.
+/// It stays visible while the member still needs to choose a time;
+/// WishCallBanner turns it off when requestedFor is no longer null.
 class WishCallBreath extends StatefulWidget {
   const WishCallBreath({
     super.key,
@@ -29,13 +25,15 @@ class _WishCallBreathState extends State<WishCallBreath>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 5200),
+    duration: const Duration(milliseconds: 2600),
   );
+
+  void _breathe() => _controller.repeat(reverse: true);
 
   @override
   void initState() {
     super.initState();
-    if (widget.on) _controller.forward();
+    if (widget.on) _breathe();
   }
 
   @override
@@ -43,9 +41,10 @@ class _WishCallBreathState extends State<WishCallBreath>
     super.didUpdateWidget(oldWidget);
     if (widget.on &&
         (!oldWidget.on || widget.pulseKey != oldWidget.pulseKey)) {
-      _controller
-        ..reset()
-        ..forward();
+      _controller.reset();
+      _breathe();
+    } else if (!widget.on && oldWidget.on) {
+      _controller.stop();
     }
   }
 
@@ -61,17 +60,17 @@ class _WishCallBreathState extends State<WishCallBreath>
     return AnimatedBuilder(
       animation: _controller,
       builder: (BuildContext context, Widget? child) {
-        // Three full swells in one forward pass: no timer and no loop.
         final double strength =
-            (1 - math.cos(_controller.value * 6 * math.pi)) / 2;
+            Curves.easeInOutCubic.transform(_controller.value);
         return DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(13),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: IvoryColors.gold.withValues(alpha: 0.52 * strength),
-                blurRadius: 8 + 20 * strength,
-                spreadRadius: 1 + 3 * strength,
+                color: IvoryColors.gold
+                    .withValues(alpha: 0.18 + 0.24 * strength),
+                blurRadius: 10 + 12 * strength,
+                spreadRadius: 1 + 2 * strength,
               ),
             ],
           ),
