@@ -7,12 +7,29 @@ import '../services/notification_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/report_sheet.dart';
 
+int? _callIdFromActionUrl(String? value) {
+  if (value == null) return null;
+  final Uri? uri = Uri.tryParse(value.trim());
+  if (uri == null || uri.scheme != 'ivory' || uri.host != 'call') return null;
+  if (uri.pathSegments.length != 1) return null;
+  final int? id = int.tryParse(uri.pathSegments.single);
+  return id != null && id > 0 ? id : null;
+}
+
+bool _isInternalCallLink(String? value) {
+  final Uri? uri = value == null ? null : Uri.tryParse(value.trim());
+  return uri != null && uri.scheme == 'ivory' && uri.host == 'call';
+}
+
 /// Sanctuary Inbox - announcements, new drops, wish updates.
 class InboxScreen extends StatefulWidget {
-  const InboxScreen({super.key, this.onOpenTab});
+  const InboxScreen({super.key, this.onOpenTab, this.onOpenCall});
 
   /// Lets a notification jump to another tab, e.g. 'feed' or 'wish'.
   final void Function(String tab)? onOpenTab;
+
+  /// Opens the exact call named by its private `ivory://call/<id>` link.
+  final void Function(int callId)? onOpenCall;
 
   @override
   State<InboxScreen> createState() => _InboxScreenState();
@@ -78,6 +95,18 @@ class _InboxScreenState extends State<InboxScreen> {
     final String? url = n.actionUrl;
     if (url != null && url.trim().isNotEmpty) {
       final Uri? uri = Uri.tryParse(url.trim());
+      if (_isInternalCallLink(url)) {
+        final int? callId = _callIdFromActionUrl(url);
+        if (callId != null && widget.onOpenCall != null) {
+          widget.onOpenCall!(callId);
+          return;
+        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open that session.')),
+        );
+        return;
+      }
       if (uri != null) {
         final bool ok =
             await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -305,7 +334,8 @@ class _NotificationTile extends StatelessWidget {
                         ),
                       ),
                       if (item.actionUrl != null &&
-                          item.actionUrl!.trim().isNotEmpty) ...<Widget>[
+                          item.actionUrl!.trim().isNotEmpty &&
+                          !_isInternalCallLink(item.actionUrl)) ...<Widget>[
                         const SizedBox(height: 10),
                         _Attachment(url: item.actionUrl!.trim()),
                       ],
