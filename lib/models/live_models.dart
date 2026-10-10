@@ -171,6 +171,7 @@ class CallRequest {
     this.createdAt,
     this.extensionPrice,
     this.extensionPaid = false,
+    this.joinedMember = false,
     this.startedAt,
   });
 
@@ -185,6 +186,11 @@ class CallRequest {
   final DateTime? createdAt;
   final int? extensionPrice;
   final bool extensionPaid;
+
+  /// Whether this member has ever entered this session. The host
+  /// opening an active call must not make a first-time member a
+  /// "rejoiner"; Postgres sets this only when the member joins.
+  final bool joinedMember;
 
   /// The one moment the two of you were first connected, as
   /// the database stamped it. Both handsets subtract from this,
@@ -223,6 +229,7 @@ class CallRequest {
         createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
         extensionPrice: (m['extension_price'] as num?)?.toInt(),
         extensionPaid: (m['extension_paid'] as bool?) ?? false,
+        joinedMember: (m['joined_member'] as bool?) ?? false,
         startedAt: DateTime.tryParse((m['started_at'] as String?) ?? ''),
       );
 }
