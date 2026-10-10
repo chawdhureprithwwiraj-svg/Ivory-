@@ -182,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       (p?.isAdmin ?? false)
                           ? 'Every tier, every room, always open'
                           : _membership == null
-                              ? 'Free membership \u00b7 no plan active yet'
+                              ? 'Forever Ivory Member \u00b7 no paid tier active yet'
                               : '${_membership!.tierName} \u00b7 '
                                   '${_membership!.daysLeft} days remaining',
                     ),
@@ -207,14 +207,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               //
               // THE OWNER IS NOT A CUSTOMER OF HER OWN HOUSE.
               //
-              // She has never bought a tier, so this card used to
-              // fall into its "no plan" branch and call her a Free
-              // Guest, then offer to sell her a membership. Her
-              // own app was advertising to her. She owns all of
-              // it; there is nothing here to buy, renew or count
-              // down. So she gets a different card: what she
-              // holds, not what she lacks. Deliberately plain -
-              // this is the back of the house, not a shop window.
+              // She has not chosen a paid tier, so this card once
+              // fell into the default-access branch and offered
+              // to sell her a membership on her own page. She owns
+              // all of it; there is nothing here to buy, renew or
+              // count down. This card shows what she holds, not
+              // what she lacks: the back of the house, not a shop.
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: IvoryTheme.card(),
@@ -239,14 +237,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 14),
                     ] else ...<Widget>[
-                      Row(
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: <Widget>[
                           Text(
-                            'Free Guest',
+                            'Forever Ivory Member',
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const SizedBox(width: 10),
-                          FreeMemberChip(
+                          ForeverMemberChip(
                             onTap: () => widget.onOpenTab?.call('premium'),
                           ),
                         ],
