@@ -368,10 +368,10 @@ class _SheenState extends State<_Sheen> with SingleTickerProviderStateMixin {
   }
 }
 
-/// The quiet counterpart shown to members who have not upgraded yet:
-/// same shape, no gold leaf, and an invitation instead of a rank.
-class FreeMemberChip extends StatelessWidget {
-  const FreeMemberChip({super.key, this.onTap});
+/// The compact Forever Member mark used beside the fuller
+/// Forever Ivory Member name on the Profile card.
+class ForeverMemberChip extends StatelessWidget {
+  const ForeverMemberChip({super.key, this.onTap});
 
   final VoidCallback? onTap;
 
@@ -394,7 +394,7 @@ class FreeMemberChip extends StatelessWidget {
                 size: 13, color: IvoryColors.textFaint),
             const SizedBox(width: 6),
             Text(
-              'FREE MEMBER',
+              'FOREVER MEMBER',
               style: TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w800,
@@ -408,3 +408,5 @@ class FreeMemberChip extends StatelessWidget {
     );
   }
 }
+
+// END OF FILE - lib/widgets/premium_badge.dart
