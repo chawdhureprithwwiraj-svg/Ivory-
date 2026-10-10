@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/live_models.dart';
 import '../services/live_service.dart';
+import '../services/profile_photo_service.dart';
 import '../theme/ivory_theme.dart';
+import 'member_avatar.dart';
 import 'report_sheet.dart';
 
 /// ============================================================
@@ -47,22 +51,43 @@ class _LiveChatState extends State<LiveChat> {
     _load();
     _channel = LiveService.instance.watchMessages(
       widget.sessionId,
-      (LiveMessage m) {
-        if (!mounted) return;
-        setState(() {
-          // The realtime copy may race the one we just inserted.
-          if (!_messages.any((LiveMessage x) => x.id == m.id)) {
-            _messages.add(m);
-          }
-        });
-        final RegExpMatch? g =
-            RegExp('^(\\S+)\\s{2}sent\\s(.+)').firstMatch(m.body);
-        if (!m.isHost && g != null) {
-          widget.onGift?.call(g.group(1)!, g.group(2)!, m.senderName);
-        }
-        _toBottom();
-      },
+      _onMessage,
     );
+  }
+
+  void _onMessage(LiveMessage m) {
+    if (!mounted) return;
+    setState(() {
+      // The realtime copy may race the one we just inserted.
+      if (!_messages.any((LiveMessage x) => x.id == m.id)) {
+        _messages.add(m);
+      }
+    });
+    final RegExpMatch? g =
+        RegExp('^(\\S+)\\s{2}sent\\s(.+)').firstMatch(m.body);
+    if (!m.isHost && g != null) {
+      widget.onGift?.call(g.group(1)!, g.group(2)!, m.senderName);
+    }
+    _toBottom();
+    unawaited(_resolveAvatars(<LiveMessage>[m]));
+  }
+
+  Future<void> _resolveAvatars(List<LiveMessage> messages) async {
+    try {
+      final List<LiveMessage> resolved = await ProfilePhotoService.instance
+          .resolveLiveMessageAvatars(messages);
+      if (!mounted) return;
+      final Map<int, LiveMessage> byId = <int, LiveMessage>{
+        for (final LiveMessage m in resolved) m.id: m,
+      };
+      setState(() {
+        _messages = _messages
+            .map((LiveMessage m) => byId[m.id] ?? m)
+            .toList();
+      });
+    } catch (_) {
+      // The message remains readable with its initial instead of a photo.
+    }
   }
 
   Future<void> _load() async {
@@ -72,6 +97,7 @@ class _LiveChatState extends State<LiveChat> {
       if (!mounted) return;
       setState(() => _messages = rows);
       _toBottom();
+      unawaited(_resolveAvatars(rows));
     } catch (_) {
       // An empty rail is better than an error during a broadcast.
     }
@@ -292,16 +318,14 @@ class _LiveChatState extends State<LiveChat> {
         child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            margin: const EdgeInsets.only(top: 3),
-            width: 7,
-            height: 7,
-            decoration: BoxDecoration(
-              color: IvoryColors.peach,
-              shape: BoxShape.circle,
-            ),
+          MemberAvatar(
+            displayName: m.senderName ?? 'A member',
+            imageUrl: m.senderAvatarUrl,
+            size: 30,
+            premiumFrame: m.senderHasActivePaidTier &&
+                (m.senderAvatarUrl?.isNotEmpty ?? false),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 9),
           Expanded(
             child: RichText(
               text: TextSpan(
