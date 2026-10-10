@@ -440,6 +440,9 @@ class LiveMessage {
     this.memberId,
     this.createdAt,
     this.senderName,
+    this.senderAvatarPath,
+    this.senderAvatarUrl,
+    this.senderHasActivePaidTier = false,
   });
 
   final int id;
@@ -448,6 +451,21 @@ class LiveMessage {
   final String? memberId;
   final DateTime? createdAt;
   final String? senderName;
+  final String? senderAvatarPath;
+  final String? senderAvatarUrl;
+  final bool senderHasActivePaidTier;
+
+  LiveMessage withSenderAvatarUrl(String? value) => LiveMessage(
+        id: id,
+        body: body,
+        isHost: isHost,
+        memberId: memberId,
+        createdAt: createdAt,
+        senderName: senderName,
+        senderAvatarPath: senderAvatarPath,
+        senderAvatarUrl: value,
+        senderHasActivePaidTier: senderHasActivePaidTier,
+      );
 
   factory LiveMessage.fromDb(Map<String, dynamic> m) => LiveMessage(
         id: ((m['id'] as num?) ?? 0).toInt(),
@@ -456,6 +474,9 @@ class LiveMessage {
         memberId: m['member_id'] as String?,
         createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
         senderName: m['sender_name'] as String?,
+        senderAvatarPath: m['sender_avatar_path'] as String?,
+        senderHasActivePaidTier:
+            (m['sender_has_active_paid_tier'] as bool?) ?? false,
       );
 }
 
