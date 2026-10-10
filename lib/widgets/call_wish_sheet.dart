@@ -303,12 +303,28 @@ class _CallWishSheetState extends State<CallWishSheet> {
                   ),
                 ),
                 const SizedBox(height: 3),
+                // INCLUDED IS AN ENTITLEMENT WORD AND IT WAS
+                // BEING USED FOR ANY FREE SESSION.
+                //
+                // The sheet could say "included" on a session
+                // and, three lines further down, offer the
+                // member "the tiers that include calls" - so
+                // it told them they had it and did not have
+                // it, on one screen.
+                //
+                // A session with nothing to pay is only
+                // INCLUDED when the member's tier actually
+                // carries the allowance. Otherwise it is one
+                // Ivory gave them, which is NO CHARGE. The two
+                // are different facts and now read
+                // differently.
                 Text(
-                  '${c.minutes} minutes'
-                  '${c.priceInr > 0 ? ' - Rs.${c.priceInr}' : ' - included'}',
+                  '${c.minutes} minutes - ${_cost(c)}',
                   style: TextStyle(fontSize: 12.5, color: IvoryColors.textSoft),
                 ),
-                if (c.canJoin && c.requestedFor == null)
+                if (c.canJoin &&
+                    c.requestedFor == null &&
+                    c.status != 'active')
                   const Text(
                     'Confirmed - now pick your slot on the calendar.',
                     style: TextStyle(
@@ -318,8 +334,11 @@ class _CallWishSheetState extends State<CallWishSheet> {
                   ),
                 if (c.status == 'active')
                   Text(
-                    'This session is still open. Tap REJOIN to go '
-                    'straight back in - nothing is lost.',
+                    c.joinedMember
+                        ? 'This session is still open. Tap REJOIN to go '
+                            'straight back in - nothing is lost.'
+                        : 'Ivory is in the room. Tap JOIN to enter for '
+                            'the first time.',
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -341,7 +360,9 @@ class _CallWishSheetState extends State<CallWishSheet> {
               ],
             ),
           ),
-          if (c.canJoin && c.requestedFor == null)
+          if (c.canJoin &&
+              c.requestedFor == null &&
+              c.status != 'active')
             TextButton(
               onPressed: () => _book(c),
               child: const Text('BOOK TIME'),
@@ -349,14 +370,19 @@ class _CallWishSheetState extends State<CallWishSheet> {
           else if (c.canJoin)
             TextButton(
               onPressed: () => _join(c),
-              // A session already running means they were in it
-              // and dropped out. JOIN reads like starting over
-              // and makes people think they have lost it.
-              child: Text(c.status == 'active' ? 'REJOIN' : 'JOIN'),
+              // Either person can make the call active. Use this
+              // member's own join flag, not status, to choose the verb.
+              child: Text(c.joinedMember ? 'REJOIN' : 'JOIN'),
             ),
         ],
       ),
     );
+  }
+
+  /// See the note above the line that uses this.
+  String _cost(CallRequest c) {
+    if (c.priceInr > 0) return 'Rs.${c.priceInr}';
+    return _balance.isIncluded ? 'included in your tier' : 'no charge';
   }
 
   Widget _steps() {
