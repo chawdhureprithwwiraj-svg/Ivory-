@@ -227,45 +227,56 @@ class _LiveChatState extends State<LiveChat> {
 
   Widget _bubble(LiveMessage m) {
     if (m.isHost) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: GestureDetector(
-          onLongPress: () => showReportSheet(context, preset: 'content'),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(15, 11, 15, 12),
-            decoration: BoxDecoration(
-              gradient: IvoryColors.deepGradient,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                  color: IvoryColors.hairlineStrong, width: 0.9),
-              boxShadow: IvoryTheme.softShadow(blur: 14, y: 5),
-            ),
-            child: RichText(
-              text: TextSpan(
-                children: <TextSpan>[
-                  TextSpan(
-                    text: 'Ivory  ',
-                    style: TextStyle(
-                      fontFamily: IvoryTheme.displayFont,
-                      fontStyle: FontStyle.italic,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13.5,
-                      color: IvoryColors.gold,
-                    ),
+      // Ivory's words remain unmistakable, but no longer form a
+      // full-width panel over the broadcast picture.
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 7),
+          child: GestureDetector(
+            onLongPress: () => showReportSheet(context, preset: 'content'),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.86,
+              ),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(11, 7, 12, 8),
+                decoration: BoxDecoration(
+                  color: IvoryColors.burgundy.withValues(alpha: 0.82),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(
+                    color: IvoryColors.gold.withValues(alpha: 0.78),
+                    width: 1,
                   ),
-                  TextSpan(
-                    text: m.body,
-                    style: TextStyle(
-                      fontFamily: IvoryTheme.displayFont,
-                      fontStyle: FontStyle.italic,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15.5,
-                      height: 1.5,
-                      color: IvoryColors.cream,
-                    ),
+                  boxShadow: IvoryTheme.softShadow(blur: 9, y: 3),
+                ),
+                child: RichText(
+                  text: TextSpan(
+                    children: <TextSpan>[
+                      TextSpan(
+                        text: 'IVORY  ',
+                        style: TextStyle(
+                          fontFamily: IvoryTheme.displayFont,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10.5,
+                          letterSpacing: 0.9,
+                          color: IvoryColors.gold,
+                        ),
+                      ),
+                      TextSpan(
+                        text: m.body,
+                        style: TextStyle(
+                          fontFamily: IvoryTheme.displayFont,
+                          fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13.5,
+                          height: 1.3,
+                          color: IvoryColors.cream,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
