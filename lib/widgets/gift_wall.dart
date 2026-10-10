@@ -157,8 +157,8 @@ class _GiftWallState extends State<GiftWall> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'No name on this one yet. The first is the only one '
-              'nobody can take back.',
+              'Waiting for a name I will always remember. The largest '
+              'confirmed gift wears the crown here.',
               style: TextStyle(
                 fontSize: 12.3,
                 height: 1.35,
