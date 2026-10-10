@@ -105,9 +105,9 @@ class _WishScreenState extends State<WishScreen> {
   bool _tookThemUp = false;
   bool _scrolledAway = false;
 
-  /// True for a few seconds after a member arrives here from a
-  /// notification. See `_arrived`.
+  /// True while the three arrival breaths are visible.
   bool _pulse = false;
+  int _arrivalToken = 0;
 
   /// THE MEMBER TAPPED "YOUR SESSION IS CONFIRMED" AND LANDED
   /// NOWHERE. This is the fix.
@@ -119,16 +119,23 @@ class _WishScreenState extends State<WishScreen> {
   /// pointed anywhere. They had been told something had
   /// happened and then shown no sign of it.
   ///
-  /// Now arriving reloads, lifts them to the top, and makes the
-  /// session breathe for about five seconds.
+  /// Now arriving reloads the page and both booking strips, lifts
+  /// them to the top, and gives the relevant rows three slow breaths.
   void _arrived() {
-    if (MainShell.arrivals.value != 'wish') return;
-    if (!mounted) return;
+    if (MainShell.arrivals.value != 'wish' || !mounted) return;
     _load();
-    _toTop();
-    setState(() => _pulse = true);
+    final int token = _arrivalToken + 1;
+    setState(() {
+      _arrivalToken = token;
+      _pulse = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _toTop();
+    });
     Future<void>.delayed(const Duration(seconds: 6), () {
-      if (mounted) setState(() => _pulse = false);
+      if (mounted && _arrivalToken == token) {
+        setState(() => _pulse = false);
+      }
     });
   }
 
@@ -208,6 +215,7 @@ class _WishScreenState extends State<WishScreen> {
               WishCallBanner(
                 onSomethingWaiting: _somethingWaiting,
                 pulse: _pulse,
+                pulseKey: _arrivalToken,
               ),
             ],
             _hero(),
@@ -225,6 +233,7 @@ class _WishScreenState extends State<WishScreen> {
               WishCallBanner(
                 part: WishBannerPart.settled,
                 pulse: _pulse,
+                pulseKey: _arrivalToken,
               ),
             ],
             const SizedBox(height: 24),
