@@ -130,9 +130,8 @@ class _SignaturePainter extends CustomPainter {
 /// THE WORDING IS SCOPED ON PURPOSE AND MUST STAY SCOPED. It
 /// promises THE DOOR - that entry stays open - and never the
 /// rooms. What is behind the door stays hers to price and tier.
-/// The old line said "Free Tier Forever", which both used a
-/// banned word and promised something far larger than she
-/// needs to promise. **Do not widen this sentence.**
+/// The old line framed the public door as a tier and promised
+/// more than the house intended. **Do not widen this sentence.**
 class IvoryPromise extends StatelessWidget {
   const IvoryPromise({super.key});
 
