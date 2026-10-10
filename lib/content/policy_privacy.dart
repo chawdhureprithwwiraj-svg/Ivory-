@@ -13,7 +13,7 @@
 library;
 
 const String kPrivacyTitle = 'Privacy';
-const String kPrivacyUpdated = 'Last updated 11 October 2026';
+const String kPrivacyUpdated = 'Last updated 10 October 2026';
 
 const String kPrivacyBody = '''
 1. THE SHORT VERSION
@@ -31,7 +31,10 @@ from your public profile and are not shown to other members.
 
 Your profile photo, if you choose one. It appears on your
 Profile page and beside your messages in live chat. Only people
-allowed to view that broadcast can view the chat photo.
+allowed to view that broadcast can view the chat photo. If you
+are a confirmed gifter on a post, your photo also appears beside
+your name in that post's gifts section, visible only to members
+who can open that post.
 
 Your membership: which tier you hold, when it started and when
 it renews.
