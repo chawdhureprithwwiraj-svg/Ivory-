@@ -31,6 +31,7 @@ class MainShell extends StatefulWidget {
   static final ValueNotifier<String> arrivals =
       ValueNotifier<String>('');
   static final ValueNotifier<int> arrivalTick = ValueNotifier<int>(0);
+  static final ValueNotifier<int?> arrivalCallId = ValueNotifier<int?>(null);
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -97,7 +98,17 @@ class _MainShellState extends State<MainShell> {
     //
     // So the tab is TOLD it has been arrived at, and can bring
     // the member to the thing they were sent for.
+    MainShell.arrivalCallId.value = null;
     MainShell.arrivals.value = key;
+    MainShell.arrivalTick.value++;
+  }
+
+  /// A call notification carries its exact booking ID in its action URL.
+  void _openCall(int callId) {
+    final int i = _tabKeys.indexOf('wish');
+    if (i >= 0) setState(() => _index = i);
+    MainShell.arrivalCallId.value = callId;
+    MainShell.arrivals.value = 'wish';
     MainShell.arrivalTick.value++;
   }
 
@@ -108,7 +119,7 @@ class _MainShellState extends State<MainShell> {
       const ExploreScreen(),
       WishScreen(onOpenTab: _openTab),
       const PremiumScreen(),
-      InboxScreen(onOpenTab: _openTab),
+      InboxScreen(onOpenTab: _openTab, onOpenCall: _openCall),
       ProfileScreen(onOpenTab: _openTab),
     ];
 
