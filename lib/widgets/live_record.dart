@@ -8,8 +8,8 @@ import 'ivory_sheen.dart';
 /// ============================================================
 /// IVORY - EVERY TIME I HAVE BEEN THERE.
 ///
-/// The permanent record of her broadcasts, at the foot of home,
-/// directly above the promise she signs.
+/// The permanent record of her broadcasts, just below the home
+/// hero and before the stories, where it is easy to find.
 ///
 /// THE COLOUR CARRIES THE MEANING. **GOLD IS ON AIR NOW,
 /// EMERALD IS THE RECORD.** Warm for happening, cool for
@@ -70,15 +70,35 @@ class _LiveRecordState extends State<LiveRecord> {
   Widget build(BuildContext context) {
     if (!_done) return const SizedBox.shrink();
     if (_failed) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Text(
-          'The record could not be loaded just now.',
-          style: TextStyle(
-            fontSize: 12.3,
-            fontStyle: FontStyle.italic,
-            color: IvoryColors.textFaint,
-          ),
+      return Container(
+        padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+        decoration: BoxDecoration(
+          color: IvoryColors.surfaceWarm,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: IvoryColors.gold.withValues(alpha: 0.7)),
+        ),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                'Her broadcast record could not load just now.',
+                style: TextStyle(
+                  fontSize: 12.3,
+                  fontStyle: FontStyle.italic,
+                  color: IvoryColors.textSoft,
+                ),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: const Text('RETRY'),
+              style: TextButton.styleFrom(
+                foregroundColor: IvoryColors.burgundy,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -98,7 +118,7 @@ class _LiveRecordState extends State<LiveRecord> {
               const SizedBox(height: 11),
               _rhythm(),
               const SizedBox(height: 13),
-              ..._nights.take(5).map(_entry),
+              ..._nights.take(14).map(_entry),
             ],
           ),
         ),
