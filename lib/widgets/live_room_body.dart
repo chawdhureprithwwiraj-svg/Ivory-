@@ -82,32 +82,36 @@ class LiveRoomBody extends StatelessWidget {
         Expanded(
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints box) {
-              // Typing: the picture steps back to about a third.
-              // Reading: it holds a little over half, which is
-              // enough to watch her properly while the
-              // conversation runs underneath.
-              final double stageHeight =
-                  box.maxHeight * (typing ? 0.33 : 0.56);
+              // THE PICTURE TAKES EVERYTHING.
+              //
+              // It used to be given a share of the height, and
+              // inside that share it was locked to a 4:5 box -
+              // so she ended up as a small square with dead
+              // space all round it while the words sat below.
+              // Now the broadcast fills the whole room and the
+              // conversation lies ON it. There is nothing left
+              // over to waste.
+              //
+              // The words keep their height when the keyboard
+              // opens; it is the picture behind them that gives
+              // way, because the keyboard has already taken the
+              // room from the bottom. A member who is typing is
+              // reading, not staring.
+              // Keep the video visibly present beneath the chat.
+              // The rail still has room for words, but its veil must
+              // not turn the lower half into a solid burgundy panel.
+              final double chatHeight =
+                  box.maxHeight * (typing ? 0.76 : 0.42);
               return Stack(
                 children: <Widget>[
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 260),
-                    curve: Curves.easeOutCubic,
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    height: stageHeight,
-                    child: stage,
-                  ),
+                  Positioned.fill(child: stage),
                   AnimatedPositioned(
                     duration: const Duration(milliseconds: 260),
                     curve: Curves.easeOutCubic,
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    // Overlaps the picture by a little, so the
-                    // words genuinely sit ON the broadcast.
-                    top: stageHeight - 18,
+                    height: chatHeight,
                     child: _Veiled(child: chat!),
                   ),
                 ],
@@ -136,10 +140,10 @@ class _Veiled extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: <Color>[
             IvoryColors.burgundy.withValues(alpha: 0),
-            IvoryColors.burgundy.withValues(alpha: 0.72),
-            IvoryColors.burgundy.withValues(alpha: 0.9),
+            IvoryColors.burgundy.withValues(alpha: 0.30),
+            IvoryColors.burgundy.withValues(alpha: 0.62),
           ],
-          stops: const <double>[0, 0.14, 0.34],
+          stops: const <double>[0, 0.18, 0.48],
         ),
       ),
       child: child,
