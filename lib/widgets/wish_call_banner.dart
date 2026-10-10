@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/live_models.dart';
 import '../models/wish.dart';
@@ -50,18 +51,17 @@ class WishCallBanner extends StatefulWidget {
     super.key,
     this.onSomethingWaiting,
     this.part = WishBannerPart.decisions,
-    this.pulse = false,
+    this.targetCallId,
     this.pulseKey = 0,
   });
 
   /// Which half of the strip this copy is responsible for.
   final WishBannerPart part;
 
-  /// True for the three slow breaths after a notification arrival.
-  final bool pulse;
+  /// The one call identified by the member's notification, if any.
+  final int? targetCallId;
 
-  /// Changes on every arrival, even if two notices are tapped close
-  /// together. It restarts the breath and refreshes this strip's data.
+  /// Changes on each arrival so a repeated notice restarts the glow.
   final int pulseKey;
 
   /// Called with true the moment there is a card to show, so the
@@ -88,13 +88,37 @@ class _WishCallBannerState extends State<WishCallBanner> {
   @override
   void didUpdateWidget(covariant WishCallBanner oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.pulseKey != oldWidget.pulseKey) _load();
+    if (widget.pulseKey != oldWidget.pulseKey ||
+        widget.targetCallId != oldWidget.targetCallId) {
+      _load();
+    }
   }
 
   Future<void> _load() async {
     final int generation = ++_loadGeneration;
     try {
-      final List<CallRequest> calls = await LiveService.instance.myCalls();
+      List<CallRequest> calls = await LiveService.instance.myCalls();
+      final int? targetId = widget.targetCallId;
+      if (targetId != null) {
+        final int found = calls.indexWhere((CallRequest c) => c.id == targetId);
+        if (found >= 0) {
+          final CallRequest target = calls.removeAt(found);
+          calls.insert(0, target);
+        } else {
+          try {
+            final dynamic row = await Supabase.instance.client
+                .from('call_requests')
+                .select()
+                .eq('id', targetId)
+                .maybeSingle();
+            if (row is Map<String, dynamic>) {
+              calls = <CallRequest>[CallRequest.fromDb(row), ...calls];
+            }
+          } catch (_) {
+            // Keep visible rows if the exact refresh is temporarily offline.
+          }
+        }
+      }
       final List<Wish> wishes = await WishService.instance.fetchMyWishes();
       if (!mounted || generation != _loadGeneration) return;
       setState(() {
@@ -168,7 +192,7 @@ class _WishCallBannerState extends State<WishCallBanner> {
         children: <Widget>[
           for (final CallRequest c in settled)
             WishCallBreath(
-              on: widget.pulse,
+              on: false,
               pulseKey: widget.pulseKey,
               child: _settled(
                   context,
@@ -204,7 +228,9 @@ class _WishCallBannerState extends State<WishCallBanner> {
         ),
         for (final CallRequest c in todo)
           WishCallBreath(
-            on: widget.pulse,
+            on: widget.targetCallId != null &&
+                c.id == widget.targetCallId &&
+                c.requestedFor == null,
             pulseKey: widget.pulseKey,
             child: _callCard(context, c),
           ),
