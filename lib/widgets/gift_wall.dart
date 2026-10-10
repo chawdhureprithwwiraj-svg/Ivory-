@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/live_models.dart';
 import '../services/gift_service.dart';
 import '../services/live_service.dart';
+import '../services/profile_photo_service.dart';
 import '../theme/ivory_theme.dart';
+import 'member_avatar.dart';
 
 /// ============================================================
 /// IVORY - THE WALL. WHO GIFTED ON THIS POST.
@@ -81,8 +83,17 @@ class _GiftWallState extends State<GiftWall> {
 
   Future<void> _load() async {
     try {
-      final List<PostGifter> r =
+      final List<PostGifter> raw =
           await LiveService.instance.postGifters(widget.postId);
+      final List<PostGifter> r = await Future.wait<PostGifter>(
+        raw.map((PostGifter g) async {
+          final String? path = g.avatarPath;
+          if (path == null || path.isEmpty) return g;
+          final String? url =
+              await ProfilePhotoService.instance.signedAvatarUrl(path);
+          return g.withAvatarUrl(url);
+        }),
+      );
       if (!mounted) return;
       setState(() {
         _rows = r;
@@ -222,7 +233,14 @@ class _GiftWallState extends State<GiftWall> {
                 height: 26,
                 child: CustomPaint(painter: _CrownPainter()),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 9),
+              MemberAvatar(
+                displayName: top.sender,
+                size: 38,
+                imageUrl: top.avatarUrl,
+                premiumFrame: top.hasActivePaidTier,
+              ),
+              const SizedBox(width: 9),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,19 +377,36 @@ class _GiftWallState extends State<GiftWall> {
 
   Widget _chip(PostGifter g) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
         color: IvoryColors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: IvoryColors.gold.withValues(alpha: 0.55)),
       ),
-      child: Text(
-        '${g.sender}  \u00B7  Rs.${g.amountInr}',
-        style: const TextStyle(
-          fontSize: 11.3,
-          fontWeight: FontWeight.w800,
-          color: IvoryColors.plum,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          MemberAvatar(
+            displayName: g.sender,
+            size: 26,
+            imageUrl: g.avatarUrl,
+            premiumFrame: g.hasActivePaidTier,
+          ),
+          const SizedBox(width: 6),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 172),
+            child: Text(
+              '${g.sender}  \u00B7  Rs.${g.amountInr}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11.3,
+                fontWeight: FontWeight.w800,
+                color: IvoryColors.plum,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
