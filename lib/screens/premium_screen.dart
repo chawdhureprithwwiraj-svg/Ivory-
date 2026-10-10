@@ -100,9 +100,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
             const SizedBox(height: 22),
             if (_membership != null) _membershipCard(_membership!),
             if (_pending != null) _pendingCard(_pending!),
-            // A member who pays does not need the free door
-            // pointed out to them. It only says "here is what
-            // you are not".
+            // A member with a paid tier does not need the open
+            // door pointed out. This card is only for the base
+            // Forever Ivory membership.
             if ((_membership?.tierLevel ?? 0) == 0) _freeCard(),
             if (_loading)
               const Padding(
