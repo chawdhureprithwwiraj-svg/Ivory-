@@ -81,6 +81,7 @@ class _LiveScreenState extends State<LiveScreen> {
   bool _extShown = false;
   int _extTick = 0;
   bool _ended = false;
+  bool _selfVideoLarge = false;
   RealtimeChannel? _statusChannel;
   int? _remoteUid;
   final Set<int> _remoteUids = <int>{};
@@ -115,6 +116,7 @@ class _LiveScreenState extends State<LiveScreen> {
 
   /// Set once, so leaving twice cannot write the clock twice.
   bool _wroteExit = false;
+  bool _leftLivePresence = false;
 
   /// Loudspeaker on an audio call. Starts on, which is how it has
   /// always behaved; the button is there to put it to the ear.
@@ -163,13 +165,8 @@ class _LiveScreenState extends State<LiveScreen> {
       _statusChannel = LiveService.instance.watchCall(
         widget.sessionId,
         (String st, bool ended) {
-          if ((ended || st == 'done' || st == 'completed') &&
-              mounted &&
-              !_ended) {
-            setState(() => _ended = true);
-            Future<void>.delayed(const Duration(seconds: 4), () {
-              if (mounted) Navigator.of(context).pop();
-            });
+          if (ended || st == 'done' || st == 'completed') {
+            _showEndingNotice();
           }
         },
       );
@@ -186,15 +183,7 @@ class _LiveScreenState extends State<LiveScreen> {
     _statusChannel = LiveService.instance.watchStatus(
       widget.sessionId,
       (String st) {
-        if (st == 'ended' &&
-            widget.mode != LiveMode.host &&
-            mounted &&
-            !_ended) {
-          setState(() => _ended = true);
-          Future<void>.delayed(const Duration(seconds: 15), () {
-            if (mounted) Navigator.of(context).pop();
-          });
-        }
+        if (st == 'ended') _showEndingNotice();
       },
     );
     _boot();
@@ -429,10 +418,13 @@ class _LiveScreenState extends State<LiveScreen> {
     _engine = null;
     final LiveGuestRequest? guest = _guestRequest;
     if (guest != null) unawaited(LiveGuestService.instance.leave(guest.id));
+    final bool watching =
+        widget.mode == LiveMode.watch && !_leftLivePresence;
+    if (watching) _leftLivePresence = true;
     await RoomExit.leaveRoom(
       engine: e,
       sessionId: widget.sessionId,
-      watching: widget.mode == LiveMode.watch,
+      watching: watching,
       writeExit: _claimExit(),
       total: _clk.total,
     );
@@ -539,7 +531,7 @@ class _LiveScreenState extends State<LiveScreen> {
       setState(() => _error = problem);
       return;
     }
-    Navigator.of(context).pop();
+    _showEndingNotice();
   }
 
 
