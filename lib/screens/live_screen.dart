@@ -12,12 +12,14 @@ import '../services/live_guest_service.dart';
 import '../services/live_guest_room_state.dart';
 import '../services/auth_service.dart';
 import '../services/live_service.dart';
+import '../services/live_beauty_service.dart';
 
 import '../theme/ivory_theme.dart';
 import '../widgets/house_consent.dart';
 import '../widgets/gift_sheet.dart';
 import '../widgets/gift_moment.dart';
 import '../widgets/live_chat.dart';
+import '../widgets/live_beauty_panel.dart';
 import '../widgets/live_room_body.dart';
 import '../widgets/call_time_watch.dart';
 import '../widgets/live_controls.dart';
@@ -28,6 +30,7 @@ import '../widgets/live_guest_consent.dart';
 import '../widgets/live_guest_room_action.dart';
 
 part 'live_screen_guest_part.dart';
+part 'live_screen_beauty_part.dart';
 
 /// Shared Agora room for a host, broadcast audience, co-host, or call.
 /// Postgres and the signed Edge token enforce who may publish or watch.
@@ -366,6 +369,7 @@ class _LiveScreenState extends State<LiveScreen> {
         video: widget.videoEnabled,
         publishes: _publishes,
       );
+      await _applyLiveBeauty(engine);
       if (widget.mode == LiveMode.host && !_camOn) {
         await engine.muteLocalVideoStream(true);
       }
@@ -518,6 +522,7 @@ class _LiveScreenState extends State<LiveScreen> {
       hosting: widget.mode == LiveMode.host,
       watching: widget.mode == LiveMode.watch,
       onGift: () => showGiftSheet(context, sessionId: widget.sessionId),
+      onBeauty: _showLiveBeauty ? _openLiveBeautyPanel : null,
       onClose: () => Navigator.of(context).maybePop(),
     );
   }
