@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/agora_config.dart';
 import '../models/live_models.dart';
+import '../models/agora_ticket.dart';
 import '../models/live_night.dart';
 
 /// ============================================================
@@ -108,14 +109,22 @@ class LiveService {
 
   /// Asks the Edge Function for a token. Every check happens on the
   /// server; a refusal comes back as a readable sentence.
-  Future<AgoraTicket> _ticket({required String mode, required int id}) async {
+  Future<AgoraTicket> _ticket({
+    required String mode,
+    required int id,
+    int? requestId,
+  }) async {
     if (!AgoraConfig.isConfigured) {
       throw 'Live sessions are not switched on yet.';
     }
 
     final FunctionResponse res = await _db.functions.invoke(
       AgoraConfig.tokenFunction,
-      body: <String, dynamic>{'mode': mode, 'id': id},
+      body: <String, dynamic>{
+        'mode': mode,
+        'id': id,
+        'request_id': requestId,
+      },
     );
 
     final dynamic data = res.data;
@@ -132,11 +141,15 @@ class LiveService {
       token: data['token'] as String,
       uid: (data['uid'] as num).toInt(),
       isPublisher: data['role'] == 'publisher',
+      hostUid: ((data['hostUid'] as num?) ?? 0).toInt(),
     );
   }
 
   Future<AgoraTicket> joinLive(int sessionId) =>
       _ticket(mode: 'live', id: sessionId);
+
+  Future<AgoraTicket> joinLiveGuest(int sessionId, int requestId) =>
+      _ticket(mode: 'guest', id: sessionId, requestId: requestId);
 
   Future<AgoraTicket> joinCall(int callId) =>
       _ticket(mode: 'call', id: callId);
