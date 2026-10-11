@@ -15,11 +15,15 @@ import '../widgets/member_pulse.dart';
 import '../widgets/premium_badge.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/profile_photo_editor.dart';
+import '../widgets/profile_folio_card.dart';
+import '../widgets/profile_wish_shortcut.dart';
+import 'private_folio_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key, this.onOpenTab});
+  const ProfileScreen({super.key, this.onOpenTab, this.onOpenCall});
 
   final void Function(String tab)? onOpenTab;
+  final ValueChanged<int>? onOpenCall;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -279,10 +283,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // ---- shortcuts ----
               SessionsCard(onOpenTab: widget.onOpenTab),
-              _row(Icons.auto_awesome, 'Your wishes',
-                  () => widget.onOpenTab?.call('wish')),
-              _row(Icons.mail_outline, 'Sanctuary Inbox',
-                  () => widget.onOpenTab?.call('inbox')),
+              if (p?.isAdmin ?? false)
+                _row(Icons.auto_awesome, 'Your wishes',
+                    () => widget.onOpenTab?.call('wish'))
+              else
+                ProfileWishShortcut(
+                  onOpenWish: () => widget.onOpenTab?.call('wish'),
+                  onOpenScheduledCall: widget.onOpenCall,
+                ),
+              ProfileFolioCard(
+                onOpen: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PrivateFolioScreen(),
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 12),
               Center(
