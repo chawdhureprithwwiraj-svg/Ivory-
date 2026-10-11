@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import '../models/live_guest_models.dart';
 import '../theme/ivory_theme.dart';
 
-/// Portrait broadcast layout: Ivory remains the main picture; up to five
-/// approved speakers appear in a narrow rail. Camera-off guests stay visible
-/// as named audio tiles instead of black video surfaces.
+/// Ivory stays full-screen; up to five speakers scale into a bottom row.
+/// Camera-off guests remain named audio tiles instead of black surfaces.
 class LiveBroadcastStage extends StatelessWidget {
   const LiveBroadcastStage({
     super.key,
@@ -42,6 +41,28 @@ class LiveBroadcastStage extends StatelessWidget {
         : hostUid != 0 &&
             hostVideoEnabled &&
             remoteVideoUids.contains(hostUid);
+    final List<LiveGuestParticipant> speakers = guests.take(5).toList();
+    final MediaQueryData metrics = MediaQuery.of(context);
+    final bool typing = metrics.viewInsets.bottom > 80;
+    final double chatHeight = (metrics.size.height * (typing ? 0.48 : 0.39))
+        .clamp(0.0, typing ? 420.0 : 340.0)
+        .toDouble();
+    final double guestBottom =
+        chatHeight + 86 + metrics.padding.bottom + 8;
+    final int count = speakers.length;
+    final double gap = count > 1 ? 6 : 0;
+    final double width = count == 0
+        ? 0
+        : ((metrics.size.width - 24 - gap * (count - 1)) / count)
+            .clamp(48.0, 160.0)
+            .toDouble();
+    final double wantedHeight = (width * 1.35).clamp(72.0, 190.0).toDouble();
+    final double availableHeight =
+        (metrics.size.height - guestBottom - metrics.padding.top - 108)
+            .clamp(56.0, 190.0)
+            .toDouble();
+    final double tileHeight =
+        wantedHeight < availableHeight ? wantedHeight : availableHeight;
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
@@ -53,32 +74,40 @@ class LiveBroadcastStage extends StatelessWidget {
           )
         else
           Positioned.fill(child: _hostAudioPlaceholder()),
-        if (guests.isNotEmpty)
+        if (speakers.isNotEmpty)
           Positioned(
-            top: 68,
-            right: 8,
-            bottom: 286,
-            width: 90,
-            child: ListView.separated(
-              padding: EdgeInsets.zero,
-              itemCount: guests.length > 5 ? 5 : guests.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 7),
-              itemBuilder: (BuildContext context, int index) =>
-                  _guestTile(guests[index]),
+            left: 12,
+            right: 12,
+            bottom: guestBottom,
+            height: tileHeight,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List<Widget>.generate(
+                count,
+                (int index) => Padding(
+                  padding: EdgeInsets.only(left: index == 0 ? 0 : gap),
+                  child: SizedBox(
+                    width: width,
+                    height: tileHeight,
+                    child: _guestTile(speakers[index], tileHeight),
+                  ),
+                ),
+              ),
             ),
           ),
       ],
     );
   }
 
-  Widget _guestTile(LiveGuestParticipant guest) {
+  Widget _guestTile(LiveGuestParticipant guest, double height) {
     final bool self = isGuest && guest.requestId == selfRequestId;
     final bool hasVideo = guest.videoEnabled &&
         (self ? guestVideoEnabled : remoteUids.contains(guest.agoraUid));
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
-        height: 78,
+        height: height,
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
