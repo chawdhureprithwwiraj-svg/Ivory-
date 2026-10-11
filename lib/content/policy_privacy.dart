@@ -13,7 +13,7 @@
 library;
 
 const String kPrivacyTitle = 'Privacy';
-const String kPrivacyUpdated = 'Last updated 10 October 2026';
+const String kPrivacyUpdated = 'Last updated 12 October 2026';
 
 const String kPrivacyBody = '''
 1. THE SHORT VERSION
@@ -48,6 +48,11 @@ Your activity in Ivory: what you have unlocked, which sessions
 you have booked, how long a session lasted, and the messages
 you send to the house.
 
+Your Quiet Folio, if you use it: private notes, writing drafts,
+saved web links and optional notes linked to your own scheduled
+calls. These entries sync to your Ivory account so you can return
+to them on another device. They are not end-to-end encrypted.
+
 Your device, for notifications only: a token from Google that
 lets a message reach your phone. It identifies the phone, not
 you, and it is deleted when you sign out.
@@ -64,8 +69,9 @@ them is recorded or stored. No advertising identifier.
 
 To let you in, to show you what your membership includes, to
 run the sessions you book, to confirm payments, to answer you
-when you write, and to meet the record-keeping the law
-requires of anyone taking money. A phone number is optional,
+when you write, to keep the private Folio pages you choose to
+save, and to meet the record-keeping the law requires of anyone
+taking money. A phone number is optional,
 is not a sign-in method, and is not displayed publicly. If you
 share your real birthday, Ivory will try to prepare a small
 birthday token; it is not guaranteed.
@@ -86,6 +92,12 @@ if you chose a photo, that photo beside them. Photo files are
 private; the app uses time-limited links to display them. Anyone
 given such a link may view it until it expires.
 
+Quiet Folio pages are protected by database rules tied to your
+signed-in account; other members and the app's ordinary admin
+screens cannot read them. They are not end-to-end encrypted.
+Authorized service operators with privileged database access may
+access account data where needed to operate or support the service.
+
 No advertiser or data broker receives your information. The
 only other exception is a demand the house is legally required
 to answer, and the house will tell you if that happens unless
@@ -102,17 +114,19 @@ yourself is forbidden by the terms of use.
 
 Your account details stay while the account exists. Optional
 phone and birthday details are stored separately from the
-public profile. Profile photos stay until you remove or replace
-them, or ask for erasure. Payment records are kept for eight years because tax law
+public profile. Quiet Folio entries stay until you delete them
+or ask for account erasure. Profile photos stay until you remove
+or replace them, or ask for erasure. Payment records are kept for eight years because tax law
 requires it. Messages to the house are kept while the matter is
 open and for a reasonable time after. Notification tokens die
 when you sign out. Nothing is auto-deleted behind your back.
 
 8. YOUR RIGHTS
 
-You may ask what is held about you, ask for a mistake to be
-corrected, ask for your account and its data to be erased, and
-withdraw a consent you gave. Ask through the quiet door or
+You may view, edit or delete each Quiet Folio page in the app.
+You may also ask what is held about you, ask for a mistake to
+be corrected, ask for your account and its data to be erased,
+and withdraw a consent you gave. Ask through the quiet door or
 write to the Grievance Officer. The house answers within 30
 days, and usually the same day.
 
