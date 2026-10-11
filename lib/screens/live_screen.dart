@@ -6,6 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/ivory_errors.dart';
 import '../models/live_models.dart';
+import '../models/agora_ticket.dart';
+import '../models/live_guest_models.dart';
+import '../services/live_guest_service.dart';
+import '../services/live_guest_room_state.dart';
 import '../services/auth_service.dart';
 import '../services/live_service.dart';
 
@@ -18,6 +22,11 @@ import '../widgets/live_room_body.dart';
 import '../widgets/call_time_watch.dart';
 import '../widgets/live_controls.dart';
 import '../widgets/live_stage_bits.dart';
+import '../widgets/live_broadcast_stage.dart';
+import '../widgets/live_guest_consent.dart';
+import '../widgets/live_guest_room_action.dart';
+
+part 'live_screen_guest_part.dart';
 
 /// ============================================================
 /// IVORY - THE LIVE ROOM
@@ -47,6 +56,9 @@ class LiveScreen extends StatefulWidget {
     this.videoEnabled = true,
     this.subtitle,
     this.startedAt,
+    this.guestPriceInr = 0,
+    this.guestRequestsOpen = true,
+    this.hostVideoEnabled = true,
   });
 
   final int sessionId;
@@ -61,6 +73,9 @@ class LiveScreen extends StatefulWidget {
   /// Handed to every handset so every clock agrees. Null on a
   /// session, which counts from connection instead.
   final DateTime? startedAt;
+  final int guestPriceInr;
+  final bool guestRequestsOpen;
+  final bool hostVideoEnabled;
 
   @override
   State<LiveScreen> createState() => _LiveScreenState();
@@ -78,6 +93,11 @@ class _LiveScreenState extends State<LiveScreen> {
   bool _ended = false;
   RealtimeChannel? _statusChannel;
   int? _remoteUid;
+  final Set<int> _remoteUids = <int>{};
+  LiveGuestRoomState? _guestState;
+  LiveGuestRequest? _guestRequest;
+  bool _guestJoined = false;
+  bool _joiningGuest = false;
   bool _micOn = true;
   bool _camOn = true;
   bool _frontCamera = true;
@@ -105,7 +125,7 @@ class _LiveScreenState extends State<LiveScreen> {
   bool get _isOwner => AuthService.instance.isAdminCached;
 
   bool get _publishes =>
-      widget.mode == LiveMode.host || widget.mode == LiveMode.call;
+      widget.mode == LiveMode.host || widget.mode == LiveMode.call || _guestJoined;
 
   /// WHOSE SIDE OF THE ROOM THIS IS.
   ///
@@ -133,6 +153,12 @@ class _LiveScreenState extends State<LiveScreen> {
   @override
   void initState() {
     super.initState();
+    _camOn = widget.mode == LiveMode.host ? widget.hostVideoEnabled : true;
+    if (widget.mode != LiveMode.call) {
+      _guestState = LiveGuestRoomState(widget.sessionId)
+        ..addListener(_onGuestRoomChanged);
+      unawaited(_guestState!.start());
+    }
     if (widget.mode == LiveMode.call) {
       // A call lives in call_requests, not live_sessions. Watching
       // the wrong table is what left a member on a frozen frame.
@@ -243,38 +269,45 @@ class _LiveScreenState extends State<LiveScreen> {
             }
           });
           _startClock();
+          if (_joiningGuest) _markGuestConnected();
         },
         onUserJoined: (RtcConnection _, int uid, int __) {
           if (!mounted) return;
           setState(() {
-            _remoteUid = uid;
-            _remoteLeft = false;
-            _status = '';
-            // A session counts from connection, so whoever
-            // arrived first is not charged for waiting.
             if (widget.mode == LiveMode.call) {
+              _remoteUid = uid;
+              _remoteLeft = false;
+              _status = '';
               _clk.startAt(DateTime.now());
+            } else {
+              _remoteUids.add(uid);
+              if (uid == _ticket?.hostUid) {
+                _remoteUid = uid;
+                _remoteLeft = false;
+                _status = '';
+              }
             }
           });
         },
         onUserOffline: (RtcConnection _, int uid, UserOfflineReasonType __) {
           if (!mounted) return;
           setState(() {
+            _remoteUids.remove(uid);
             if (_remoteUid == uid) _remoteUid = null;
             if (widget.mode == LiveMode.call) {
               _remoteLeft = true;
               _status =
                   PresenceWords.steppedOutNote(_hostVoice, _otherName);
-            } else {
-              // A broadcast that loses its picture is Ivory
-              // stepping away from the camera, not a session
-              // partner leaving a room.
+            } else if (uid == _ticket?.hostUid) {
               _remoteLeft = widget.mode == LiveMode.watch;
               _status = widget.mode == LiveMode.host
                   ? 'You are on air'
                   : 'The stream has paused.';
             }
           });
+        },
+        onTokenPrivilegeWillExpire: (RtcConnection _, String __) {
+          if (_guestJoined) unawaited(_renewGuestToken());
         },
         onError: (ErrorCodeType code, String msg) {
           if (!mounted) return;
@@ -287,6 +320,9 @@ class _LiveScreenState extends State<LiveScreen> {
         video: widget.videoEnabled,
         publishes: _publishes,
       );
+      if (widget.mode == LiveMode.host && !widget.hostVideoEnabled) {
+        await engine.muteLocalVideoStream(true);
+      }
 
       await RoomEntry.connect(engine.joinChannel(
         token: ticket.token,
@@ -299,7 +335,7 @@ class _LiveScreenState extends State<LiveScreen> {
           publishMicrophoneTrack: _publishes,
           publishCameraTrack: _publishes && widget.videoEnabled,
           autoSubscribeAudio: true,
-          autoSubscribeVideo: widget.videoEnabled,
+          autoSubscribeVideo: widget.mode != LiveMode.call || widget.videoEnabled,
         ),
       ));
     } catch (e) {
@@ -336,6 +372,8 @@ class _LiveScreenState extends State<LiveScreen> {
     _timer?.cancel();
     final RtcEngine? e = _engine;
     _engine = null;
+    final LiveGuestRequest? guest = _guestRequest;
+    if (guest != null) unawaited(LiveGuestService.instance.leave(guest.id));
     await RoomExit.leaveRoom(
       engine: e,
       sessionId: widget.sessionId,
@@ -357,6 +395,8 @@ class _LiveScreenState extends State<LiveScreen> {
   void dispose() {
     final RealtimeChannel? sc = _statusChannel;
     if (sc != null) LiveService.instance.stopWatching(sc);
+    _guestState?.removeListener(_onGuestRoomChanged);
+    _guestState?.dispose();
     _leave();
     super.dispose();
   }
@@ -393,6 +433,7 @@ class _LiveScreenState extends State<LiveScreen> {
       bar: _bar(context),
       stage: _stage(),
       controls: _controls(),
+      action: _roomAction(),
       isCall: widget.mode == LiveMode.call,
       chat: (_joined && _error == null && !_ended)
           ? LiveChat(
@@ -436,111 +477,6 @@ class _LiveScreenState extends State<LiveScreen> {
     Navigator.of(context).pop();
   }
 
-  Widget _stage() {
-    // AN ENDED ROOM IS NEWS, NOT PROGRESS. It used to keep a
-    // spinner turning underneath the thank-you, which read as
-    // though something were still loading.
-    if (_ended) {
-      final String endMessage = widget.mode == LiveMode.call
-          ? 'The session has ended. See you again in your next session, '
-              '$_callMemberName.'
-          : "The session has ended. Make sure you don't miss my next Live 😊";
-      return LiveNotice(endMessage, isError: true);
-    }
-    if (_error != null) return LiveNotice(_error!, isError: true);
-
-    final RtcEngine? engine = _engine;
-    if (engine == null || !_joined) return LiveNotice(_status);
-
-    final bool hosting = widget.mode == LiveMode.host;
-
-    // HER OWN CAMERA, ON HER OWN SCREEN.
-    //
-    // A broadcast audience never publishes, so on Ivory's phone
-    // there is no remote picture and there never will be. The
-    // old code checked for one before it built any video at all,
-    // so hosting always fell through to the audio panel and she
-    // was left looking at a burgundy screen while every member
-    // could see her perfectly. The host's picture is her own,
-    // and it does not depend on anybody else being there.
-    if (hosting && widget.videoEnabled) {
-      final Widget? mine = LiveVideoStage.hostSelf(
-        engine: engine, channel: _ticket?.channel ?? '');
-      if (mine != null) return mine;
-    }
-
-    // WHO IS IN THE ROOM - the words live in live_stage_bits
-    // so both surfaces below say exactly the same thing.
-    final PresenceWords p = PresenceWords.of(
-      host: _hostVoice,
-      present: _remoteUid != null,
-      left: _remoteLeft,
-      subtitle: widget.subtitle,
-      name: _otherName,
-      broadcast: hosting,
-      audience: widget.mode == LiveMode.watch,
-    );
-
-    // Audio only: a warm panel, not a black rectangle.
-    if (!widget.videoEnabled) {
-      return LiveAudioStage(
-        heading: p.heading,
-        subtitle: p.note,
-        pulse: _remoteUid != null,
-      );
-    }
-
-    // Video, but nobody opposite yet: the same words rather than
-    // a silent empty frame.
-    if (_remoteUid == null) {
-      return LiveAudioStage(heading: p.heading, subtitle: p.note);
-    }
-
-    final Widget? video = LiveVideoStage.build(
-      engine: engine,
-      selfView: false,
-      remoteUid: _remoteUid,
-      channel: _ticket?.channel ?? '',
-      portrait: widget.mode == LiveMode.call,
-      pipSelf: widget.mode == LiveMode.call && _camOn,
-      fill: widget.mode != LiveMode.call,
-    );
-    return video ?? LiveNotice(_status);
-  }
-
-  Widget _controls() {
-    return LiveControls(
-      visible: _error == null && _joined && !_ended,
-      publishes: _publishes,
-      videoEnabled: widget.videoEnabled,
-      micOn: _micOn,
-      speakerOn: _speaker,
-      camOn: _camOn,
-      isCall: widget.mode == LiveMode.call,
-      isOwner: _isOwner,
-      callId: widget.sessionId,
-      premium:
-          widget.subtitle?.toLowerCase().contains('premium') ?? false,
-      onToggleMic: () async {
-        setState(() => _micOn = !_micOn);
-        await _engine?.muteLocalAudioStream(!_micOn);
-      },
-      onToggleSpeaker: () async {
-        setState(() => _speaker = !_speaker);
-        await _engine?.setEnableSpeakerphone(_speaker);
-      },
-      onToggleCam: () async {
-        setState(() => _camOn = !_camOn);
-        await _engine?.muteLocalVideoStream(!_camOn);
-      },
-      onSwitchCamera: () async {
-        setState(() => _frontCamera = !_frontCamera);
-        await _engine?.switchCamera();
-      },
-      onLeave: () => Navigator.of(context).maybePop(),
-      onEnd: _endSession,
-    );
-  }
 
 }
 
