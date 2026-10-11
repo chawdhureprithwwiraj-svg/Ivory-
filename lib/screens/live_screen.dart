@@ -123,6 +123,14 @@ class _LiveScreenState extends State<LiveScreen> {
   String? get _otherName =>
       widget.mode == LiveMode.call ? widget.title : null;
 
+  String get _callMemberName {
+    final String name = (_isOwner
+            ? widget.title
+            : (AuthService.instance.cachedProfile?.displayName ?? ''))
+        .trim();
+    return name.isEmpty || name == 'Anonymous Reader' ? 'friend' : name;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -442,13 +450,13 @@ class _LiveScreenState extends State<LiveScreen> {
     // AN ENDED ROOM IS NEWS, NOT PROGRESS. It used to keep a
     // spinner turning underneath the thank-you, which read as
     // though something were still loading.
-    if (_ended)
-      return LiveNotice(
-        widget.mode == LiveMode.call
-            ? 'The session has ended. Thank you for your time.'
-            : 'The broadcast has ended. Thank you for being here.',
-        isError: true,
-      );
+    if (_ended) {
+      final String endMessage = widget.mode == LiveMode.call
+          ? 'The session has ended. See you again in your next session, '
+              '$_callMemberName.'
+          : "The session has ended. Make sure you don't miss my next Live 😊";
+      return LiveNotice(endMessage, isError: true);
+    }
     if (_error != null) return LiveNotice(_error!, isError: true);
 
     final RtcEngine? engine = _engine;
