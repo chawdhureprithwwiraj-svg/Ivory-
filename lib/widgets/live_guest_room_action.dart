@@ -142,15 +142,13 @@ class _LiveGuestRoomActionState extends State<LiveGuestRoomAction> {
       return;
     }
     if (request != null &&
-        (request.isApproved ||
-            (request.status == 'left' && request.joinedAt == null))) {
+        (request.isApproved || request.status == 'left')) {
       widget.onJoin(request);
       return;
     }
     if (request == null ||
         request.status == 'payment_rejected' ||
-        request.status == 'cancelled' ||
-        (request.status == 'left' && request.joinedAt != null)) {
+        request.status == 'cancelled') {
       await showLiveGuestEntrySheet(
         context,
         sessionId: widget.sessionId,
@@ -174,8 +172,13 @@ class _LiveGuestRoomActionState extends State<LiveGuestRoomAction> {
         onTap: _open,
       );
     }
-    if (_loading || widget.guestPriceInr <= 0) return const SizedBox.shrink();
+    if (_loading) return const SizedBox.shrink();
     final LiveGuestRequest? r = _mine;
+    final bool canRejoin =
+        r?.status == 'left' && r?.joinedAt != null;
+    if (widget.guestPriceInr <= 0 && !canRejoin) {
+      return const SizedBox.shrink();
+    }
     final bool hasCredit = r != null &&
         (r.creditAppliedInr > 0 || r.cashPaidInr > 0);
     if (r?.status == 'cancelled' && hasCredit) {
@@ -196,18 +199,10 @@ class _LiveGuestRoomActionState extends State<LiveGuestRoomAction> {
         onTap: _open,
       );
     }
-    if (r.status == 'left' && r.joinedAt != null) {
-      if (!_requestsOpen) return const SizedBox.shrink();
-      return _pill(
-        label: 'REQUEST ANOTHER GUEST PLACE · ₹${widget.guestPriceInr}',
-        icon: Icons.videocam_rounded,
-        onTap: _open,
-      );
-    }
     if (r.status == 'approved' || r.status == 'left') {
       return _pill(
-        label: r.status == 'left' ? 'REJOIN AS GUEST' : 'JOIN AS GUEST',
-        icon: Icons.sensors_rounded,
+        label: r.status == 'left' ? 'REJOIN' : 'JOIN AS GUEST',
+        icon: r.status == 'left' ? Icons.replay_rounded : Icons.sensors_rounded,
         onTap: _open,
       );
     }
