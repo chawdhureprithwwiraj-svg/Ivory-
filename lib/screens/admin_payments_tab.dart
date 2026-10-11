@@ -85,7 +85,11 @@ class AdminPaymentsTabState extends State<AdminPaymentsTab> {
     setState(() => _busyId = p.id);
     try {
       await PaymentService.instance.approve(p.id);
-      if (mounted) _snack('Approved. ${p.tierName ?? 'The tier'} is unlocked.');
+      if (mounted) {
+        _snack(p.purpose == 'live_guest_slot'
+            ? 'Payment verified. The guest request is now in your live queue.'
+            : 'Approved. ${p.tierName ?? 'The tier'} is unlocked.');
+      }
       await _load();
     } catch (_) {
       if (mounted) _snack('Could not approve that payment.');
@@ -318,7 +322,7 @@ class AdminPaymentsTabState extends State<AdminPaymentsTab> {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  '₹${p.amountInr} · ${p.tierName ?? 'Membership'}',
+                  '₹${p.amountInr} · ${p.purpose == 'live_guest_slot' ? 'Live guest place' : (p.tierName ?? 'Membership')}',
                   style: const TextStyle(
                     color: IvoryColors.burgundy,
                     fontSize: 16,
@@ -402,3 +406,5 @@ class AdminPaymentsTabState extends State<AdminPaymentsTab> {
     );
   }
 }
+
+// END OF FILE - lib/screens/admin_payments_tab.dart
