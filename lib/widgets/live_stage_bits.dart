@@ -506,7 +506,9 @@ class LiveTopBar extends StatelessWidget {
           ],
           if (onGift != null) ...<Widget>[
             LiveGiftButton(onPressed: onGift!),
-            const SizedBox(width: 2),
+            // Leave room for the button's pulse so GIFT never bumps
+            // into a long live title on a narrow phone.
+            const SizedBox(width: 12),
           ],
           Expanded(
             child: Column(
