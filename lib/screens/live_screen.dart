@@ -188,7 +188,7 @@ class _LiveScreenState extends State<LiveScreen> {
             mounted &&
             !_ended) {
           setState(() => _ended = true);
-          Future<void>.delayed(const Duration(seconds: 4), () {
+          Future<void>.delayed(const Duration(seconds: 15), () {
             if (mounted) Navigator.of(context).pop();
           });
         }
