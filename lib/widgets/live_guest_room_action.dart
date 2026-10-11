@@ -130,6 +130,17 @@ class _LiveGuestRoomActionState extends State<LiveGuestRoomAction> {
         (request.creditAppliedInr > 0 || request.cashPaidInr > 0)) {
       return;
     }
+    if (request?.status == 'awaiting_payment') {
+      await showLiveGuestEntrySheet(
+        context,
+        sessionId: widget.sessionId,
+        title: widget.title,
+        feeInr: request!.feeInr,
+        resumeCheckout: LiveGuestCheckout.fromRequest(request),
+      );
+      await _load();
+      return;
+    }
     if (request != null &&
         (request.isApproved ||
             (request.status == 'left' && request.joinedAt == null))) {
@@ -201,7 +212,7 @@ class _LiveGuestRoomActionState extends State<LiveGuestRoomAction> {
       );
     }
     final String label = switch (r.status) {
-      'awaiting_payment' => 'PAYMENT NOT FINISHED',
+      'awaiting_payment' => 'CONTINUE PAYMENT · ₹${r.amountDueInr}',
       'payment_review' => 'UPI PAYMENT IN REVIEW',
       'waiting_host' => 'PAID · WAITING FOR IVORY',
       'active' => 'YOU ARE LIVE',
@@ -214,7 +225,11 @@ class _LiveGuestRoomActionState extends State<LiveGuestRoomAction> {
           : 'GUEST PLACE ENDED',
       _ => 'GUEST REQUEST IN PROGRESS',
     };
-    return _pill(label: label, icon: Icons.hourglass_top_rounded);
+    return _pill(
+      label: label,
+      icon: Icons.hourglass_top_rounded,
+      onTap: r.status == 'awaiting_payment' ? _open : null,
+    );
   }
 
   Widget _pill({
