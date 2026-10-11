@@ -22,28 +22,15 @@ import '../widgets/live_room_body.dart';
 import '../widgets/call_time_watch.dart';
 import '../widgets/live_controls.dart';
 import '../widgets/live_stage_bits.dart';
+import '../widgets/live_ended_notice.dart';
 import '../widgets/live_broadcast_stage.dart';
 import '../widgets/live_guest_consent.dart';
 import '../widgets/live_guest_room_action.dart';
 
 part 'live_screen_guest_part.dart';
 
-/// ============================================================
-/// IVORY - THE LIVE ROOM
-///
-/// One screen, three jobs:
-///   watching a broadcast   (audience, receives only)
-///   hosting a broadcast    (publisher, camera + mic)
-///   a one-on-one call      (both sides publish)
-///
-/// Nothing here decides who may be in the room. The ticket arrives
-/// already signed by the Edge Function, which only signs it after
-/// Postgres has approved the member. If the token is wrong, Agora
-/// itself refuses the join - there is no second door.
-///
-/// Broadcast video is full-bleed and cover-cropped; chat and controls
-/// float above it. One-to-one calls retain their inset layout.
-/// ============================================================
+/// Shared Agora room for a host, broadcast audience, co-host, or call.
+/// Postgres and the signed Edge token enforce who may publish or watch.
 
 enum LiveMode { watch, host, call }
 
@@ -94,7 +81,15 @@ class _LiveScreenState extends State<LiveScreen> {
   RealtimeChannel? _statusChannel;
   int? _remoteUid;
   final Set<int> _remoteUids = <int>{};
+  final Set<int> _remoteVideoUids = <int>{};
   LiveGuestRoomState? _guestState;
+  Future<void> _guestStateReady = Future<void>.value();
+  Timer? _startupTimer;
+  bool _hostJoinedAgora = false;
+  bool _hostVideoPublished = false;
+  bool _liveActivationStarted = false;
+  bool _liveActivated = false;
+  bool _hostStartupFailed = false;
   LiveGuestRequest? _guestRequest;
   bool _guestJoined = false;
   bool _joiningGuest = false;
@@ -157,7 +152,7 @@ class _LiveScreenState extends State<LiveScreen> {
     if (widget.mode != LiveMode.call) {
       _guestState = LiveGuestRoomState(widget.sessionId)
         ..addListener(_onGuestRoomChanged);
-      unawaited(_guestState!.start());
+      _guestStateReady = _guestState!.start();
     }
     if (widget.mode == LiveMode.call) {
       // A call lives in call_requests, not live_sessions. Watching
@@ -219,12 +214,19 @@ class _LiveScreenState extends State<LiveScreen> {
       }
     }
     try {
+      if (widget.mode == LiveMode.host) await _guestStateReady;
+      if (!mounted) return;
+
       // 1. Permissions. Audio-only never asks for the camera.
       setState(() => _status = 'Checking permissions...');
       final String? refused = await RoomEntry.permissions(
           publishes: _publishes, video: widget.videoEnabled);
       if (refused != null) {
-        setState(() => _error = refused);
+        if (widget.mode == LiveMode.host) {
+          await _failHostStartup(refused);
+        } else {
+          setState(() => _error = refused);
+        }
         return;
       }
 
@@ -239,9 +241,6 @@ class _LiveScreenState extends State<LiveScreen> {
       );
       _ticket = ticket;
 
-      // The ticket is what stamps the session as begun, so the
-      // one true moment exists from here on. Ask for it before
-      // the camera opens. See RoomClock.anchorFromDatabase.
       if (widget.mode == LiveMode.call) {
         await _clk.anchorFromDatabase(widget.sessionId);
       }
@@ -257,18 +256,25 @@ class _LiveScreenState extends State<LiveScreen> {
       engine.registerEventHandler(RtcEngineEventHandler(
         onJoinChannelSuccess: (RtcConnection _, int __) {
           if (!mounted) return;
+          if (widget.mode == LiveMode.host) _hostJoinedAgora = true;
           setState(() {
             _joined = true;
             _status = widget.mode == LiveMode.host
-                ? 'You are on air'
+                ? (_camOn ? 'Starting your video...' : 'Opening your broadcast...')
                 : 'Waiting for the stream...';
-            // A broadcast counts from when it opened - the one
-            // moment every handset is handed. See RoomClock.
-            if (widget.mode != LiveMode.call) {
+            if (widget.mode == LiveMode.watch) {
               _clk.startAt(widget.startedAt ?? DateTime.now());
             }
           });
-          _startClock();
+          if (widget.mode == LiveMode.host) {
+            if (!_camOn || _hostVideoPublished) {
+              unawaited(_activateHostBroadcast());
+            } else {
+              _waitForHostVideo();
+            }
+          } else {
+            _startClock();
+          }
           if (_joiningGuest) _markGuestConnected();
         },
         onUserJoined: (RtcConnection _, int uid, int __) {
@@ -293,6 +299,7 @@ class _LiveScreenState extends State<LiveScreen> {
           if (!mounted) return;
           setState(() {
             _remoteUids.remove(uid);
+            _remoteVideoUids.remove(uid);
             if (_remoteUid == uid) _remoteUid = null;
             if (widget.mode == LiveMode.call) {
               _remoteLeft = true;
@@ -306,12 +313,51 @@ class _LiveScreenState extends State<LiveScreen> {
             }
           });
         },
+        onFirstLocalVideoFramePublished: (RtcConnection _, int __) {
+          _hostVideoPublished = true;
+          if (widget.mode == LiveMode.host && _hostJoinedAgora) {
+            unawaited(_activateHostBroadcast());
+          }
+        },
+        onRemoteVideoStateChanged: (
+          RtcConnection _,
+          int uid,
+          RemoteVideoState state,
+          RemoteVideoStateReason __,
+          int ___,
+        ) {
+          if (!mounted) return;
+          setState(() {
+            if (state == RemoteVideoState.remoteVideoStateStarting ||
+                state == RemoteVideoState.remoteVideoStateDecoding ||
+                state == RemoteVideoState.remoteVideoStateFrozen) {
+              _remoteVideoUids.add(uid);
+            } else {
+              _remoteVideoUids.remove(uid);
+            }
+          });
+        },
+        onFirstRemoteVideoFrame: (
+          RtcConnection _,
+          int uid,
+          int __,
+          int ___,
+          int ____,
+        ) {
+          if (!mounted) return;
+          setState(() => _remoteVideoUids.add(uid));
+        },
         onTokenPrivilegeWillExpire: (RtcConnection _, String __) {
           if (_guestJoined) unawaited(_renewGuestToken());
         },
         onError: (ErrorCodeType code, String msg) {
           if (!mounted) return;
-          setState(() => _error = 'Connection problem ($msg).');
+          final String problem = 'Connection problem ($msg).';
+          if (widget.mode == LiveMode.host && !_liveActivated) {
+            unawaited(_failHostStartup(problem));
+          } else {
+            setState(() => _error = problem);
+          }
         },
       ));
 
@@ -320,7 +366,7 @@ class _LiveScreenState extends State<LiveScreen> {
         video: widget.videoEnabled,
         publishes: _publishes,
       );
-      if (widget.mode == LiveMode.host && !widget.hostVideoEnabled) {
+      if (widget.mode == LiveMode.host && !_camOn) {
         await engine.muteLocalVideoStream(true);
       }
 
@@ -340,7 +386,12 @@ class _LiveScreenState extends State<LiveScreen> {
       ));
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = houseMessage(e));
+      final String problem = houseMessage(e);
+      if (widget.mode == LiveMode.host && !_liveActivated) {
+        await _failHostStartup(problem);
+      } else {
+        setState(() => _error = problem);
+      }
     }
   }
 
@@ -393,6 +444,12 @@ class _LiveScreenState extends State<LiveScreen> {
 
   @override
   void dispose() {
+    _startupTimer?.cancel();
+    if (widget.mode == LiveMode.host &&
+        !_liveActivationStarted &&
+        !_liveActivated) {
+      unawaited(LiveService.instance.abortLiveStart(widget.sessionId));
+    }
     final RealtimeChannel? sc = _statusChannel;
     if (sc != null) LiveService.instance.stopWatching(sc);
     _guestState?.removeListener(_onGuestRoomChanged);
@@ -406,7 +463,10 @@ class _LiveScreenState extends State<LiveScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true,
+      canPop: !(widget.mode == LiveMode.host &&
+          _liveActivationStarted &&
+          !_liveActivated &&
+          !_hostStartupFailed),
       onPopInvokedWithResult: (bool did, _) {
         if (did) _leave();
       },
