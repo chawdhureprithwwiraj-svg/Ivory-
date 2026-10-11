@@ -122,7 +122,7 @@ class _MainShellState extends State<MainShell> {
       WishScreen(onOpenTab: _openTab),
       const PremiumScreen(),
       InboxScreen(onOpenTab: _openTab, onOpenCall: _openCall),
-      ProfileScreen(onOpenTab: _openTab),
+      ProfileScreen(onOpenTab: _openTab, onOpenCall: _openCall),
     ];
 
     return Scaffold(
