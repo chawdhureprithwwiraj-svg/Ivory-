@@ -43,6 +43,7 @@ class RazorpayPayPanel extends StatefulWidget {
     this.giftSendId,
     this.sessionId,
     this.callRequestId,
+    this.liveGuestRequestId,
     this.onUnlocked,
     required this.label,
   });
@@ -54,6 +55,7 @@ class RazorpayPayPanel extends StatefulWidget {
   final int? giftSendId;
   final int? sessionId;
   final int? callRequestId;
+  final int? liveGuestRequestId;
   final VoidCallback? onUnlocked;
   final String label;
 
@@ -156,6 +158,7 @@ class _RazorpayPayPanelState extends State<RazorpayPayPanel> {
           'gift_send_id': widget.giftSendId,
           'live_session_id': widget.sessionId,
           'call_request_id': widget.callRequestId,
+          'live_guest_request_id': widget.liveGuestRequestId,
         },
       );
       if (fr.status != 200) {
@@ -202,7 +205,9 @@ class _RazorpayPayPanelState extends State<RazorpayPayPanel> {
                 size: 34, color: IvoryColors.success),
             const SizedBox(height: 8),
             Text(
-              'It is yours now.',
+              widget.purpose == 'live_guest_slot'
+                  ? 'Payment confirmed.'
+                  : 'It is yours now.',
               style: TextStyle(
                 fontFamily: IvoryTheme.displayFont,
                 fontStyle: FontStyle.italic,
@@ -213,7 +218,9 @@ class _RazorpayPayPanelState extends State<RazorpayPayPanel> {
             ),
             const SizedBox(height: 4),
             Text(
-              'The house has your payment. Everything is open.',
+              widget.purpose == 'live_guest_slot'
+                  ? 'Your paid guest request is with Ivory. If approved, tap JOIN to go live.'
+                  : 'The house has your payment. Everything is open.',
               style: TextStyle(color: IvoryColors.textSoft, fontSize: 13),
             ),
           ],
