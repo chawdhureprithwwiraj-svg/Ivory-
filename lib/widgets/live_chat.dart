@@ -10,16 +10,8 @@ import '../theme/ivory_theme.dart';
 import 'member_avatar.dart';
 import 'report_sheet.dart';
 
-/// ============================================================
-/// IVORY - THE LIVE RAIL
-///
-/// During a broadcast only one voice is heard: yours. Members take
-/// part by writing, and this is where that happens. Your own lines
-/// come back in gold so they are never lost in the stream.
-///
-/// Everything arrives over the realtime subscription, so a message
-/// appears on every device at once without anyone refreshing.
-/// ============================================================
+/// Live chat floats over the broadcast; member avatars and realtime updates
+/// remain visible while Ivory's replies keep their distinct styling.
 class LiveChat extends StatefulWidget {
   const LiveChat({super.key, required this.sessionId, this.onGift});
 
@@ -110,18 +102,8 @@ class _LiveChatState extends State<LiveChat> {
         _scroll.position.maxScrollExtent - 90;
   }
 
-  /// THE RULE THAT WAS MISSING: **never drag a member away from
-  /// what they are reading.**
-  ///
-  /// This used to jump to the newest line every single time a
-  /// message arrived. During a busy broadcast that makes
-  /// scrolling back completely impossible - you reach up to
-  /// read something, a stranger types, and you are thrown to
-  /// the bottom again. It felt broken because it was.
-  ///
-  /// Now: if they are already at the foot, follow along as
-  /// before. If they have scrolled up, LEAVE THEM WHERE THEY
-  /// ARE and just mark that something new has landed.
+  /// Follow new messages only while the member is already at the bottom.
+  /// Preserve their reading position and show a quiet catch-up count.
   void _toBottom({bool force = false}) {
     if (!force && !_atFoot) {
       if (mounted) setState(() => _behind += 1);
@@ -138,10 +120,7 @@ class _LiveChatState extends State<LiveChat> {
     });
   }
 
-  /// The quiet way back down. It states a plain number and
-  /// nothing else - no "everyone is talking!", no urgency. A
-  /// count of what is actually there is a fact; anything
-  /// livelier would be manufactured excitement.
+  /// Shows a quiet count for new messages while the reader is scrolled up.
   Widget _catchUp() {
     return Align(
       alignment: Alignment.centerRight,
@@ -260,13 +239,13 @@ class _LiveChatState extends State<LiveChat> {
   Widget _bubble(LiveMessage m) {
     final List<Shadow> readableShadow = <Shadow>[
       Shadow(
-        color: IvoryColors.burgundy.withValues(alpha: 0.96),
-        blurRadius: 4,
+        color: IvoryColors.burgundy.withValues(alpha: 0.88),
+        blurRadius: 5,
         offset: const Offset(0, 1),
       ),
       Shadow(
-        color: IvoryColors.plum.withValues(alpha: 0.78),
-        blurRadius: 10,
+        color: IvoryColors.burgundy.withValues(alpha: 0.42),
+        blurRadius: 11,
       ),
     ];
     if (m.isHost) {
@@ -280,46 +259,72 @@ class _LiveChatState extends State<LiveChat> {
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.sizeOf(context).width * 0.94,
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8),
-                    child: Icon(Icons.circle, size: 8, color: IvoryColors.gold),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: IvoryColors.burgundy.withValues(alpha: 0.82),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: IvoryColors.gold.withValues(alpha: 0.16),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: RichText(
-                      text: TextSpan(
-                        children: <TextSpan>[
-                          TextSpan(
-                            text: 'IVORY  ',
-                            style: TextStyle(
-                              fontFamily: IvoryTheme.displayFont,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12.5,
-                              letterSpacing: 1,
-                              color: IvoryColors.gold,
-                              shadows: readableShadow,
-                            ),
-                          ),
-                          TextSpan(
-                            text: m.body,
-                            style: TextStyle(
-                              fontFamily: IvoryTheme.displayFont,
-                              fontStyle: FontStyle.italic,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              height: 1.32,
-                              color: IvoryColors.cream,
-                              shadows: readableShadow,
-                            ),
-                          ),
-                        ],
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: IvoryColors.burgundy.withValues(alpha: 0.34),
+                      blurRadius: 12,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Icon(
+                        Icons.circle,
+                        size: 8,
+                        color: IvoryColors.gold,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: RichText(
+                        text: TextSpan(
+                          children: <TextSpan>[
+                            TextSpan(
+                              text: 'IVORY  ',
+                              style: TextStyle(
+                                fontFamily: IvoryTheme.displayFont,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12.5,
+                                letterSpacing: 1,
+                                color: IvoryColors.gold,
+                                shadows: readableShadow,
+                              ),
+                            ),
+                            TextSpan(
+                              text: m.body,
+                              style: TextStyle(
+                                fontFamily: IvoryTheme.displayFont,
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                height: 1.32,
+                                color: IvoryColors.cream,
+                                shadows: readableShadow,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -344,37 +349,58 @@ class _LiveChatState extends State<LiveChat> {
                   (m.senderAvatarUrl?.isNotEmpty ?? false),
             ),
             const SizedBox(width: 8),
-            Expanded(
-              child: RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 15.5,
-                    height: 1.35,
-                    color: IvoryColors.cream,
-                    shadows: readableShadow,
+            Flexible(
+              fit: FlexFit.loose,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: IvoryColors.burgundy.withValues(alpha: 0.24),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(
+                    color: IvoryColors.cream.withValues(alpha: 0.10),
                   ),
-                  children: <TextSpan>[
-                    TextSpan(
-                      text: "${m.senderName ?? 'A member'}  ",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14.5,
-                        color: IvoryColors.peach,
-                        shadows: readableShadow,
-                      ),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: IvoryColors.burgundy.withValues(alpha: 0.30),
+                      blurRadius: 12,
+                      offset: const Offset(0, 2),
                     ),
-                    TextSpan(text: message),
-                    if (note != null)
+                  ],
+                ),
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      height: 1.35,
+                      color: IvoryColors.cream,
+                      shadows: readableShadow,
+                    ),
+                    children: <TextSpan>[
                       TextSpan(
-                        text: '\n\u201C$note\u201D',
+                        text: "${m.senderName ?? 'A member'}  ",
                         style: TextStyle(
-                          fontStyle: FontStyle.italic,
-                          fontSize: 15,
-                          color: IvoryColors.gold,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14.5,
+                          color: IvoryColors.peach,
                           shadows: readableShadow,
                         ),
                       ),
-                  ],
+                      TextSpan(text: message),
+                      if (note != null)
+                        TextSpan(
+                          text: '\n\u201C$note\u201D',
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            fontSize: 15,
+                            color: IvoryColors.gold,
+                            shadows: readableShadow,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
