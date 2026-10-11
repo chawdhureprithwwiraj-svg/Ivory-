@@ -31,6 +31,53 @@ class LiveVideoStage {
     );
   }
 
+  static Widget _pip({
+    required Widget video,
+    required VoidCallback? onTap,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          Positioned.fill(child: video),
+          if (onTap != null)
+            Tooltip(
+              message: 'Tap to swap the large and small video views',
+              child: Semantics(
+                button: true,
+                label: 'Swap large and small video views',
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onTap,
+                    splashColor: Colors.white24,
+                    highlightColor: Colors.white10,
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: Container(
+                        margin: const EdgeInsets.all(6),
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.62),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.swap_horiz_rounded,
+                          color: Colors.white,
+                          size: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   static Widget? build({
     required RtcEngine engine,
     required bool selfView,
@@ -38,6 +85,9 @@ class LiveVideoStage {
     required String channel,
     required bool portrait,
     required bool pipSelf,
+    bool pipRemote = false,
+    VoidCallback? onTapPipSelf,
+    VoidCallback? onTapPipRemote,
     bool fill = false,
   }) {
     // FILL THE FRAME, DO NOT FLOAT INSIDE IT.
@@ -95,9 +145,8 @@ class LiveVideoStage {
               top: 10,
               width: 96,
               height: 96 * 16 / 9,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: AgoraVideoView(
+              child: _pip(
+                video: AgoraVideoView(
                   controller: VideoViewController(
                     rtcEngine: engine,
                     canvas: const VideoCanvas(
@@ -106,6 +155,27 @@ class LiveVideoStage {
                     ),
                   ),
                 ),
+                onTap: onTapPipSelf,
+              ),
+            ),
+          if (pipRemote && remoteUid != null)
+            Positioned(
+              right: 10,
+              top: 10,
+              width: 96,
+              height: 96 * 16 / 9,
+              child: _pip(
+                video: AgoraVideoView(
+                  controller: VideoViewController.remote(
+                    rtcEngine: engine,
+                    canvas: VideoCanvas(
+                      uid: remoteUid,
+                      renderMode: videoRenderMode,
+                    ),
+                    connection: RtcConnection(channelId: channel),
+                  ),
+                ),
+                onTap: onTapPipRemote,
               ),
             ),
         ],
