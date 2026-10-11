@@ -432,6 +432,7 @@ class LiveTopBar extends StatelessWidget {
     required this.clockPrefix,
     required this.onClose,
     this.onGift,
+    this.onBeauty,
     this.note,
   });
 
@@ -441,6 +442,7 @@ class LiveTopBar extends StatelessWidget {
   final String clockPrefix;
   final VoidCallback onClose;
   final VoidCallback? onGift;
+  final VoidCallback? onBeauty;
   final String? note;
 
   /// THE WHOLE TOP STRIP, DECIDED IN ONE PLACE.
@@ -458,6 +460,7 @@ class LiveTopBar extends StatelessWidget {
     required bool watching,
     required VoidCallback onClose,
     VoidCallback? onGift,
+    VoidCallback? onBeauty,
   }) {
     return LiveTopBar(
       title: title,
@@ -469,6 +472,8 @@ class LiveTopBar extends StatelessWidget {
       // together. In a one-to-one session they were only ever
       // decoration, and they did nothing when tapped.
       onGift: live && watching ? onGift : null,
+      // The caller supplies this only for Ivory's own video camera.
+      onBeauty: (hosting || isCall) ? onBeauty : null,
       onClose: onClose,
     );
   }
@@ -529,6 +534,13 @@ class LiveTopBar extends StatelessWidget {
               ],
             ),
           ),
+          if (onBeauty != null)
+            IconButton(
+              tooltip: 'Beauty controls',
+              onPressed: onBeauty,
+              icon: const Icon(Icons.face_retouching_natural_rounded,
+                  color: IvoryColors.gold),
+            ),
           IconButton(
             onPressed: onClose,
             icon: const Icon(Icons.close_rounded, color: IvoryColors.ivory),
