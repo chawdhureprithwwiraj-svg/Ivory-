@@ -15,6 +15,7 @@ Future<void> showLiveGuestEntrySheet(
   required int sessionId,
   required String title,
   required int feeInr,
+  LiveGuestCheckout? resumeCheckout,
 }) async {
   await showModalBottomSheet<void>(
     context: context,
@@ -26,6 +27,7 @@ Future<void> showLiveGuestEntrySheet(
       sessionId: sessionId,
       title: title,
       feeInr: feeInr,
+      resumeCheckout: resumeCheckout,
     ),
   );
 }
@@ -36,11 +38,13 @@ class LiveGuestEntrySheet extends StatefulWidget {
     required this.sessionId,
     required this.title,
     required this.feeInr,
+    this.resumeCheckout,
   });
 
   final int sessionId;
   final String title;
   final int feeInr;
+  final LiveGuestCheckout? resumeCheckout;
 
   @override
   State<LiveGuestEntrySheet> createState() => _LiveGuestEntrySheetState();
@@ -60,6 +64,7 @@ class _LiveGuestEntrySheetState extends State<LiveGuestEntrySheet> {
   @override
   void initState() {
     super.initState();
+    _checkout = widget.resumeCheckout;
     _loadPaymentMode();
   }
 
@@ -223,7 +228,8 @@ class _LiveGuestEntrySheetState extends State<LiveGuestEntrySheet> {
               ),
               const SizedBox(height: 6),
               Text(
-                '${widget.title} · ₹${widget.feeInr} for one guest connection',
+                '${widget.title} · ₹${c?.feeInr ?? widget.feeInr} '
+                    'for one guest connection',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: IvoryColors.textSoft, fontSize: 13),
               ),
@@ -285,6 +291,8 @@ class _LiveGuestEntrySheetState extends State<LiveGuestEntrySheet> {
                 ],
                 const SizedBox(height: 16),
                 OutlinedButton(onPressed: _close, child: const Text('CLOSE')),
+              ] else if (_loading) ...<Widget>[
+                const Center(child: CircularProgressIndicator()),
               ] else ...<Widget>[
                 Text(
                   c.creditToApplyInr > 0
