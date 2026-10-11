@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/live_models.dart';
 import '../models/gift_surface.dart';
@@ -27,7 +26,6 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
   final TextEditingController _price = TextEditingController(text: '499');
   final TextEditingController _guestPrice = TextEditingController(text: '0');
 
-  /// Exact tiers that may watch. Empty = nobody, all pay.
   Set<int> _who = <int>{0, 1, 2, 3, 4};
   bool _payPerView = false;
   bool _busy = false;
@@ -43,7 +41,6 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
   void initState() {
     super.initState();
     _load();
-    // The on-air card counts up while you are broadcasting.
     _clock = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && _onAir != null) setState(() {});
     });
@@ -100,7 +97,9 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
       _busy = true;
       _note = null;
     });
+    int? startingId;
     try {
+      final List<int> allowedTiers = List<int>.from(_who)..sort();
       final int id = await LiveService.instance.startLive(
         title: _title.text.trim(),
         subtitle: _subtitle.text.trim().isEmpty
@@ -109,17 +108,15 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
         access: 'tier',
         minTier: _who.isEmpty ? 9 : _who.reduce((a, b) => a < b ? a : b),
         priceInr: _payPerView ? (int.tryParse(_price.text.trim()) ?? 0) : 0,
+        allowedTiers: allowedTiers,
+        guestPriceInr: guestFee,
       );
-      await Supabase.instance.client
-          .from('live_sessions')
-          .update(<String, dynamic>{
-        'allowed_tiers': (List<int>.from(_who)..sort()).toList(),
-        'guest_price_inr': guestFee,
-        'guest_requests_open': guestFee > 0,
-      }).eq('id', id);
-      if (!mounted) return;
+      startingId = id;
+      if (!mounted) {
+        await LiveService.instance.abortLiveStart(id);
+        return;
+      }
       setState(() => _busy = false);
-      await _load();
       await _open(
         id,
         _title.text.trim(),
@@ -127,10 +124,19 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
         guestRequestsOpen: guestFee > 0,
       );
     } catch (e) {
+      if (startingId != null) {
+        unawaited(LiveService.instance.abortLiveStart(startingId));
+      }
       if (!mounted) return;
+      final String raw = e.toString();
+      final bool migrationMissing = raw.contains('start_live_with_guests') ||
+          raw.contains('PGRST202');
       setState(() {
         _busy = false;
-        _note = e.toString().replaceFirst('Exception: ', '');
+        _note = migrationMissing
+            ? 'The paid-live database setup is not ready. No session or '
+                'notification was created. Apply the corrected CC.102 first.'
+            : raw.replaceFirst('Exception: ', '');
       });
     }
   }
@@ -201,7 +207,6 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
     );
   }
 
-  // ---------------------------------------------------------------
   Widget _onAirCard(LiveSession s) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -380,7 +385,6 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
     );
   }
 
-  /// Gift set identity is defined in `GiftSurface`.
   Widget _setTag(String? surface) {
     if (surface != 'post' && surface != 'live') {
       return const SizedBox.shrink();
@@ -429,13 +433,6 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
                     color: IvoryColors.textFaint,
                   ),
                 ),
-                // THE LINE THEY WROTE, AND YOUR CONTROL OVER IT.
-                //
-                // Confirming the money and publishing the words
-                // are two different decisions. Confirming puts
-                // this line on the post for everyone; HIDE takes
-                // it down and leaves the gift and the name
-                // exactly where they are. You can put it back.
                 if (g.note != null && g.note!.trim().isNotEmpty) ...<Widget>[
                   Text(
                     '"${g.note}"',
