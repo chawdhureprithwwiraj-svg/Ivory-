@@ -236,7 +236,7 @@ class _GiftWallState extends State<GiftWall> {
               const SizedBox(width: 9),
               MemberAvatar(
                 displayName: top.sender,
-                size: 38,
+                size: 46,
                 imageUrl: top.avatarUrl,
                 premiumFrame: top.hasActivePaidTier,
               ),
@@ -388,7 +388,7 @@ class _GiftWallState extends State<GiftWall> {
         children: <Widget>[
           MemberAvatar(
             displayName: g.sender,
-            size: 26,
+            size: 34,
             imageUrl: g.avatarUrl,
             premiumFrame: g.hasActivePaidTier,
           ),
