@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../models/live_models.dart';
+import '../models/agora_ticket.dart';
 import '../services/live_service.dart';
 import '../core/ivory_errors.dart';
 import 'call_extension_prompt.dart';
