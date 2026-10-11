@@ -18,7 +18,6 @@ import '../widgets/live_room_body.dart';
 import '../widgets/call_time_watch.dart';
 import '../widgets/live_controls.dart';
 import '../widgets/live_stage_bits.dart';
-import '../widgets/call_offer_layer.dart';
 
 /// ============================================================
 /// IVORY - THE LIVE ROOM
@@ -33,8 +32,8 @@ import '../widgets/call_offer_layer.dart';
 /// Postgres has approved the member. If the token is wrong, Agora
 /// itself refuses the join - there is no second door.
 ///
-/// Portrait first, like the rest of Ivory: the stage is 9:16 and a
-/// landscape camera is letterboxed onto cream, never stretched.
+/// Broadcast video is full-bleed and cover-cropped; chat and controls
+/// float above it. One-to-one calls retain their inset layout.
 /// ============================================================
 
 enum LiveMode { watch, host, call }
@@ -373,22 +372,13 @@ class _LiveScreenState extends State<LiveScreen> {
       },
       child: Scaffold(
         backgroundColor: IvoryColors.burgundy,
-        body: SafeArea(
-          child: Stack(
-            children: <Widget>[
-              _room(context),
-              if (_timeUp && !_ended)
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: TimeUpBar(owner: _isOwner),
-                ),
-              if (widget.mode == LiveMode.call && !_isOwner)
-                CallOfferLayer(
-                  callId: widget.sessionId,
-                  ended: _ended,
-                ),
-            ],
-          ),
+        body: LiveScreenFrame(
+          isCall: widget.mode == LiveMode.call,
+          owner: _isOwner,
+          timeUp: _timeUp,
+          ended: _ended,
+          callId: widget.sessionId,
+          child: _room(context),
         ),
       ),
     );
