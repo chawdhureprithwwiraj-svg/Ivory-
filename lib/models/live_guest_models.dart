@@ -97,7 +97,7 @@ class LiveGuestCheckout {
   const LiveGuestCheckout({
     required this.requestId,
     required this.feeInr,
-    required this.creditBalanceInr,
+    this.creditBalanceInr = 0,
     required this.creditToApplyInr,
     required this.amountDueInr,
     required this.status,
@@ -109,6 +109,15 @@ class LiveGuestCheckout {
   final int creditToApplyInr;
   final int amountDueInr;
   final String status;
+
+  factory LiveGuestCheckout.fromRequest(LiveGuestRequest request) =>
+      LiveGuestCheckout(
+        requestId: request.id,
+        feeInr: request.feeInr,
+        creditToApplyInr: request.creditToApplyInr,
+        amountDueInr: request.amountDueInr,
+        status: request.status,
+      );
 
   factory LiveGuestCheckout.fromMap(Map<String, dynamic> m) =>
       LiveGuestCheckout(
