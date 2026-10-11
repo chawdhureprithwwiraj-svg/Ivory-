@@ -10,7 +10,10 @@ import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
 import '../widgets/admin_post_chips.dart';
 import '../widgets/admin_live_guest_fee.dart';
+import 'admin_live_beauty_preview.dart';
 import 'live_screen.dart';
+
+part 'admin_live_tab_beauty_part.dart';
 
 /// Studio controls for Ivory's broadcast and its optional paid guest places.
 class AdminLiveTab extends StatefulWidget {
@@ -20,7 +23,7 @@ class AdminLiveTab extends StatefulWidget {
   State<AdminLiveTab> createState() => _AdminLiveTabState();
 }
 
-class _AdminLiveTabState extends State<AdminLiveTab> {
+class _AdminLiveTabState extends State<AdminLiveTab> with _AdminLiveBeautyMixin {
   final TextEditingController _title = TextEditingController();
   final TextEditingController _subtitle = TextEditingController();
   final TextEditingController _price = TextEditingController(text: '499');
@@ -368,7 +371,13 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
               style: TextStyle(fontSize: 13, color: IvoryColors.plum),
             ),
           ],
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _openBeautyPreview,
+            icon: const Icon(Icons.face_retouching_natural_rounded),
+            label: const Text('PREVIEW BEAUTY'),
+          ),
+          const SizedBox(height: 8),
           IvoryGradientButton(
             label: _busy ? 'GOING LIVE...' : 'GO LIVE NOW',
             icon: Icons.sensors_rounded,
