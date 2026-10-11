@@ -16,6 +16,7 @@ class LiveBroadcastStage extends StatelessWidget {
     required this.isGuest,
     required this.hostUid,
     required this.remoteUids,
+    required this.remoteVideoUids,
     required this.hostVideoEnabled,
     required this.guestVideoEnabled,
     required this.selfRequestId,
@@ -28,6 +29,7 @@ class LiveBroadcastStage extends StatelessWidget {
   final bool isGuest;
   final int hostUid;
   final Set<int> remoteUids;
+  final Set<int> remoteVideoUids;
   final bool hostVideoEnabled;
   final bool guestVideoEnabled;
   final int? selfRequestId;
@@ -37,7 +39,9 @@ class LiveBroadcastStage extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool hostPicture = isHost
         ? hostVideoEnabled
-        : hostUid != 0 && hostVideoEnabled && remoteUids.contains(hostUid);
+        : hostUid != 0 &&
+            hostVideoEnabled &&
+            remoteVideoUids.contains(hostUid);
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
