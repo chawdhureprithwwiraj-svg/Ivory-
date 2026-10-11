@@ -3,6 +3,33 @@ part of 'live_screen.dart';
 extension _LiveScreenGuests on _LiveScreenState {
   bool get _guestActive => _guestJoined && _guestRequest != null;
 
+  void _showEndingNotice() {
+    if (!mounted || _ended) return;
+    setState(() => _ended = true);
+    _timer?.cancel();
+    final RtcEngine? engine = _engine;
+    _engine = null;
+    final LiveGuestRequest? guest = _guestRequest;
+    _guestRequest = null;
+    _guestJoined = false;
+    _joiningGuest = false;
+    if (guest != null) unawaited(LiveGuestService.instance.leave(guest.id));
+    final bool watching =
+        widget.mode == LiveMode.watch && !_leftLivePresence;
+    if (watching) _leftLivePresence = true;
+    // Stop microphone/camera immediately; only the ten-second notice stays.
+    unawaited(RoomExit.leaveRoom(
+      engine: engine,
+      sessionId: widget.sessionId,
+      watching: watching,
+      writeExit: _claimExit(),
+      total: _clk.total,
+    ));
+    Future<void>.delayed(const Duration(seconds: 10), () {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
   void _waitForHostVideo() {
     _startupTimer?.cancel();
     _startupTimer = Timer(const Duration(seconds: 15), () {
@@ -104,7 +131,7 @@ extension _LiveScreenGuests on _LiveScreenState {
       final String message = widget.mode == LiveMode.call
           ? 'The session has ended. See you again in your next session, '
               '$_callMemberName.'
-          : "The session has ended. Make sure you don't miss my next Live 😊";
+          : "The session has ended. Make sure you don't miss my next Live.";
       return LiveEndedNotice(message);
     }
     if (_error != null) return LiveNotice(_error!, isError: true);
@@ -129,13 +156,22 @@ extension _LiveScreenGuests on _LiveScreenState {
     if (_remoteUid == null) {
       return LiveAudioStage(heading: words.heading, subtitle: words.note);
     }
+    final bool canSwap = _isOwner && _camOn;
+    final bool selfLarge = canSwap && _selfVideoLarge;
     final Widget? video = LiveVideoStage.build(
       engine: engine,
-      selfView: false,
+      selfView: selfLarge,
       remoteUid: _remoteUid,
       channel: _ticket?.channel ?? '',
       portrait: true,
-      pipSelf: _camOn,
+      pipSelf: _camOn && !selfLarge,
+      pipRemote: selfLarge,
+      onTapPipSelf: canSwap && !selfLarge
+          ? () => setState(() => _selfVideoLarge = true)
+          : null,
+      onTapPipRemote: canSwap && selfLarge
+          ? () => setState(() => _selfVideoLarge = false)
+          : null,
       fill: false,
     );
     return video ?? LiveNotice(_status);
@@ -308,7 +344,12 @@ extension _LiveScreenGuests on _LiveScreenState {
   Future<void> _toggleRoomCamera() async {
     final bool enabled = !_camOn;
     final RtcEngine? engine = _engine;
-    setState(() => _camOn = enabled);
+    setState(() {
+      _camOn = enabled;
+      if (widget.mode == LiveMode.call && !enabled) {
+        _selfVideoLarge = false;
+      }
+    });
     try {
       await engine?.muteLocalVideoStream(!enabled);
       if (widget.mode == LiveMode.host) {
