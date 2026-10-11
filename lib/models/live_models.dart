@@ -27,6 +27,9 @@ class LiveSession {
     this.viewerCount = 0,
     this.tierName,
     this.isEntitled = false,
+    this.guestPriceInr = 0,
+    this.guestRequestsOpen = true,
+    this.hostVideoEnabled = true,
   });
 
   final int id;
@@ -42,6 +45,9 @@ class LiveSession {
   final int viewerCount;
   final String? tierName;
   final bool isEntitled;
+  final int guestPriceInr;
+  final bool guestRequestsOpen;
+  final bool hostVideoEnabled;
 
   bool get isLive => status == 'live';
   bool get isPayPerView => access == 'ppv';
@@ -66,24 +72,10 @@ class LiveSession {
         viewerCount: ((m['viewer_count'] as num?) ?? 0).toInt(),
         tierName: m['tier_name'] as String?,
         isEntitled: (m['is_entitled'] as bool?) ?? false,
+        guestPriceInr: ((m['guest_price_inr'] as num?) ?? 0).toInt(),
+        guestRequestsOpen: (m['guest_requests_open'] as bool?) ?? true,
+        hostVideoEnabled: (m['host_video_enabled'] as bool?) ?? true,
       );
-}
-
-/// Everything Agora needs to let this device into this room, once.
-class AgoraTicket {
-  const AgoraTicket({
-    required this.appId,
-    required this.channel,
-    required this.token,
-    required this.uid,
-    required this.isPublisher,
-  });
-
-  final String appId;
-  final String channel;
-  final String token;
-  final int uid;
-  final bool isPublisher;
 }
 
 /// "78 of 120 minutes left, renews on 1 Nov."
