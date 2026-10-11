@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' show Offset;
 
 /// A defensive copy of one Agora I420 capture frame. The observer's native
 /// buffers can be reused as soon as its callback returns, so the screen copies
