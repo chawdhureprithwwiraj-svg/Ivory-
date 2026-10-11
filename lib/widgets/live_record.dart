@@ -6,7 +6,7 @@ import '../theme/ivory_theme.dart';
 import 'ivory_sheen.dart';
 
 /// ============================================================
-/// IVORY - EVERY TIME I HAVE BEEN THERE.
+/// IVORY - EVERY TIME I HAVE BEEN LIVE.
 ///
 /// The permanent record of her broadcasts, just below the home
 /// hero and before the stories, where it is easy to find.
@@ -16,9 +16,8 @@ import 'ivory_sheen.dart';
 /// finished and kept. A member learns that in a second without
 /// reading a word, and it must never be reversed.
 ///
-/// THE TITLE IS HERS, WORD FOR WORD. "EVERY TIME I HAVE BEEN
-/// THERE". **The phrase "night on air" is forbidden** - she
-/// ruled it out explicitly.
+/// THE TITLE IS HERS, AS REQUESTED: "Every time I have been LIVE".
+/// The final word stays uppercase and gets the visual emphasis.
 ///
 /// NOTHING HERE IS INVENTED. Real minutes from the real start
 /// and end. Real attendance, counted from people actually in
@@ -154,13 +153,30 @@ class _LiveRecordState extends State<LiveRecord> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(
-                'EVERY TIME I HAVE BEEN THERE',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.25,
-                  color: IvoryColors.gold,
+              Text.rich(
+                TextSpan(
+                  children: <InlineSpan>[
+                    TextSpan(
+                      text: 'Every time I have been ',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.35,
+                        color: IvoryColors.gold,
+                      ),
+                    ),
+                    TextSpan(
+                      text: 'LIVE',
+                      style: TextStyle(
+                        fontFamily: IvoryTheme.displayFont,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        fontStyle: FontStyle.italic,
+                        letterSpacing: 1.3,
+                        color: IvoryColors.cream,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 5),
