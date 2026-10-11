@@ -344,7 +344,7 @@ class _LiveChatState extends State<LiveChat> {
             MemberAvatar(
               displayName: m.senderName ?? 'A member',
               imageUrl: m.senderAvatarUrl,
-              size: 28,
+              size: 36,
               premiumFrame: m.senderHasActivePaidTier &&
                   (m.senderAvatarUrl?.isNotEmpty ?? false),
             ),
