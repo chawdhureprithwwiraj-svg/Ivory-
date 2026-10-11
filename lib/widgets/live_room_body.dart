@@ -14,6 +14,7 @@ class LiveRoomBody extends StatelessWidget {
     required this.bar,
     required this.stage,
     required this.controls,
+    this.action,
     this.chat,
     this.isCall = false,
   });
@@ -21,6 +22,7 @@ class LiveRoomBody extends StatelessWidget {
   final Widget bar;
   final Widget stage;
   final Widget controls;
+  final Widget? action;
   final Widget? chat;
   final bool isCall;
 
@@ -51,6 +53,7 @@ class LiveRoomBody extends StatelessWidget {
               child: Column(
                 children: <Widget>[
                   bar,
+                  if (action != null) action!,
                   const Spacer(),
                   if (chat != null)
                     SizedBox(height: chatHeight, child: chat),
