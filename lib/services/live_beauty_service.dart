@@ -21,7 +21,7 @@ class LiveBeautySettings {
   }) =>
       LiveBeautySettings(
         enabled: enabled ?? this.enabled,
-        smoothness: (smoothness ?? this.smoothness).clamp(0.0, 0.65).toDouble(),
+        smoothness: (smoothness ?? this.smoothness).clamp(0.0, 1.0).toDouble(),
       );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -32,7 +32,7 @@ class LiveBeautySettings {
   factory LiveBeautySettings.fromJson(Map<String, dynamic> json) =>
       LiveBeautySettings(
         enabled: json['enabled'] as bool? ?? true,
-        smoothness: _number(json['smoothness'], 0.24, 0.65),
+        smoothness: _number(json['smoothness'], 0.24, 1.0),
       );
 
   static double _number(dynamic value, double fallback, double max) {
