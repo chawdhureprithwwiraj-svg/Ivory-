@@ -10,16 +10,10 @@ import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
 import '../widgets/admin_post_chips.dart';
+import '../widgets/admin_live_guest_fee.dart';
 import 'live_screen.dart';
 
-/// ============================================================
-/// ADMIN STUDIO - GOING LIVE
-///
-/// The rare one: a broadcast a whole tier may watch, where only you
-/// speak and members write. Set a title, choose who may watch, and
-/// the moment you tap GO LIVE every entitled member gets a push and
-/// the gold banner appears on their Home screen.
-/// ============================================================
+/// Studio controls for Ivory's broadcast and its optional paid guest places.
 class AdminLiveTab extends StatefulWidget {
   const AdminLiveTab({super.key});
 
@@ -31,6 +25,7 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
   final TextEditingController _title = TextEditingController();
   final TextEditingController _subtitle = TextEditingController();
   final TextEditingController _price = TextEditingController(text: '499');
+  final TextEditingController _guestPrice = TextEditingController(text: '0');
 
   /// Exact tiers that may watch. Empty = nobody, all pay.
   Set<int> _who = <int>{0, 1, 2, 3, 4};
@@ -60,6 +55,7 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
     _title.dispose();
     _subtitle.dispose();
     _price.dispose();
+    _guestPrice.dispose();
     super.dispose();
   }
 
@@ -91,6 +87,11 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
   }
 
   Future<void> _goLive() async {
+    final int? guestFee = int.tryParse(_guestPrice.text.trim());
+    if (guestFee == null || guestFee < 0) {
+      setState(() => _note = 'Enter a guest fee of zero or more.');
+      return;
+    }
     if (_title.text.trim().isEmpty) {
       setState(() => _note = 'Give the broadcast a title first.');
       return;
@@ -113,11 +114,18 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
           .from('live_sessions')
           .update(<String, dynamic>{
         'allowed_tiers': (List<int>.from(_who)..sort()).toList(),
+        'guest_price_inr': guestFee,
+        'guest_requests_open': guestFee > 0,
       }).eq('id', id);
       if (!mounted) return;
       setState(() => _busy = false);
       await _load();
-      await _open(id, _title.text.trim());
+      await _open(
+        id,
+        _title.text.trim(),
+        guestPriceInr: guestFee,
+        guestRequestsOpen: guestFee > 0,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -127,16 +135,24 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
     }
   }
 
-  Future<void> _open(int id, String title, [DateTime? startedAt]) async {
+  Future<void> _open(
+    int id,
+    String title, {
+    DateTime? startedAt,
+    int guestPriceInr = 0,
+    bool guestRequestsOpen = true,
+    bool hostVideoEnabled = true,
+  }) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => LiveScreen(
           sessionId: id,
           title: title,
           mode: LiveMode.host,
-          // The clock in the room must read the same as the
-          // clock on this tab, and as every member's.
           startedAt: startedAt,
+          guestPriceInr: guestPriceInr,
+          guestRequestsOpen: guestRequestsOpen,
+          hostVideoEnabled: hostVideoEnabled,
         ),
       ),
     );
@@ -233,7 +249,14 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
                     foregroundColor: IvoryColors.cream,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
-                  onPressed: () => _open(s.id, s.title, s.startedAt),
+                  onPressed: () => _open(
+                    s.id,
+                    s.title,
+                    startedAt: s.startedAt,
+                    guestPriceInr: s.guestPriceInr,
+                    guestRequestsOpen: s.guestRequestsOpen,
+                    hostVideoEnabled: s.hostVideoEnabled,
+                  ),
                   icon: const Icon(Icons.videocam_rounded, size: 19),
                   label: const Text('OPEN THE ROOM'),
                 ),
@@ -331,6 +354,8 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
               decoration: const InputDecoration(hintText: '499'),
             ),
           ],
+          const SizedBox(height: 14),
+          AdminLiveGuestFee(controller: _guestPrice),
           if (_note != null) ...<Widget>[
             const SizedBox(height: 14),
             Text(
@@ -355,16 +380,7 @@ class _AdminLiveTabState extends State<AdminLiveTab> {
     );
   }
 
-  /// WHICH SET THIS GIFT CAME FROM.
-  ///
-  /// The tag, its words and its colours are defined ONCE, in
-  /// `lib/models/gift_surface.dart`. Read that file before
-  /// changing anything about gifts - it is the only place the
-  /// two sets are described, and the member's sheet draws the
-  /// same tag from the same place so the two can never
-  /// disagree.
-  ///
-  /// An unknown name shows nothing rather than a wrong guess.
+  /// Gift set identity is defined in `GiftSurface`.
   Widget _setTag(String? surface) {
     if (surface != 'post' && surface != 'live') {
       return const SizedBox.shrink();
