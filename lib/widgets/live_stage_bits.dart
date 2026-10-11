@@ -327,28 +327,31 @@ class LiveNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          if (!isError)
-            const CircularProgressIndicator(
-                color: IvoryColors.gold, strokeWidth: 2.4)
-          else
-            const Icon(Icons.info_outline_rounded,
-                color: IvoryColors.gold, size: 40),
-          const SizedBox(height: 18),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: IvoryColors.cream.withValues(alpha: 0.92),
-              fontSize: 14.5,
-              height: 1.55,
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 30),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            if (!isError)
+              const CircularProgressIndicator(
+                  color: IvoryColors.gold, strokeWidth: 2.4)
+            else
+              const Icon(Icons.info_outline_rounded,
+                  color: IvoryColors.gold, size: 40),
+            const SizedBox(height: 18),
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: IvoryColors.cream.withValues(alpha: 0.92),
+                fontSize: 14.5,
+                height: 1.55,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
