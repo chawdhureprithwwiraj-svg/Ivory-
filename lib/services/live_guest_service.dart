@@ -43,7 +43,7 @@ class LiveGuestService {
 
   Future<bool> guestRequestsOpen(int sessionId) async {
     final Map<String, dynamic>? row = await _db
-        .from('live_public')
+        .from('live_sessions')
         .select('guest_requests_open')
         .eq('id', sessionId)
         .maybeSingle();
@@ -52,7 +52,7 @@ class LiveGuestService {
 
   Future<bool> hostVideoEnabled(int sessionId) async {
     final Map<String, dynamic>? row = await _db
-        .from('live_public')
+        .from('live_sessions')
         .select('host_video_enabled')
         .eq('id', sessionId)
         .maybeSingle();
