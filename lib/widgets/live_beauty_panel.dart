@@ -167,14 +167,17 @@ class _LiveBeautyPanelState extends State<LiveBeautyPanel> {
                   _slider(
                     title: 'Skin smoothing',
                     value: _settings.smoothness,
-                    max: 0.65,
-                    divisions: 26,
+                    max: 1.0,
+                    divisions: 40,
                     onChanged: (double value) =>
                         _change(_settings.copyWith(smoothness: value)),
                   ),
                   Text(
-                    'Brightening is off: Agora does not guarantee face-only '
-                    'processing for that control.',
+                    'The 100% setting now reaches Agora’s full smoothing '
+                    'range. The Flutter controls do not expose a separate '
+                    'pimple-removal slider; smoothing may soften minor marks. '
+                    'Brightening stays off because face-only processing is '
+                    'not verified.',
                     style: TextStyle(
                       color: IvoryColors.textFaint,
                       fontSize: 11.5,
