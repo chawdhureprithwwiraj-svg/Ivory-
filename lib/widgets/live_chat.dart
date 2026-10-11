@@ -214,9 +214,15 @@ class _LiveChatState extends State<LiveChat> {
                       'you want to say here.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 13,
-                        height: 1.5,
-                        color: IvoryColors.cream.withValues(alpha: 0.6),
+                        fontSize: 14.5,
+                        height: 1.45,
+                        color: IvoryColors.cream.withValues(alpha: 0.86),
+                        shadows: <Shadow>[
+                          Shadow(
+                            color: IvoryColors.burgundy.withValues(alpha: 0.9),
+                            blurRadius: 7,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -229,12 +235,12 @@ class _LiveChatState extends State<LiveChat> {
                     return false;
                   },
                   child: ListView.builder(
-                  controller: _scroll,
-                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-                  itemCount: _messages.length,
-                  itemBuilder: (BuildContext c, int i) =>
-                      _bubble(_messages[i]),
-                ),
+                    controller: _scroll,
+                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                    itemCount: _messages.length,
+                    itemBuilder: (BuildContext c, int i) =>
+                        _bubble(_messages[i]),
+                  ),
                 ),
         ),
         if (_behind > 0) _catchUp(),
@@ -252,117 +258,127 @@ class _LiveChatState extends State<LiveChat> {
   }
 
   Widget _bubble(LiveMessage m) {
+    final List<Shadow> readableShadow = <Shadow>[
+      Shadow(
+        color: IvoryColors.burgundy.withValues(alpha: 0.96),
+        blurRadius: 4,
+        offset: const Offset(0, 1),
+      ),
+      Shadow(
+        color: IvoryColors.plum.withValues(alpha: 0.78),
+        blurRadius: 10,
+      ),
+    ];
     if (m.isHost) {
-      // Ivory's words remain unmistakable, but no longer form a
-      // full-width panel over the broadcast picture.
       return Align(
         alignment: Alignment.centerLeft,
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 7),
+          padding: const EdgeInsets.only(bottom: 8),
           child: GestureDetector(
             onLongPress: () => showReportSheet(context, preset: 'content'),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.86,
+                maxWidth: MediaQuery.sizeOf(context).width * 0.94,
               ),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(11, 7, 12, 8),
-                decoration: BoxDecoration(
-                  color: IvoryColors.burgundy.withValues(alpha: 0.82),
-                  borderRadius: BorderRadius.circular(13),
-                  border: Border.all(
-                    color: IvoryColors.gold.withValues(alpha: 0.78),
-                    width: 1,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Icon(Icons.circle, size: 8, color: IvoryColors.gold),
                   ),
-                  boxShadow: IvoryTheme.softShadow(blur: 9, y: 3),
-                ),
-                child: RichText(
-                  text: TextSpan(
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: 'IVORY  ',
-                        style: TextStyle(
-                          fontFamily: IvoryTheme.displayFont,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 10.5,
-                          letterSpacing: 0.9,
-                          color: IvoryColors.gold,
-                        ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: 'IVORY  ',
+                            style: TextStyle(
+                              fontFamily: IvoryTheme.displayFont,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12.5,
+                              letterSpacing: 1,
+                              color: IvoryColors.gold,
+                              shadows: readableShadow,
+                            ),
+                          ),
+                          TextSpan(
+                            text: m.body,
+                            style: TextStyle(
+                              fontFamily: IvoryTheme.displayFont,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              height: 1.32,
+                              color: IvoryColors.cream,
+                              shadows: readableShadow,
+                            ),
+                          ),
+                        ],
                       ),
-                      TextSpan(
-                        text: m.body,
-                        style: TextStyle(
-                          fontFamily: IvoryTheme.displayFont,
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13.5,
-                          height: 1.3,
-                          color: IvoryColors.cream,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
         ),
       );
     }
+
+    final String message = _said(m.body).$1;
+    final String? note = _said(m.body).$2;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 9),
       child: GestureDetector(
-        // Long-press anything a member wrote to report it. The IT
-        // Rules require this route to exist for member content.
         onLongPress: () => showReportSheet(context, preset: 'content'),
         child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          MemberAvatar(
-            displayName: m.senderName ?? 'A member',
-            imageUrl: m.senderAvatarUrl,
-            size: 30,
-            premiumFrame: m.senderHasActivePaidTier &&
-                (m.senderAvatarUrl?.isNotEmpty ?? false),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: TextStyle(
-                  fontSize: 13.5,
-                  height: 1.45,
-                  color: IvoryColors.cream.withValues(alpha: 0.92),
-                ),
-                children: <TextSpan>[
-                  TextSpan(
-                    text: "${m.senderName ?? 'A member'}  ",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12.5,
-                      color: IvoryColors.peach,
-                    ),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            MemberAvatar(
+              displayName: m.senderName ?? 'A member',
+              imageUrl: m.senderAvatarUrl,
+              size: 28,
+              premiumFrame: m.senderHasActivePaidTier &&
+                  (m.senderAvatarUrl?.isNotEmpty ?? false),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    fontSize: 15.5,
+                    height: 1.35,
+                    color: IvoryColors.cream,
+                    shadows: readableShadow,
                   ),
-                  // A gift sent with a few words arrives as two
-                  // lines in one message: the gift, then what
-                  // they wrote. They are deliberately ONE
-                  // message - the words belong to the gift and
-                  // must never drift off as a loose comment.
-                  TextSpan(text: _said(m.body).$1),
-                  if (_said(m.body).$2 != null)
+                  children: <TextSpan>[
                     TextSpan(
-                      text: '\n\u201C${_said(m.body).$2}\u201D',
+                      text: "${m.senderName ?? 'A member'}  ",
                       style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        fontSize: 13.2,
-                        color: IvoryColors.gold.withValues(alpha: 0.95),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14.5,
+                        color: IvoryColors.peach,
+                        shadows: readableShadow,
                       ),
                     ),
-                ],
+                    TextSpan(text: message),
+                    if (note != null)
+                      TextSpan(
+                        text: '\n\u201C$note\u201D',
+                        style: TextStyle(
+                          fontStyle: FontStyle.italic,
+                          fontSize: 15,
+                          color: IvoryColors.gold,
+                          shadows: readableShadow,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
         ),
       ),
     );
@@ -391,13 +407,14 @@ class _LiveChatState extends State<LiveChat> {
   }
 
   Widget _composer() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 10),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: IvoryColors.cream.withValues(alpha: 0.18)),
-        ),
+    final List<Shadow> legibility = <Shadow>[
+      Shadow(
+        color: IvoryColors.burgundy.withValues(alpha: 0.96),
+        blurRadius: 5,
       ),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 10),
       child: Row(
         children: <Widget>[
           Expanded(
@@ -406,27 +423,46 @@ class _LiveChatState extends State<LiveChat> {
               maxLength: 500,
               minLines: 1,
               maxLines: 3,
+              cursorColor: IvoryColors.gold,
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => _send(),
-              style: const TextStyle(
+              style: TextStyle(
                 color: IvoryColors.cream,
-                fontSize: 14,
+                fontSize: 15,
+                shadows: legibility,
               ),
               decoration: InputDecoration(
                 counterText: '',
                 isDense: true,
                 hintText: 'Write to me...',
+                filled: false,
                 hintStyle: TextStyle(
-                  color: IvoryColors.cream.withValues(alpha: 0.45),
-                  fontSize: 14,
+                  color: IvoryColors.cream.withValues(alpha: 0.82),
+                  fontSize: 14.5,
+                  shadows: legibility,
                 ),
-                filled: true,
-                fillColor: IvoryColors.plum,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(22),
-                  borderSide: BorderSide.none,
+                  borderSide: BorderSide(
+                    color: IvoryColors.cream.withValues(alpha: 0.82),
+                    width: 1.2,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  borderSide: BorderSide(
+                    color: IvoryColors.cream.withValues(alpha: 0.78),
+                    width: 1.2,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  borderSide: const BorderSide(
+                    color: IvoryColors.gold,
+                    width: 1.6,
+                  ),
                 ),
               ),
             ),
