@@ -168,25 +168,53 @@ class LiveService {
   // ---------------------------------------------------------------
   Future<int> startLive({
     required String title,
+    required List<int> allowedTiers,
+    required int guestPriceInr,
     String? subtitle,
     String access = 'tier',
     int minTier = 0,
     int priceInr = 0,
     String? coverUrl,
   }) async {
-    final dynamic res = await _db.rpc<dynamic>('start_live', params:
-        <String, dynamic>{
-      'title_in': title,
-      'subtitle_in': subtitle,
-      'access_in': access,
-      'min_tier_in': minTier,
-      'price_in': priceInr,
-      'cover_in': coverUrl,
-    });
+    final dynamic res = await _db.rpc<dynamic>(
+      'start_live_with_guests',
+      params: <String, dynamic>{
+        'title_in': title,
+        'subtitle_in': subtitle,
+        'access_in': access,
+        'min_tier_in': minTier,
+        'price_in': priceInr,
+        'cover_in': coverUrl,
+        'allowed_tiers_in': allowedTiers,
+        'guest_price_in': guestPriceInr,
+      },
+    );
     if (res is List && res.isNotEmpty) {
       return ((res.first as Map<String, dynamic>)['id'] as num).toInt();
     }
     throw 'The broadcast could not be started.';
+  }
+
+  Future<DateTime> activateLiveStart(int sessionId) async {
+    final dynamic result = await _db.rpc<dynamic>(
+      'activate_live_start',
+      params: <String, dynamic>{'session_id_in': sessionId},
+    );
+    final dynamic value = result is List && result.isNotEmpty
+        ? result.first
+        : result;
+    final DateTime? started = DateTime.tryParse(value?.toString() ?? '');
+    if (started == null) throw 'The broadcast did not finish starting.';
+    return started;
+  }
+
+  Future<void> abortLiveStart(int sessionId) async {
+    try {
+      await _db.rpc<void>(
+        'abort_live_start',
+        params: <String, dynamic>{'session_id_in': sessionId},
+      );
+    } catch (_) {}
   }
 
   Future<void> endLive(int sessionId) async {
