@@ -13,7 +13,7 @@ class ProfilePhotoEditor extends StatefulWidget {
     required this.onPathChanged,
     this.avatarPath,
     this.legacyAvatarUrl,
-    this.size = 70,
+    this.size = 90,
   });
 
   final String displayName;
