@@ -49,6 +49,7 @@ class IvoryPayment {
     required this.amountInr,
     required this.utr,
     required this.status,
+    this.purpose = '',
     this.tierName,
     this.tierLevel,
     this.adminNote,
@@ -61,6 +62,7 @@ class IvoryPayment {
   final int amountInr;
   final String utr;
   final String status;
+  final String purpose;
   final String? tierName;
   final int? tierLevel;
   final String? adminNote;
@@ -89,6 +91,7 @@ class IvoryPayment {
         amountInr: ((m['amount_inr'] as num?) ?? 0).toInt(),
         utr: (m['utr'] as String?) ?? '',
         status: (m['status'] as String?) ?? 'pending',
+        purpose: (m['purpose'] as String?) ?? '',
         tierName: m['tier_name'] as String?,
         tierLevel: (m['tier_level'] as num?)?.toInt(),
         adminNote: m['admin_note'] as String?,
@@ -119,3 +122,5 @@ class Membership {
         expiresAt: DateTime.tryParse((m['expires_at'] as String?) ?? ''),
       );
 }
+
+// END OF FILE - lib/models/payment.dart
