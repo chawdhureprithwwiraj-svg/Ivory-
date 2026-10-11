@@ -3,6 +3,63 @@ part of 'live_screen.dart';
 extension _LiveScreenGuests on _LiveScreenState {
   bool get _guestActive => _guestJoined && _guestRequest != null;
 
+  void _waitForHostVideo() {
+    _startupTimer?.cancel();
+    _startupTimer = Timer(const Duration(seconds: 15), () {
+      if (!mounted || _liveActivationStarted || _liveActivated) return;
+      unawaited(_failHostStartup(
+        'Your camera did not start, so the broadcast was not opened. '
+        'Check camera access and try again.',
+      ));
+    });
+  }
+
+  Future<void> _activateHostBroadcast() async {
+    if (!mounted ||
+        widget.mode != LiveMode.host ||
+        !_hostJoinedAgora ||
+        _liveActivationStarted ||
+        _liveActivated ||
+        _hostStartupFailed) {
+      return;
+    }
+    _liveActivationStarted = true;
+    _startupTimer?.cancel();
+    setState(() => _status = 'Opening your broadcast...');
+    try {
+      final DateTime started = await LiveService.instance
+          .activateLiveStart(widget.sessionId)
+          .timeout(const Duration(seconds: 20));
+      if (_hostStartupFailed) return;
+      _liveActivated = true;
+      if (!mounted) return;
+      setState(() => _status = 'You are on air');
+      _clk.startAt(started);
+      _startClock();
+    } catch (e) {
+      await _failHostStartup(houseMessage(e));
+    }
+  }
+
+  Future<void> _failHostStartup(String message) async {
+    if (_hostStartupFailed || _liveActivated) return;
+    _hostStartupFailed = true;
+    _startupTimer?.cancel();
+    await LiveService.instance.abortLiveStart(widget.sessionId);
+    final RtcEngine? engine = _engine;
+    try {
+      await engine?.muteLocalAudioStream(true);
+      await engine?.muteLocalVideoStream(true);
+      await engine?.leaveChannel();
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _joined = false;
+      _error = message;
+      _status = 'Broadcast setup did not finish.';
+    });
+  }
+
   bool get _localVideoEnabled => _guestActive
       ? _guestRequest?.mediaKind == 'video'
       : widget.videoEnabled;
@@ -48,7 +105,7 @@ extension _LiveScreenGuests on _LiveScreenState {
           ? 'The session has ended. See you again in your next session, '
               '$_callMemberName.'
           : "The session has ended. Make sure you don't miss my next Live 😊";
-      return LiveNotice(message, isError: true);
+      return LiveEndedNotice(message);
     }
     if (_error != null) return LiveNotice(_error!, isError: true);
     final RtcEngine? engine = _engine;
@@ -91,6 +148,7 @@ extension _LiveScreenGuests on _LiveScreenState {
         isGuest: _guestActive,
         hostUid: _ticket?.hostUid ?? 0,
         remoteUids: _remoteUids,
+        remoteVideoUids: _remoteVideoUids,
         hostVideoEnabled:
             _guestState?.hostVideoEnabled ?? widget.hostVideoEnabled,
         guestVideoEnabled: _camOn,
@@ -177,6 +235,7 @@ extension _LiveScreenGuests on _LiveScreenState {
       _ticket = ticket;
       _remoteUid = null;
       _remoteUids.clear();
+      _remoteVideoUids.clear();
       _camOn = video;
       await RoomEntry.connect(engine.joinChannel(
         token: ticket.token,
@@ -264,6 +323,14 @@ extension _LiveScreenGuests on _LiveScreenState {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(houseMessage(e))),
       );
+      return;
+    }
+    if (widget.mode == LiveMode.host &&
+        !enabled &&
+        _hostJoinedAgora &&
+        !_liveActivationStarted &&
+        !_liveActivated) {
+      await _activateHostBroadcast();
     }
   }
 
@@ -285,6 +352,7 @@ extension _LiveScreenGuests on _LiveScreenState {
       _joiningGuest = false;
       _remoteUid = null;
       _remoteUids.clear();
+      _remoteVideoUids.clear();
       _camOn = true;
       await RoomEntry.connect(engine.joinChannel(
         token: ticket.token,
