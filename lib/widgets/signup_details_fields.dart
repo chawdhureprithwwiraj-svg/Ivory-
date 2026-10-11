@@ -74,8 +74,8 @@ class SignupDetailsFieldsState extends State<SignupDetailsFields> {
       children: <Widget>[
         IvoryField(
           controller: _phone,
-          label: 'Phone number (optional)',
-          hint: 'Not needed to create or sign in',
+          label: 'Phone number',
+          hint: 'Leave blank if you prefer',
           icon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
           autofillHints: const <String>[AutofillHints.telephoneNumber],
@@ -90,7 +90,7 @@ class SignupDetailsFieldsState extends State<SignupDetailsFields> {
         ),
         const SizedBox(height: 5),
         Text(
-          'Optional. It is not used for sign-in or shown to other members.',
+          'You can skip this. It is not used for sign-in or shown to other members.',
           style: TextStyle(
             color: IvoryColors.textFaint,
             fontSize: 11.8,
@@ -103,7 +103,7 @@ class SignupDetailsFieldsState extends State<SignupDetailsFields> {
           borderRadius: BorderRadius.circular(14),
           child: InputDecorator(
             decoration: const InputDecoration(
-              labelText: 'Date of birth (optional)',
+              labelText: 'Date of birth',
               prefixIcon: Icon(Icons.cake_outlined, size: 20),
               suffixIcon: Icon(Icons.calendar_month_outlined, size: 20),
             ),
@@ -124,18 +124,55 @@ class SignupDetailsFieldsState extends State<SignupDetailsFields> {
             child: TextButton.icon(
               onPressed: () => setState(() => _birthday = null),
               icon: const Icon(Icons.close_rounded, size: 15),
-              label: const Text('Clear optional date'),
+              label: const Text('Clear date'),
             ),
           ),
-        const SizedBox(height: 5),
-        Text(
-          'Share your real birthday and Ivory will try to prepare a small '
-          'birthday token. You may end up getting a true surprise\n'
-          'Your birthday is optional and is not shown to other members.',
-          style: TextStyle(
-            color: IvoryColors.textFaint,
-            fontSize: 11.8,
-            height: 1.4,
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
+          decoration: BoxDecoration(
+            color: IvoryColors.surfaceWarm,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: IvoryColors.gold, width: 1.2),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Icon(
+                Icons.cake_outlined,
+                size: 19,
+                color: IvoryColors.amber,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text(
+                      'Share your real birthday and Ivory will try to prepare a small birthday token. You may end up getting a true surprise',
+                      style: TextStyle(
+                        fontFamily: IvoryTheme.displayFont,
+                        color: IvoryColors.burgundy,
+                        fontSize: 13,
+                        height: 1.45,
+                        fontWeight: FontWeight.w700,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'You can leave your birthday blank. It is not shown to other members.',
+                      style: TextStyle(
+                        color: IvoryColors.textSoft,
+                        fontSize: 11.7,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 14),
