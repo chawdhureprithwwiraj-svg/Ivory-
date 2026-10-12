@@ -59,6 +59,20 @@ class LiveGuestService {
     return (row?['host_video_enabled'] as bool?) ?? true;
   }
 
+  Future<LiveGuestDockAnchor> guestDockAnchor(int sessionId) async {
+    try {
+      final Map<String, dynamic>? row = await _db
+          .from('live_sessions')
+          .select('guest_dock_anchor')
+          .eq('id', sessionId)
+          .maybeSingle();
+      return LiveGuestDockAnchor.fromDb(row?['guest_dock_anchor']);
+    } catch (_) {
+      // Keep the room usable when the additive layout migration is pending.
+      return LiveGuestDockAnchor.aboveChatCenter;
+    }
+  }
+
   RealtimeChannel watchSettings(int sessionId, void Function() onChange) {
     final RealtimeChannel channel = _db.channel(
         'ivory-guest-settings-$sessionId-${DateTime.now().microsecondsSinceEpoch}');
@@ -178,6 +192,18 @@ class LiveGuestService {
         params: <String, dynamic>{
           'session_id_in': sessionId,
           'enabled_in': enabled,
+        },
+      );
+
+  Future<void> setGuestDockAnchor(
+    int sessionId,
+    LiveGuestDockAnchor anchor,
+  ) =>
+      _db.rpc<void>(
+        'set_live_guest_dock_anchor',
+        params: <String, dynamic>{
+          'session_id_in': sessionId,
+          'anchor_in': anchor.dbValue,
         },
       );
 
