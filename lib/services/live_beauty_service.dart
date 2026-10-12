@@ -9,6 +9,7 @@ class LiveBeautySettings {
     this.enabled = true,
     this.smoothness = 0.24,
     this.lightening = 0.0,
+    this.redness = 0.0,
   });
 
   static const LiveBeautySettings defaults = LiveBeautySettings();
@@ -16,21 +17,25 @@ class LiveBeautySettings {
   final bool enabled;
   final double smoothness;
   final double lightening;
+  final double redness;
 
   LiveBeautySettings copyWith({
     bool? enabled,
     double? smoothness,
     double? lightening,
+    double? redness,
   }) => LiveBeautySettings(
     enabled: enabled ?? this.enabled,
     smoothness: (smoothness ?? this.smoothness).clamp(0.0, 1.0).toDouble(),
     lightening: (lightening ?? this.lightening).clamp(0.0, 1.0).toDouble(),
+    redness: (redness ?? this.redness).clamp(0.0, 1.0).toDouble(),
   );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'enabled': enabled,
     'smoothness': smoothness,
     'lightening': lightening,
+    'redness': redness,
   };
 
   factory LiveBeautySettings.fromJson(Map<String, dynamic> json) =>
@@ -38,6 +43,7 @@ class LiveBeautySettings {
         enabled: json['enabled'] as bool? ?? true,
         smoothness: _number(json['smoothness'], 0.24, 1.0),
         lightening: _number(json['lightening'], 0.0, 1.0),
+        redness: _number(json['redness'], 0.0, 1.0),
       );
 
   static double _number(dynamic value, double fallback, double max) {
@@ -96,8 +102,8 @@ class LiveBeautyService {
     }
   }
 
-  /// Applies Agora's basic smoothing and lightening to the local primary
-  /// camera. A failed optional control never blocks the room session.
+  /// Applies Agora's basic smoothing, whole-image lightening and rosiness
+  /// to the local primary camera. A failed optional control never blocks the room session.
   Future<String?> apply(RtcEngine engine) async {
     final LiveBeautySettings value = _settings;
     try {
@@ -108,7 +114,7 @@ class LiveBeautyService {
               LighteningContrastLevel.lighteningContrastLow,
           lighteningLevel: value.enabled ? value.lightening : 0,
           smoothnessLevel: value.enabled ? value.smoothness : 0,
-          rednessLevel: 0,
+          rednessLevel: value.enabled ? value.redness : 0,
           sharpnessLevel: 0,
         ),
         type: MediaSourceType.primaryCameraSource,
