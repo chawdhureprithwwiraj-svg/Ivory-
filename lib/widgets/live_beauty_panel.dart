@@ -169,18 +169,25 @@ class _LiveBeautyPanelState extends State<LiveBeautyPanel> {
                         _change(_settings.copyWith(smoothness: value)),
                   ),
                   _slider(
-                    title: 'Lightening',
+                    title: 'Lightening — whole image',
                     value: _settings.lightening,
                     max: 1.0,
                     divisions: 40,
                     onChanged: (double value) =>
                         _change(_settings.copyWith(lightening: value)),
                   ),
+                  _slider(
+                    title: 'Rosiness',
+                    value: _settings.redness,
+                    max: 1.0,
+                    divisions: 40,
+                    onChanged: (double value) =>
+                        _change(_settings.copyWith(redness: value)),
+                  ),
                   Text(
                     'Lightening brightens the whole camera image, including '
-                    'the background—not just the face. It starts at 0.0. '
-                    'Smoothing may soften minor marks but does not remove '
-                    'individual pimples.',
+                    'the background. Rosiness starts at 0.0. Smoothing may '
+                    'soften minor marks but does not remove individual pimples.',
                     style: TextStyle(
                       color: IvoryColors.textFaint,
                       fontSize: 11.5,
@@ -189,17 +196,6 @@ class _LiveBeautyPanelState extends State<LiveBeautyPanel> {
                   ),
                 ],
                 const SizedBox(height: 10),
-                _faceShapeNotice(),
-                const SizedBox(height: 8),
-                Text(
-                  'Colored contacts remain deferred; no iris recoloring is '
-                  'applied.',
-                  style: TextStyle(
-                    color: IvoryColors.textFaint,
-                    fontSize: 11.5,
-                    height: 1.4,
-                  ),
-                ),
               ],
             ),
           ),
@@ -207,39 +203,6 @@ class _LiveBeautyPanelState extends State<LiveBeautyPanel> {
       ),
     );
   }
-
-  Widget _faceShapeNotice() => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: IvoryColors.gold.withValues(alpha: 0.18),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: IvoryColors.gold.withValues(alpha: 0.55)),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Icon(
-          Icons.lock_outline_rounded,
-          color: IvoryColors.burgundy,
-          size: 18,
-        ),
-        const SizedBox(width: 8),
-        const Expanded(
-          child: Text(
-            'Face slimming is disabled pending Ivory’s project-specific '
-            'Agora entitlement, exact billing implications and approval.',
-            style: TextStyle(
-              color: IvoryColors.burgundy,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-              height: 1.35,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
 
   Widget _slider({
     required String title,
