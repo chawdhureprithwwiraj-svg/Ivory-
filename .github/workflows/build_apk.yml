@@ -5,6 +5,12 @@ on:
   push:
     branches: [main]
 
+# The APK is published as a GitHub Release, which needs write access to
+# the repository contents. Without this block the token is read-only and
+# the publish step fails with HTTP 403.
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Compile Ivory into a downloadable APK
@@ -20,7 +26,8 @@ jobs:
       # line, so a truncated paste is caught in seconds.
       - name: Check the build files are complete
         run: |
-          for f in .github/workflows/build_apk.yml tools/ci_android.py; do
+          for f in .github/workflows/build_apk.yml tools/ci_android.py \
+                   tools/ci_sign.py; do
             if [ ! -f "$f" ]; then
               echo "::error::MISSING FILE: $f"
               exit 1
@@ -63,6 +70,22 @@ jobs:
       - name: Wire up Firebase push (optional)
         run: python3 tools/ci_android.py firebase
 
+      # ---- THE REAL SIGNATURE -------------------------------
+      # This MUST run after `flutter create`, which rewrites the
+      # Gradle files from scratch on every build, and before
+      # `flutter build apk`, which reads them.
+      #
+      # If the secrets are not set this step prints a notice and
+      # the build carries on debug-signed, exactly as before. So
+      # this file is safe to merge before the keystore exists.
+      - name: Sign with the Ivory release key (if the key is set)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: python3 tools/ci_sign.py sign
+
       - name: Remove generated placeholder test
         run: rm -f test/widget_test.dart
 
@@ -90,6 +113,29 @@ jobs:
         run: |
           set -o pipefail
           flutter build apk --release 2>&1 | tee build.log
+
+      # Report the size of the one universal APK without changing the
+      # established packaging command or producing ABI-split files.
+      - name: Report single APK size
+        if: always()
+        run: |
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          if [ ! -f "$APK" ]; then
+            echo "APK size unavailable because the build did not produce the file." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          python3 - "$APK" <<'PY'
+          import os
+          import sys
+          path = sys.argv[1]
+          size = os.path.getsize(path)
+          mib = size / (1024 * 1024)
+          print(f"Single universal APK: {size:,} bytes ({mib:.2f} MiB)")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("## Single APK size\n\n")
+              summary.write(f"`{size:,}` bytes ({mib:.2f} MiB)\n\n")
+              summary.write("Built with the existing `flutter build apk --release` command; no ABI-split APKs were requested.\n")
+          PY
 
       # Prints the tail of the build log straight onto the run Summary
       # page - no need to open or scroll any logs on a phone.
@@ -139,6 +185,37 @@ jobs:
 
             Tap **app-release.apk** below to install on your Android phone.
           files: build/app/outputs/flutter-apk/app-release.apk
+
+      # Says in plain words WHICH key signed the APK, straight on
+      # the Summary page. "Android Debug" means the secrets did not
+      # take effect; her own name means they did.
+      - name: Report which key signed the APK
+        if: always()
+        run: |
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          [ -f "$APK" ] || exit 0
+          SIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null \
+                   | sort | tail -1)
+          {
+            echo "## Which key signed this build"
+            echo ""
+            echo '```text'
+            if [ -n "$SIGNER" ]; then
+              "$SIGNER" verify --print-certs "$APK" 2>&1 \
+                | grep -i -E "Signer #1 certificate (DN|SHA-256)" || true
+              if "$SIGNER" verify --print-certs "$APK" 2>&1 \
+                   | grep -qi "CN=Android Debug"; then
+                echo ""
+                echo "THROWAWAY DEBUG KEY - not acceptable to Google Play."
+              else
+                echo ""
+                echo "SIGNED WITH THE IVORY RELEASE KEY."
+              fi
+            else
+              echo "apksigner not found; could not check."
+            fi
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
 
       - name: Fail if the APK was not produced
         if: always()
