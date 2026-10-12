@@ -1,0 +1,13 @@
+# Keep the public preview gateway callable with the app's publishable key.
+# The function validates user JWTs itself for admin-only operations; public
+# get/sign_previews requests are still filtered by can_open_post.
+[functions.b2-media]
+verify_jwt = false
+
+# The business-enquiry function authenticates the user's access token in code;
+# this supports the project's publishable-key setup and keeps the recipient
+# address and email-provider key on the server only.
+[functions.business-enquiry]
+verify_jwt = false
+
+# END OF FILE - supabase/config.toml
