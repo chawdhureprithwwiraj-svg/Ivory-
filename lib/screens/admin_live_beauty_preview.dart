@@ -316,8 +316,8 @@ class _AdminLiveBeautyPreviewState extends State<AdminLiveBeautyPreview>
                           const SizedBox(height: 6),
                           Text(
                             'No room joined, no token requested, no broadcast '
-                            'started. This shows the same camera-only smoothing '
-                            'control used in the live room.',
+                            'started. These are the same simple beauty controls '
+                            'used in your host broadcast.',
                             style: TextStyle(
                               color: IvoryColors.cream.withValues(alpha: 0.72),
                               fontSize: 10.5,
@@ -327,22 +327,28 @@ class _AdminLiveBeautyPreviewState extends State<AdminLiveBeautyPreview>
                           const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
-                            child: OutlinedButton.icon(
+                            child: ElevatedButton.icon(
                               onPressed: _cameraReady
                                   ? () => unawaited(_openBeautyControls())
                                   : null,
                               icon: const Icon(Icons.tune_rounded, size: 18),
                               label: const Text('ADJUST BEAUTY'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: IvoryColors.cream,
-                                side: const BorderSide(color: IvoryColors.gold),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: IvoryColors.gold,
+                                foregroundColor: IvoryColors.burgundy,
+                                disabledBackgroundColor:
+                                    IvoryColors.surfaceWarm,
+                                disabledForegroundColor: IvoryColors.textFaint,
+                                side: const BorderSide(
+                                    color: IvoryColors.amber, width: 1.2),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
                               ),
                             ),
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'Face slimming and room/background filters are off.',
+                            'No face-shape or eye-colour effects are included.',
                             style: TextStyle(
                               color: IvoryColors.cream,
                               fontSize: 10.5,
