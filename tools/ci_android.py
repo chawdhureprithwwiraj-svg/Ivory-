@@ -17,6 +17,8 @@ import sys
 MANIFEST = 'android/app/src/main/AndroidManifest.xml'
 GMS_VERSION = '4.4.2'
 
+# SQL migrations and Edge Function source are managed in Supabase Dashboard;
+# they are deliberately not prerequisites for compiling the Android APK.
 REQUIRED = [
     'lib/main.dart',
     'lib/widgets/ivory_field.dart',
@@ -35,13 +37,9 @@ REQUIRED = [
     'lib/screens/admin_business_enquiries_tab.dart',
     'lib/screens/profile_screen.dart',
     'lib/widgets/explore_everything_cta.dart',
-    'supabase/functions/business-enquiry/index.ts',
     'supabase/config.toml',
-    'sql/business_enquiries.sql',
     'lib/services/b2_media_service.dart',
     'lib/widgets/admin_storage_choice.dart',
-    'supabase/functions/b2-media/index.ts',
-    'sql/cc114_private_b2_media.sql',
     'tools/b2_media_check.py',
     'tools/beauty_phase1_check.py',
     'lib/services/wish_service.dart',
