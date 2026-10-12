@@ -64,6 +64,8 @@ class _PrivateFolioScreenState extends State<PrivateFolioScreen> {
     }
   }
 
+  int get _usedBytes => PrivateFolioService.contentBytesForEntries(_entries);
+
   List<FolioEntry> get _visible {
     final String query = _search.text.trim().toLowerCase();
     return _entries.where((FolioEntry entry) {
@@ -136,6 +138,10 @@ class _PrivateFolioScreenState extends State<PrivateFolioScreen> {
   @override
   Widget build(BuildContext context) {
     final List<FolioEntry> visible = _visible;
+    final bool pageLimitReached =
+        _entries.length >= PrivateFolioService.maxEntries;
+    final bool textLimitReached =
+        _usedBytes >= PrivateFolioService.maxMemberContentBytes;
     return Scaffold(
       backgroundColor: IvoryColors.surface,
       appBar: AppBar(
@@ -149,11 +155,20 @@ class _PrivateFolioScreenState extends State<PrivateFolioScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _edit(),
+        onPressed: _loading ||
+                _error != null ||
+                pageLimitReached ||
+                textLimitReached
+            ? null
+            : () => _edit(),
         backgroundColor: IvoryColors.burgundy,
         foregroundColor: IvoryColors.cream,
         icon: const Icon(Icons.bookmark_add_outlined),
-        label: const Text('KEEP SOMETHING'),
+        label: Text(
+          pageLimitReached || textLimitReached
+              ? 'FOLIO FULL'
+              : 'KEEP SOMETHING',
+        ),
       ),
       body: RefreshIndicator(
         color: IvoryColors.burgundy,
@@ -302,6 +317,38 @@ class _PrivateFolioScreenState extends State<PrivateFolioScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 9),
+            Text(
+              '${_entries.length} of ${PrivateFolioService.maxEntries} pages · '
+              '${(_usedBytes / 1024).ceil()} KiB of 1 MiB used',
+              style: TextStyle(
+                color: IvoryColors.cream.withValues(alpha: 0.86),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (_entries.length >= PrivateFolioService.maxEntries) ...<Widget>[
+              const SizedBox(height: 5),
+              const Text(
+                'Your Folio is full. Delete a page to make room.',
+                style: TextStyle(
+                  color: IvoryColors.cream,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ] else if (_usedBytes >=
+                PrivateFolioService.maxMemberContentBytes) ...<Widget>[
+              const SizedBox(height: 5),
+              const Text(
+                'The writing-and-link allowance is full. Shorten or remove a page.',
+                style: TextStyle(
+                  color: IvoryColors.cream,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ],
         ),
       );
