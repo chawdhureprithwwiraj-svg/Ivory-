@@ -12,9 +12,13 @@ class LiveGuestRoomState extends ChangeNotifier {
   final int sessionId;
   List<LiveGuestParticipant> participants = <LiveGuestParticipant>[];
   bool hostVideoEnabled = true;
+  LiveGuestDockAnchor guestDockAnchor =
+      LiveGuestDockAnchor.aboveChatCenter;
   RealtimeChannel? _presence;
   RealtimeChannel? _settings;
   bool _dead = false;
+  int _dockRevision = 0;
+  Future<void> _dockWrites = Future<void>.value();
 
   Future<void> start() async {
     _presence = LiveGuestService.instance.watchParticipants(sessionId, refresh);
@@ -28,9 +32,12 @@ class LiveGuestRoomState extends ChangeNotifier {
           await LiveGuestService.instance.participants(sessionId);
       final bool video =
           await LiveGuestService.instance.hostVideoEnabled(sessionId);
+      final LiveGuestDockAnchor anchor =
+          await LiveGuestService.instance.guestDockAnchor(sessionId);
       if (_dead) return;
       participants = rows;
       hostVideoEnabled = video;
+      guestDockAnchor = anchor;
       notifyListeners();
     } catch (_) {}
   }
@@ -40,6 +47,28 @@ class LiveGuestRoomState extends ChangeNotifier {
     notifyListeners();
     await LiveGuestService.instance.setHostVideo(sessionId, enabled);
     await refresh();
+  }
+
+  Future<void> setGuestDockAnchor(LiveGuestDockAnchor anchor) async {
+    if (_dead || guestDockAnchor == anchor) return;
+    final LiveGuestDockAnchor previous = guestDockAnchor;
+    guestDockAnchor = anchor;
+    final int revision = ++_dockRevision;
+    notifyListeners();
+
+    _dockWrites = _dockWrites
+        .catchError((Object _) {})
+        .then<void>((_) =>
+            LiveGuestService.instance.setGuestDockAnchor(sessionId, anchor));
+    try {
+      await _dockWrites;
+    } catch (_) {
+      if (!_dead && revision == _dockRevision) {
+        guestDockAnchor = previous;
+        notifyListeners();
+      }
+      rethrow;
+    }
   }
 
   @override
