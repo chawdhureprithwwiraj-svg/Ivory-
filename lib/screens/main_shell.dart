@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'business_enquiry_screen.dart';
+
 import '../models/ivory_notification.dart';
 import '../models/ivory_profile.dart';
 import '../services/auth_service.dart';
@@ -69,6 +71,16 @@ class _MainShellState extends State<MainShell> {
     NotificationService.instance.start();
     PushService.instance.start();
     MainShell.onOpenTab = _openTab;
+  }
+
+  void _openBusinessEnquiries() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => _isAdmin
+            ? const AdminScreen(initialTab: 10)
+            : const BusinessEnquiryScreen(),
+      ),
+    );
   }
 
   Future<void> _loadProfile() async {
@@ -162,6 +174,27 @@ class _MainShellState extends State<MainShell> {
                 MaterialPageRoute<void>(builder: (_) => const AdminScreen()),
               ),
             ),
+          IconButton(
+            tooltip: _isAdmin
+                ? 'Private business enquiry inbox'
+                : 'Business and partnerships',
+            onPressed: _openBusinessEnquiries,
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: IvoryColors.gold.withValues(alpha: 0.22),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: IvoryColors.gold.withValues(alpha: 0.72),
+                ),
+              ),
+              child: const Icon(
+                Icons.handshake_outlined,
+                size: 20,
+                color: IvoryColors.burgundy,
+              ),
+            ),
+          ),
           IconButton(
             tooltip: 'Share Ivory',
             icon: const Icon(Icons.ios_share),
