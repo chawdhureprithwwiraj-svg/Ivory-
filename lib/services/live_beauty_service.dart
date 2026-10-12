@@ -8,31 +8,36 @@ class LiveBeautySettings {
   const LiveBeautySettings({
     this.enabled = true,
     this.smoothness = 0.24,
+    this.lightening = 0.0,
   });
 
   static const LiveBeautySettings defaults = LiveBeautySettings();
 
   final bool enabled;
   final double smoothness;
+  final double lightening;
 
   LiveBeautySettings copyWith({
     bool? enabled,
     double? smoothness,
-  }) =>
-      LiveBeautySettings(
-        enabled: enabled ?? this.enabled,
-        smoothness: (smoothness ?? this.smoothness).clamp(0.0, 1.0).toDouble(),
-      );
+    double? lightening,
+  }) => LiveBeautySettings(
+    enabled: enabled ?? this.enabled,
+    smoothness: (smoothness ?? this.smoothness).clamp(0.0, 1.0).toDouble(),
+    lightening: (lightening ?? this.lightening).clamp(0.0, 1.0).toDouble(),
+  );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'enabled': enabled,
-        'smoothness': smoothness,
-      };
+    'enabled': enabled,
+    'smoothness': smoothness,
+    'lightening': lightening,
+  };
 
   factory LiveBeautySettings.fromJson(Map<String, dynamic> json) =>
       LiveBeautySettings(
         enabled: json['enabled'] as bool? ?? true,
         smoothness: _number(json['smoothness'], 0.24, 1.0),
+        lightening: _number(json['lightening'], 0.0, 1.0),
       );
 
   static double _number(dynamic value, double fallback, double max) {
@@ -67,7 +72,7 @@ class LiveBeautyService {
       if (raw != null) {
         final dynamic value = jsonDecode(raw);
         if (value is Map<String, dynamic>) {
-          // Older saved brightening/face-shape values are intentionally ignored.
+          // Unsupported legacy face-shape values are intentionally ignored.
           _settings = LiveBeautySettings.fromJson(value);
         }
       }
@@ -91,17 +96,17 @@ class LiveBeautyService {
     }
   }
 
-  /// Applies skin smoothing to the current local primary camera only.
-  /// Brightening and face shaping remain disabled pending verification.
-  /// A failed optional control never blocks the room session.
+  /// Applies Agora's basic smoothing and lightening to the local primary
+  /// camera. A failed optional control never blocks the room session.
   Future<String?> apply(RtcEngine engine) async {
     final LiveBeautySettings value = _settings;
     try {
       await engine.setBeautyEffectOptions(
         enabled: value.enabled,
         options: BeautyOptions(
-          lighteningContrastLevel: LighteningContrastLevel.lighteningContrastLow,
-          lighteningLevel: 0,
+          lighteningContrastLevel:
+              LighteningContrastLevel.lighteningContrastLow,
+          lighteningLevel: value.enabled ? value.lightening : 0,
           smoothnessLevel: value.enabled ? value.smoothness : 0,
           rednessLevel: 0,
           sharpnessLevel: 0,
@@ -109,7 +114,7 @@ class LiveBeautyService {
         type: MediaSourceType.primaryCameraSource,
       );
     } catch (_) {
-      return 'Skin smoothing is unavailable on this device.';
+      return 'Beauty controls are unavailable on this device.';
     }
     return null;
   }
