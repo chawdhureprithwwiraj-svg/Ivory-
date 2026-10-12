@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
 import 'admin_broadcast_tab.dart';
+import 'admin_business_enquiries_tab.dart';
 import 'admin_calls_tab.dart';
 import 'admin_live_tab.dart';
 import 'admin_members_tab.dart';
@@ -15,7 +16,9 @@ import 'admin_stories_tab.dart';
 /// The mobile admin console. Every action is re-checked by the database,
 /// so a member who somehow reaches this screen can do nothing.
 class AdminScreen extends StatefulWidget {
-  const AdminScreen({super.key});
+  const AdminScreen({super.key, this.initialTab = 0});
+
+  final int initialTab;
 
   @override
   State<AdminScreen> createState() => _AdminScreenState();
@@ -23,7 +26,11 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 10, vsync: this);
+  late final TabController _tabs = TabController(
+    length: 11,
+    initialIndex: widget.initialTab,
+    vsync: this,
+  );
 
   @override
   void dispose() {
@@ -59,6 +66,7 @@ class _AdminScreenState extends State<AdminScreen>
             Tab(text: 'WISHES'),
             Tab(text: 'STORIES'),
             Tab(text: 'PAYMENTS'),
+            Tab(text: 'ENQUIRIES'),
           ],
         ),
       ),
@@ -78,6 +86,7 @@ class _AdminScreenState extends State<AdminScreen>
               AdminWishesTab(),
               AdminStoriesTab(),
               AdminPaymentsTab(),
+              AdminBusinessEnquiriesTab(),
             ],
           ),
         ),
