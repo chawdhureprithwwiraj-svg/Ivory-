@@ -6,10 +6,7 @@ import 'package:flutter/material.dart';
 import '../services/live_beauty_service.dart';
 import '../theme/ivory_theme.dart';
 
-Future<void> showLiveBeautyPanel(
-  BuildContext context,
-  RtcEngine engine,
-) async {
+Future<void> showLiveBeautyPanel(BuildContext context, RtcEngine engine) async {
   await LiveBeautyService.instance.load();
   if (!context.mounted) return;
   await showModalBottomSheet<void>(
@@ -21,7 +18,7 @@ Future<void> showLiveBeautyPanel(
   );
 }
 
-/// Shared by the owner's private preview, live broadcast, and video call.
+/// Shared by the owner's private preview and host live broadcast.
 class LiveBeautyPanel extends StatefulWidget {
   const LiveBeautyPanel({super.key, required this.engine});
 
@@ -77,9 +74,8 @@ class _LiveBeautyPanelState extends State<LiveBeautyPanel> {
       final String? note = await _service.apply(widget.engine);
       if (note != null && !_warned && mounted) {
         _warned = true;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(note)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(note)));
       }
     } while (_applyAgain);
     _applying = false;
@@ -118,8 +114,11 @@ class _LiveBeautyPanelState extends State<LiveBeautyPanel> {
                 const SizedBox(height: 14),
                 Row(
                   children: <Widget>[
-                    const Icon(Icons.face_retouching_natural_rounded,
-                        color: IvoryColors.burgundy, size: 22),
+                    const Icon(
+                      Icons.face_retouching_natural_rounded,
+                      color: IvoryColors.burgundy,
+                      size: 22,
+                    ),
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
@@ -145,11 +144,8 @@ class _LiveBeautyPanelState extends State<LiveBeautyPanel> {
                   ],
                 ),
                 Text(
-                  'Ivory’s camera only. No room or background filters.',
-                  style: TextStyle(
-                    color: IvoryColors.textSoft,
-                    fontSize: 12.5,
-                  ),
+                  'Host camera only. Lightening affects the whole camera image.',
+                  style: TextStyle(color: IvoryColors.textSoft, fontSize: 12.5),
                 ),
                 const SizedBox(height: 8),
                 SwitchListTile.adaptive(
@@ -172,12 +168,19 @@ class _LiveBeautyPanelState extends State<LiveBeautyPanel> {
                     onChanged: (double value) =>
                         _change(_settings.copyWith(smoothness: value)),
                   ),
+                  _slider(
+                    title: 'Lightening',
+                    value: _settings.lightening,
+                    max: 1.0,
+                    divisions: 40,
+                    onChanged: (double value) =>
+                        _change(_settings.copyWith(lightening: value)),
+                  ),
                   Text(
-                    'The 100% setting now reaches Agora’s full smoothing '
-                    'range. The Flutter controls do not expose a separate '
-                    'pimple-removal slider; smoothing may soften minor marks. '
-                    'Brightening stays off because face-only processing is '
-                    'not verified.',
+                    'Lightening brightens the whole camera image, including '
+                    'the background—not just the face. It starts at 0.0. '
+                    'Smoothing may soften minor marks but does not remove '
+                    'individual pimples.',
                     style: TextStyle(
                       color: IvoryColors.textFaint,
                       fontSize: 11.5,
@@ -206,37 +209,37 @@ class _LiveBeautyPanelState extends State<LiveBeautyPanel> {
   }
 
   Widget _faceShapeNotice() => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: IvoryColors.gold.withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: IvoryColors.gold.withValues(alpha: 0.55)),
+    width: double.infinity,
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: IvoryColors.gold.withValues(alpha: 0.18),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: IvoryColors.gold.withValues(alpha: 0.55)),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Icon(
+          Icons.lock_outline_rounded,
+          color: IvoryColors.burgundy,
+          size: 18,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const Icon(
-              Icons.lock_outline_rounded,
+        const SizedBox(width: 8),
+        const Expanded(
+          child: Text(
+            'Face slimming is disabled pending Ivory’s project-specific '
+            'Agora entitlement, exact billing implications and approval.',
+            style: TextStyle(
               color: IvoryColors.burgundy,
-              size: 18,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              height: 1.35,
             ),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                'Face slimming is disabled pending Ivory’s project-specific '
-                'Agora entitlement, exact billing implications and approval.',
-                style: TextStyle(
-                  color: IvoryColors.burgundy,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  height: 1.35,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 
   Widget _slider({
     required String title,
@@ -244,42 +247,41 @@ class _LiveBeautyPanelState extends State<LiveBeautyPanel> {
     required double max,
     required int divisions,
     required ValueChanged<double> onChanged,
-  }) =>
-      Column(
+  }) => Column(
+    children: <Widget>[
+      Row(
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: IvoryColors.burgundy,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: IvoryColors.burgundy,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
               ),
-              Text(
-                '${(value / max * 100).round()}%',
-                style: TextStyle(
-                  color: IvoryColors.textFaint,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+            ),
           ),
-          Slider(
-            min: 0,
-            max: max,
-            divisions: divisions,
-            value: value.clamp(0.0, max).toDouble(),
-            activeColor: IvoryColors.burgundy,
-            inactiveColor: IvoryColors.gold.withValues(alpha: 0.38),
-            onChanged: onChanged,
+          Text(
+            '${(value / max * 100).round()}%',
+            style: TextStyle(
+              color: IvoryColors.textFaint,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
-      );
+      ),
+      Slider(
+        min: 0,
+        max: max,
+        divisions: divisions,
+        value: value.clamp(0.0, max).toDouble(),
+        activeColor: IvoryColors.burgundy,
+        inactiveColor: IvoryColors.gold.withValues(alpha: 0.38),
+        onChanged: onChanged,
+      ),
+    ],
+  );
 }
 
 // END OF FILE - lib/widgets/live_beauty_panel.dart
