@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/ivory_errors.dart';
 import '../models/folio_entry.dart';
 import '../models/live_models.dart';
 import '../services/private_folio_service.dart';
@@ -90,11 +91,13 @@ class _PrivateFolioEntryEditorState extends State<PrivateFolioEntryEditor> {
         tags: _tags,
       );
       if (mounted) Navigator.of(context).pop(true);
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = 'Could not save this page. Check your connection and retry.';
+          _error = e is PrivateFolioLimitException
+              ? e.message
+              : houseMessage(e);
         });
       }
     }
@@ -137,6 +140,15 @@ class _PrivateFolioEntryEditorState extends State<PrivateFolioEntryEditor> {
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Up to 100 pages. Your notes and links share a 1 MiB total allowance.',
+                  style: TextStyle(
+                    color: IvoryColors.textSoft,
+                    fontSize: 12,
+                    height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 14),
