@@ -190,7 +190,26 @@ extension _LiveScreenGuests on _LiveScreenState {
         guestVideoEnabled: _camOn,
         selfRequestId: _guestRequest?.id,
         guests: _guestState?.participants ?? <LiveGuestParticipant>[],
+        guestDockAnchor: _guestState?.guestDockAnchor ??
+            LiveGuestDockAnchor.aboveChatCenter,
+        canMoveGuestDock:
+            widget.mode == LiveMode.host && _isOwner,
+        onGuestDockAnchorChanged: _saveGuestDockAnchor,
       );
+
+  Future<void> _saveGuestDockAnchor(LiveGuestDockAnchor anchor) async {
+    final LiveGuestRoomState? state = _guestState;
+    if (state == null) return;
+    try {
+      await state.setGuestDockAnchor(anchor);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(houseMessage(e))),
+        );
+      }
+    }
+  }
 
   Widget _controls() => LiveControls(
         visible: _error == null && _joined && !_ended,
