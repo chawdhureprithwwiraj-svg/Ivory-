@@ -106,6 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: <Widget>[
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: <Widget>[
                         ProfilePhotoEditor(
                           displayName: p?.displayName ?? initial,
@@ -125,12 +126,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: <Widget>[
                               Text(
                                 p?.displayName ?? 'Signed in',
-                                style:
-                                    Theme.of(context).textTheme.headlineMedium,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(fontSize: 20, height: 1.15),
                               ),
-                              const SizedBox(height: 3),
+                              const SizedBox(height: 4),
                               Text(
                                 p == null ? '—' : 'ID ${p.shortId}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   color: IvoryColors.textFaint,
                                   fontSize: 12.5,
@@ -140,31 +147,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                         ),
-                        if (!(p?.isAdmin ?? false) && _membership != null)
-                          PremiumBadge.chip(
-                            tierName: _membership!.tierName,
-                            level: _membership!.tierLevel,
-                          ),
-                        if (p?.isAdmin ?? false)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 11, vertical: 6),
-                            decoration: BoxDecoration(
-                              gradient: IvoryColors.goldGradient,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              'ADMIN',
-                              style: TextStyle(
-                                color: IvoryColors.burgundy,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.4,
-                              ),
-                            ),
-                          ),
                       ],
                     ),
+                    if ((p?.isAdmin ?? false) || _membership != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: (p?.isAdmin ?? false)
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 11,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: IvoryColors.goldGradient,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text(
+                                    'ADMIN',
+                                    style: TextStyle(
+                                      color: IvoryColors.burgundy,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.4,
+                                    ),
+                                  ),
+                                )
+                              : PremiumBadge.chip(
+                                  tierName: _membership!.tierName,
+                                  level: _membership!.tierLevel,
+                                ),
+                        ),
+                      ),
                     Divider(color: IvoryColors.hairline, height: 30),
                     // Members see who they are. The technical diagnostics
                     // below are for the administrator only.
