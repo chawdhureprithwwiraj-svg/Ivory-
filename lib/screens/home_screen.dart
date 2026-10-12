@@ -7,6 +7,7 @@ import '../theme/ivory_theme.dart';
 import '../widgets/ivory_logo.dart';
 import '../widgets/live_banner.dart';
 import '../widgets/ivory_signature.dart';
+import '../widgets/explore_everything_cta.dart';
 import '../widgets/live_record.dart';
 import '../widgets/member_pulse.dart';
 import '../widgets/story_door.dart';
@@ -239,26 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () => _go('wish'),
         ),
         const SizedBox(height: 14),
-        Center(
-          child: InkWell(
-            onTap: () => _go('explore'),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: Text(
-                'Explore everything  \u2192',
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w800,
-                  color: IvoryColors.burgundy,
-                  decoration: TextDecoration.underline,
-                  decorationColor: IvoryColors.gold,
-                  decorationThickness: 1.6,
-                ),
-              ),
-            ),
-          ),
-        ),
+        ExploreEverythingCta(onTap: () => _go('explore')),
         const SizedBox(height: 16),
         // The promise itself now closes the page. All that is
         // left here is the plain fact, as a line.
