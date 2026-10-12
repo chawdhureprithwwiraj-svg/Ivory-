@@ -1,5 +1,27 @@
 import 'package:flutter/foundation.dart';
 
+enum LiveGuestDockAnchor {
+  topLeft('top_left'),
+  topRight('top_right'),
+  aboveChatLeft('above_chat_left'),
+  aboveChatCenter('above_chat_center'),
+  aboveChatRight('above_chat_right');
+
+  const LiveGuestDockAnchor(this.dbValue);
+
+  final String dbValue;
+
+  bool get isTop => this == topLeft || this == topRight;
+  bool get isLeft => this == topLeft || this == aboveChatLeft;
+  bool get isRight => this == topRight || this == aboveChatRight;
+
+  static LiveGuestDockAnchor fromDb(Object? value) =>
+      LiveGuestDockAnchor.values.firstWhere(
+        (LiveGuestDockAnchor anchor) => anchor.dbValue == value,
+        orElse: () => LiveGuestDockAnchor.aboveChatCenter,
+      );
+}
+
 /// A paid request by a member to publish audio/video inside an existing
 /// broadcast. Payment and host approval are separate gates.
 @immutable
