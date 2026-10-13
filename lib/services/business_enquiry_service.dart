@@ -1,5 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+const int _businessEnquiryWordLimit = 3000;
+const int _businessEnquiryCharacterLimit = 100000;
+
+int _businessEnquiryWordCount(String value) {
+  final String trimmed = value.trim();
+  if (trimmed.isEmpty) return 0;
+  return trimmed.split(RegExp(r'\s+')).length;
+}
+
 /// Sends a member's business note to the private inbox function and lets
 /// Ivory review submissions through the owner-only Admin screen.
 class BusinessEnquiryService {
@@ -10,9 +19,11 @@ class BusinessEnquiryService {
 
   Future<void> submit(String message) async {
     final String clean = message.trim();
-    if (clean.isEmpty || clean.length > 2000) {
+    if (clean.isEmpty ||
+        clean.length > _businessEnquiryCharacterLimit ||
+        _businessEnquiryWordCount(clean) > _businessEnquiryWordLimit) {
       throw const BusinessEnquiryError(
-        'Please write a short note of up to 2,000 characters.',
+        'Please keep your note within 3,000 words.',
       );
     }
 
