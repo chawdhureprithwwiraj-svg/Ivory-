@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/business_enquiry_service.dart';
 import '../theme/ivory_theme.dart';
+
+const int _businessEnquiryWordLimit = 3000;
+const int _businessEnquiryCharacterLimit = 100000;
+
+int _businessEnquiryWordCount(String value) {
+  final String trimmed = value.trim();
+  if (trimmed.isEmpty) return 0;
+  return trimmed.split(RegExp(r'\s+')).length;
+}
 
 /// A private, in-app doorway for business and creative enquiries.
 /// No recipient email address is included in the client app.
@@ -29,6 +39,11 @@ class _BusinessEnquiryScreenState extends State<BusinessEnquiryScreen> {
     final String text = _message.text.trim();
     if (text.isEmpty) {
       setState(() => _note = 'Write a note first, even if it is just a few lines.');
+      return;
+    }
+    if (text.length > _businessEnquiryCharacterLimit ||
+        _businessEnquiryWordCount(text) > _businessEnquiryWordLimit) {
+      setState(() => _note = 'Please keep your note within 3,000 words.');
       return;
     }
     setState(() {
@@ -165,7 +180,7 @@ class _BusinessEnquiryScreenState extends State<BusinessEnquiryScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Your note is private to Ivory. Her business email is never shown in the app.',
+                        'Your note is saved in Ivory’s private in-app inbox and emailed to her business address. Your account email is set as Reply-To when available; her address is never shown to members.',
                         style: TextStyle(
                           color: IvoryColors.textSoft,
                           fontSize: 12.5,
@@ -193,7 +208,28 @@ class _BusinessEnquiryScreenState extends State<BusinessEnquiryScreen> {
                   enabled: !_sending,
                   minLines: 6,
                   maxLines: 9,
-                  maxLength: 2000,
+                  maxLength: _businessEnquiryCharacterLimit,
+                  maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                  onChanged: (_) => setState(() {}),
+                  buildCounter: (
+                    BuildContext context, {
+                    required int currentLength,
+                    required bool isFocused,
+                    int? maxLength,
+                  }) {
+                    final int words = _businessEnquiryWordCount(_message.text);
+                    return Text(
+                      '$words / 3,000 words',
+                      style: TextStyle(
+                        color: words >= _businessEnquiryWordLimit
+                            ? IvoryColors.danger
+                            : isFocused
+                                ? IvoryColors.plum
+                                : IvoryColors.textFaint,
+                        fontSize: 11.5,
+                      ),
+                    );
+                  },
                   textCapitalization: TextCapitalization.sentences,
                   keyboardType: TextInputType.multiline,
                   style: const TextStyle(
@@ -223,7 +259,17 @@ class _BusinessEnquiryScreenState extends State<BusinessEnquiryScreen> {
                     contentPadding: const EdgeInsets.all(16),
                   ),
                 ),
-                if (_note != null) ...<Widget>[
+                if (_businessEnquiryWordCount(_message.text) >
+                    _businessEnquiryWordLimit) ...<Widget>[
+                  Text(
+                    'Please reduce your note to 3,000 words before sending.',
+                    style: TextStyle(
+                      color: IvoryColors.danger,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ] else if (_note != null) ...<Widget>[
                   Text(
                     _note!,
                     style: TextStyle(
@@ -238,11 +284,15 @@ class _BusinessEnquiryScreenState extends State<BusinessEnquiryScreen> {
                   label: 'SEND A PRIVATE NOTE',
                   icon: Icons.send_rounded,
                   busy: _sending,
-                  onPressed: _sending ? null : _send,
+                  onPressed: _sending ||
+                          _businessEnquiryWordCount(_message.text) >
+                              _businessEnquiryWordLimit
+                      ? null
+                      : _send,
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'There is no email link here—just a private message form.',
+                  'Submitting sends your note to Ivory’s private inbox and business email.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: IvoryColors.textFaint,
