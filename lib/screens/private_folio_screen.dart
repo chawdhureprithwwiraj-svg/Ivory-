@@ -319,12 +319,13 @@ class _PrivateFolioScreenState extends State<PrivateFolioScreen> {
             ),
             const SizedBox(height: 9),
             Text(
-              '${_entries.length} of ${PrivateFolioService.maxEntries} pages · '
-              '${(_usedBytes / 1024).ceil()} KiB of 1 MiB used',
+              'Your notes and links stay in your private Ivory Folio, not on '
+              'your phone. I’ve got the storage covered.',
               style: TextStyle(
                 color: IvoryColors.cream.withValues(alpha: 0.86),
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,
+                height: 1.4,
               ),
             ),
             if (_entries.length >= PrivateFolioService.maxEntries) ...<Widget>[
