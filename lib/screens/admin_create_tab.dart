@@ -164,7 +164,8 @@ class _AdminCreateTabState extends State<AdminCreateTab> {
     try {
       // SPRINT 24j - the whole "where does this file go" question now
       // lives in admin_publish_media.dart. See that file for the rules.
-      final ResolvedMedia media = await resolvePublishMedia(
+      final ResolvedMedia media = await resolvePublishMedia isPublished: _publishNow,
+        (
         type: _type,
         at: at,
         hasLink: hasLink,
