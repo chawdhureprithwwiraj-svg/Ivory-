@@ -10,8 +10,8 @@ import '../theme/ivory_theme.dart';
 /// The house looks inside the Vault and decides, by hand, what may
 /// leave it. Nothing is ever removed automatically: every row has
 /// its own delete tap, and every delete asks again before it goes.
-/// Rows a story still points at warn that the story will lose its
-/// film (the post quietly retires to text-only).
+/// Rows a post still points at explain whether removing the object
+/// clears its photo/cover or its private film/voice media.
 ///
 /// SPRINT 24b - THE SPINNER THAT NEVER STOPPED.
 /// The old _load() had no catch. When the edge function threw, the
@@ -82,7 +82,7 @@ class _ManagerSheetState extends State<_ManagerSheet> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'The Vault is at its safety cap '
+        _error = 'Shared R2 storage is at its safety cap '
             '(${e.usedGb.toStringAsFixed(1)} GB of 9 GB). Choose what may '
             'leave it below.';
       });
@@ -110,18 +110,30 @@ class _ManagerSheetState extends State<_ManagerSheet> {
       builder: (BuildContext d) => AlertDialog(
         backgroundColor: IvoryColors.surface,
         title: Text(
-          referenced ? 'This story uses this file' : 'Remove from the Vault?',
+          referenced
+              ? (item.isPublicImage
+                  ? 'This post uses this image'
+                  : 'This story uses this file')
+              : (item.isPublicImage
+                  ? 'Remove this published image?'
+                  : 'Remove from the Vault?'),
           style: const TextStyle(color: IvoryColors.burgundy),
         ),
         content: Text(
           referenced
-              ? '"${item.postTitle}" plays from this file. If you remove '
-                  'it, that story quietly becomes text-only until you '
-                  'attach a new link. Back it up first - nothing is '
-                  'ever removed without you saying so.'
-              : 'Nothing points at this file any more. Remove it and '
-                  '${item.sizeLabel} comes back to the Vault. This '
-                  'cannot be undone - back it up first if it matters.',
+              ? (item.isCoverImage
+                  ? '"${item.postTitle}" uses this cover. Removing it clears '
+                      'the cover; the post stays in place. '
+                  : item.isPublicImage
+                      ? '"${item.postTitle}" uses this photo. Removing it '
+                          'clears the photo; the rest of the post stays in place. '
+                      : '"${item.postTitle}" plays from this file. Removing '
+                          'it removes the story media until a new file is attached. ')
+                  + 'Back it up first - nothing is ever removed without you saying so.'
+              : 'Nothing points at this ${item.isPublicImage ? 'image' : 'file'} '
+                  'any more. Remove it and ${item.sizeLabel} comes back to '
+                  'the shared R2 storage budget. This cannot be undone - back '
+                  'it up first if it matters.',
           style: TextStyle(fontSize: 13.5, color: IvoryColors.textSoft),
         ),
         actions: <Widget>[
@@ -175,7 +187,7 @@ class _ManagerSheetState extends State<_ManagerSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const IvoryEyebrow('The Vault', icon: Icons.cloud_outlined),
+          const IvoryEyebrow('R2 storage vault', icon: Icons.cloud_outlined),
           const SizedBox(height: 8),
           Text(
             // A jammed door must never claim the Vault is empty.
@@ -196,7 +208,8 @@ class _ManagerSheetState extends State<_ManagerSheet> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Nothing here is ever deleted on its own. You choose, '
+            'This manager lists R2 files only; private B2 uploads do not '
+            'appear here. Nothing is removed automatically - you choose, '
             'you approve, then it goes.',
             style: TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
           ),
@@ -292,8 +305,11 @@ class _ManagerSheetState extends State<_ManagerSheet> {
       decoration: IvoryTheme.card(radius: 14),
       child: Row(
         children: <Widget>[
-          const Icon(Icons.movie_outlined,
-              size: 19, color: IvoryColors.burgundy),
+          Icon(
+            i.isPublicImage ? Icons.image_outlined : Icons.movie_outlined,
+            size: 19,
+            color: IvoryColors.burgundy,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -310,6 +326,7 @@ class _ManagerSheetState extends State<_ManagerSheet> {
                   ),
                 ),
                 Text(
+                  '${i.isCoverImage ? 'Cover' : i.isPublicImage ? 'Photo' : 'Vault file'} · '
                   '${i.sizeLabel}  -  '
                   '${i.modified.isEmpty ? '' : i.modified.substring(0, 10)}',
                   style: TextStyle(
