@@ -129,7 +129,7 @@ class _BusinessEnquiryScreenState extends State<BusinessEnquiryScreen> {
                   const SizedBox(width: 7),
                   const Expanded(
                     child: Text(
-                      'Have a thoughtful proposal? Feel free to quietly drop here.',
+                      'Have a business proposal? Feel free to leave Ivory a private note here.',
                       style: TextStyle(
                         color: IvoryColors.plum,
                         fontSize: 13,
