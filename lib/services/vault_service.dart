@@ -8,11 +8,10 @@ import '../core/ivory_errors.dart';
 /// ============================================================
 /// IVORY - THE VAULT (CLOUDFLARE R2)
 ///
-/// Big videos ride in R2: 10 GB free and, the part that matters,
-/// zero egress fees - a hundred members watching a one-gigabyte
-/// film costs nothing in bandwidth. The phone never sees the R2
-/// secret: the edge function signs a PUT for the house and a GET
-/// for a member who may open the post.
+/// Video, voice and published story images use R2. Internet egress is
+/// free, but storage and request quotas still apply. The phone never
+/// sees the R2 secret: the edge function signs uploads and private-media
+/// reads; public story images use a separate custom-domain bucket.
 ///
 /// Uploads stream straight from the file on disk, so a 1 GB video
 /// never sits in the phone's memory.
@@ -36,7 +35,7 @@ class VaultFullError extends Error {
 class VaultError implements Exception {
   VaultError(this.op, this.detail);
 
-  /// Which door: 'usage', 'list', 'put', 'delete', 'get'.
+  /// Which door: usage, list, private/public put, delete or get.
   final String op;
 
   /// The real reason, already made readable by adminDetail().
@@ -46,7 +45,7 @@ class VaultError implements Exception {
   String toString() => 'The Vault door jammed on "$op". $detail';
 }
 
-/// One object sitting in the Vault, as the manager shows it.
+/// One private Vault file or published image in the shared R2 manager.
 class VaultItem {
   const VaultItem({
     required this.key,
@@ -54,6 +53,8 @@ class VaultItem {
     required this.modified,
     this.postId,
     this.postTitle,
+    this.isPublicImage = false,
+    this.isCoverImage = false,
   });
 
   final String key;
@@ -61,6 +62,8 @@ class VaultItem {
   final String modified;
   final int? postId;
   final String? postTitle;
+  final bool isPublicImage;
+  final bool isCoverImage;
 
   String get sizeLabel {
     final double gb = size / (1024 * 1024 * 1024);
@@ -76,6 +79,10 @@ class VaultService {
 
   static String _contentType(String name) {
     final String n = name.toLowerCase();
+    if (n.endsWith('.jpg') || n.endsWith('.jpeg')) return 'image/jpeg';
+    if (n.endsWith('.png')) return 'image/png';
+    if (n.endsWith('.webp')) return 'image/webp';
+    if (n.endsWith('.gif')) return 'image/gif';
     if (n.endsWith('.mp4')) return 'video/mp4';
     if (n.endsWith('.m4v')) return 'video/x-m4v';
     if (n.endsWith('.mov')) return 'video/quicktime';
@@ -297,8 +304,88 @@ class VaultService {
     return key;
   }
 
-  /// How many bytes the Vault really holds, after the edge's own
-  /// sweep. Null on any hiccup - the caller then stays quiet.
+  /// Uploads a published post photo or cover into the separate public R2
+  /// bucket. The server returns a short-lived PUT link and the stable HTTPS
+  /// custom-domain URL to save on the post. Private profile/proof photos do
+  /// not use this path.
+  Future<String> uploadPublicImageBytes({
+    required Uint8List bytes,
+    required String name,
+    required String folder,
+    void Function(double progress)? onProgress,
+  }) async {
+    if (folder != 'images' && folder != 'thumbs') {
+      throw VaultError('put_public_image', 'That image folder is not allowed.');
+    }
+    if (bytes.isEmpty || bytes.length > 48 * 1024 * 1024) {
+      throw VaultError('put_public_image',
+          'Choose a JPEG, PNG, WebP or GIF image under 48 MB.');
+    }
+    String safe = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    if (safe.length > 120) safe = safe.substring(safe.length - 120);
+    final String key =
+        '$folder/${DateTime.now().microsecondsSinceEpoch}_$safe';
+    final String ct = _contentType(safe);
+    if (!ct.startsWith('image/')) {
+      throw VaultError('put_public_image',
+          'Choose a JPEG, PNG, WebP or GIF image.');
+    }
+
+    final Map<String, dynamic> signed = await _call(
+      'put_public_image',
+      <String, dynamic>{'key': key, 'size': bytes.length, 'content_type': ct},
+    );
+    final String? uploadUrl = signed['url'] as String?;
+    final String? publicUrl = signed['public_url'] as String?;
+    if (uploadUrl == null || uploadUrl.isEmpty ||
+        publicUrl == null || publicUrl.isEmpty ||
+        Uri.tryParse(publicUrl)?.scheme != 'https') {
+      throw VaultError('put_public_image',
+          'The image store did not return its upload and display addresses.');
+    }
+
+    const int slice = 256 * 1024;
+    final HttpClient hc = HttpClient();
+    hc.connectionTimeout = const Duration(seconds: 30);
+    try {
+      final HttpClientRequest req =
+          await hc.openUrl('PUT', Uri.parse(uploadUrl));
+      req.headers.set('Content-Type', ct);
+      req.contentLength = bytes.length;
+      req.persistentConnection = false;
+      int sent = 0;
+      double last = 0;
+      while (sent < bytes.length) {
+        final int end = (sent + slice) > bytes.length
+            ? bytes.length
+            : sent + slice;
+        req.add(bytes.sublist(sent, end));
+        sent = end;
+        final double progress = sent / bytes.length;
+        if (progress - last >= 0.04 || sent == bytes.length) {
+          last = progress;
+          onProgress?.call(progress);
+        }
+      }
+      final HttpClientResponse res = await req.close();
+      final int code = res.statusCode;
+      await res.drain<void>();
+      if (code >= 300) {
+        throw VaultError('put_public_image',
+            'R2 refused the image (HTTP $code). Please retry.');
+      }
+    } on VaultError {
+      rethrow;
+    } catch (e) {
+      throw VaultError('put_public_image', adminDetail(e));
+    } finally {
+      hc.close(force: true);
+    }
+    return publicUrl;
+  }
+
+  /// Shared bytes in the private Vault and public-media bucket. Null on
+  /// a hiccup - the caller then stays quiet.
   Future<int?> usedBytes() async {
     try {
       final Map<String, dynamic> d = await _call('usage', <String, dynamic>{});
@@ -308,9 +395,9 @@ class VaultService {
     }
   }
 
-  /// Every object in the Vault, with the story (if any) that points
-  /// at it. The manager shows this; nothing is ever removed without
-  /// the house approving on screen.
+  /// Every managed R2 object, including published images, with the post
+  /// (if any) that points at it. The manager requires on-screen approval
+  /// before anything is removed.
   ///
   /// SPRINT 24b: this now THROWS on failure instead of returning an
   /// empty list. An empty Vault and a broken Vault are not the same
@@ -326,6 +413,8 @@ class VaultService {
         modified: (m['modified'] as String?) ?? '',
         postId: (m['post_id'] as num?)?.toInt(),
         postTitle: m['post_title'] as String?,
+        isPublicImage: (m['is_public_image'] as bool?) ?? false,
+        isCoverImage: (m['is_cover_image'] as bool?) ?? false,
       );
     }).toList();
   }
