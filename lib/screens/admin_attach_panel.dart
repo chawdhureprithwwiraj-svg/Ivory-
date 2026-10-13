@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 
 import '../models/media_ref.dart';
 import '../services/admin_service.dart';
+import '../services/b2_media_service.dart';
 import '../services/vault_service.dart';
 import 'vault_manager.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
-import '../widgets/admin_post_chips.dart';
+import '../widgets/admin_storage_choice.dart';
 
 /// ============================================================
 /// ADMIN STUDIO - THE MEDIA ATTACH PANEL
@@ -24,10 +25,14 @@ class AdminAttachPanel extends StatefulWidget {
     required this.type,
     required this.busy,
     required this.onToast,
+    this.isPublished = true,
+    this.initialMediaProvider,
   });
 
   final String type;
   final bool busy;
+  final bool isPublished;
+  final String? initialMediaProvider;
   final void Function(String message, {bool bad}) onToast;
 
   @override
@@ -69,8 +74,12 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
 
   PickedMedia? picked;
   String? uploadedUrl;
+  String? uploadedSource;
   PickedMedia? thumb;
   String? uploadedThumbUrl;
+  String? uploadedThumbSource;
+  String? mediaProvider;
+  String imageProvider = 'b2';
 
   /// A video too big for Supabase waits here for the Vault ride.
   String? vaultPath;
@@ -82,21 +91,47 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
 
   bool get hasLink => link.text.trim().isNotEmpty;
 
-  void setUploadedUrl(String? v) => setState(() => uploadedUrl = v);
-  void setUploadedThumbUrl(String? v) =>
-      setState(() => uploadedThumbUrl = v);
+  void setUploadedUrl(String? v, {required String source}) => setState(() {
+    uploadedUrl = v;
+    uploadedSource = source;
+  });
+  void setUploadedThumbUrl(String? v, {required String source}) => setState(() {
+    uploadedThumbUrl = v;
+    uploadedThumbSource = source;
+  });
 
   @override
   void initState() {
     super.initState();
     inits++;
+    mediaProvider =
+        widget.initialMediaProvider == 'b2' ||
+            widget.initialMediaProvider == 'r2'
+        ? widget.initialMediaProvider
+        : null;
+    imageProvider = 'b2';
+  }
+
+  @override
+  void didUpdateWidget(covariant AdminAttachPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isPublished && !widget.isPublished && imageProvider == 'r2') {
+      imageProvider = 'b2';
+    }
   }
 
   void clearForType() {
     clears++;
+    link.clear();
     setState(() {
       picked = null;
       uploadedUrl = null;
+      uploadedSource = null;
+      thumb = null;
+      uploadedThumbUrl = null;
+      uploadedThumbSource = null;
+      mediaProvider = null;
+      imageProvider = 'b2';
       vaultPath = null;
       vaultName = null;
       vaultSize = 0;
@@ -109,6 +144,7 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
     setState(() {
       thumb = null;
       uploadedThumbUrl = null;
+      uploadedThumbSource = null;
     });
     clearForType();
   }
@@ -128,6 +164,22 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
     }
   }
 
+  Future<void> _refreshUsage() async {
+    final String? selected = mediaProvider;
+    if (selected == null) return;
+    final bool b2 = selected == 'b2';
+    final int? used = b2
+        ? await B2MediaService.instance.usedBytes()
+        : await VaultService.instance.usedBytes();
+    if (used != null && mounted) {
+      final double gb = used / (b2 ? 1000000000 : 1024 * 1024 * 1024);
+      setState(
+        () => vaultUsed =
+            '${b2 ? 'B2' : 'R2'} storage ${gb.toStringAsFixed(1)} GB of 9 GB used.',
+      );
+    }
+  }
+
   Future<void> pick({required bool thumbnail}) async {
     try {
       // Videos are picked by path first: a Vault film can be a
@@ -142,16 +194,15 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
             vaultSize = v.size;
             picked = null;
             uploadedUrl = null;
+            uploadedSource = null;
           });
-          final int? used = await VaultService.instance.usedBytes();
-          if (used != null && mounted) {
-            setState(() => vaultUsed =
-                'Vault ${(used / (1024 * 1024 * 1024)).toStringAsFixed(1)} '
-                'GB of 9 GB used - the app refuses any upload that '
-                    'would cross the cap.');
-          }
-          widget.onToast('${v.sizeLabel} noted - this one rides in the Vault '
-              'when you publish.');
+          await _refreshUsage();
+          widget.onToast(
+            mediaProvider == null
+                ? '${v.sizeLabel} noted - choose R2 or B2 before publishing.'
+                : '${v.sizeLabel} noted - this uploads to '
+                      '${mediaProvider!.toUpperCase()} when you publish.',
+          );
           return;
         }
         setState(() {
@@ -159,8 +210,11 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
           vaultName = null;
           vaultSize = 0;
           picked = PickedMedia(
-              name: v.name, bytes: File(v.path).readAsBytesSync());
+            name: v.name,
+            bytes: File(v.path).readAsBytesSync(),
+          );
           uploadedUrl = null;
+          uploadedSource = null;
           link.clear();
         });
         return;
@@ -186,9 +240,11 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
         if (thumbnail) {
           thumb = m;
           uploadedThumbUrl = null;
+          uploadedThumbSource = null;
         } else {
           picked = m;
           uploadedUrl = null;
+          uploadedSource = null;
           link.clear();
         }
       });
@@ -208,6 +264,26 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            if (widget.type == 'image')
+              AdminStorageChoice(
+                title: 'PHOTO & COVER STORAGE',
+                value: imageProvider,
+                image: true,
+                allowPublicR2: widget.isPublished,
+                enabled: !widget.busy,
+                onChanged: (String v) => setState(() => imageProvider = v),
+              ),
+            if (widget.type == 'video' || widget.type == 'audio')
+              AdminStorageChoice(
+                title: 'VIDEO / VOICE STORAGE',
+                value: mediaProvider,
+                image: false,
+                enabled: !widget.busy,
+                onChanged: (String v) {
+                  setState(() => mediaProvider = v);
+                  _refreshUsage();
+                },
+              ),
             if (picked != null) ...<Widget>[
               AdminPickedFileCard(
                 media: picked!,
@@ -216,6 +292,7 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
                 onRemove: () => setState(() {
                   picked = null;
                   uploadedUrl = null;
+                  uploadedSource = null;
                 }),
               ),
               const SizedBox(height: 10),
@@ -241,16 +318,21 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
                 ),
                 child: Row(
                   children: <Widget>[
-                    const Icon(Icons.cloud_upload_outlined,
-                        size: 18, color: IvoryColors.burgundy),
+                    const Icon(
+                      Icons.cloud_upload_outlined,
+                      size: 18,
+                      color: IvoryColors.burgundy,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '${vaultName ?? 'video'} - '
-                        '${AdminService.sizeLabel(vaultSize)} - rides in '
-                            'the Vault (R2) when you publish.',
+                        '${AdminService.sizeLabel(vaultSize)} - '
+                        '${mediaProvider == null ? "choose R2 or B2 before publishing." : "uploads to ${mediaProvider!.toUpperCase()} when you publish."}',
                         style: TextStyle(
-                            fontSize: 12.5, color: IvoryColors.textSoft),
+                          fontSize: 12.5,
+                          color: IvoryColors.textSoft,
+                        ),
                       ),
                     ),
                   ],
@@ -262,7 +344,9 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
                   child: Text(
                     vaultUsed!,
                     style: TextStyle(
-                        fontSize: 11.5, color: IvoryColors.textFaint),
+                      fontSize: 11.5,
+                      color: IvoryColors.textFaint,
+                    ),
                   ),
                 ),
             ],
@@ -272,21 +356,21 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
                 child: TextButton.icon(
                   onPressed: widget.busy
                       ? null
-                      : () => VaultManager.open(context, onChanged: () async {
-                            final int? u =
-                                await VaultService.instance.usedBytes();
-                            if (u != null && mounted) {
-                              setState(() => vaultUsed =
-                                  'Vault ${(u / (1024 * 1024 * 1024)).toStringAsFixed(1)} '
-                                  'GB of 9 GB used - the app refuses any '
-                                      'upload that would cross the cap.');
-                            }
-                          }),
+                      : () => VaultManager.open(
+                          context,
+                          onChanged: _refreshUsage,
+                        ),
                   icon: const Icon(Icons.folder_open_outlined, size: 17),
-                  label: const Text('MANAGE VAULT'),
+                  label: const Text('MANAGE R2 VAULT'),
                   style: TextButton.styleFrom(
-                      foregroundColor: IvoryColors.burgundy),
+                    foregroundColor: IvoryColors.burgundy,
+                  ),
                 ),
+              ),
+            if (widget.type == 'video' && mediaProvider == 'b2')
+              Text(
+                'The R2 manager lists R2 only. B2 files stay private; use Backblaze to inspect them.',
+                style: TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
               ),
             const SizedBox(height: 12),
             const AdminOrLine('or point at a link'),
@@ -305,11 +389,23 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
               Text(
                 'Detected: '
                 '${MediaRef.parse(link.text.trim()).source.label}',
-                style: TextStyle(fontSize: 11.5, color: IvoryColors.success),
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  color: IvoryColors.success,
+                ),
               ),
             ],
             const SizedBox(height: 12),
             Divider(color: IvoryColors.hairline),
+            if (widget.type != 'image')
+              AdminStorageChoice(
+                title: 'COVER STORAGE',
+                value: imageProvider,
+                image: true,
+                allowPublicR2: widget.isPublished,
+                enabled: !widget.busy,
+                onChanged: (String v) => setState(() => imageProvider = v),
+              ),
             Row(
               children: <Widget>[
                 Expanded(
@@ -319,14 +415,17 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
                         : '${thumb!.name} \u00b7 ${thumb!.sizeLabel}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        TextStyle(fontSize: 12.8, color: IvoryColors.textSoft),
+                    style: TextStyle(
+                      fontSize: 12.8,
+                      color: IvoryColors.textSoft,
+                    ),
                   ),
                 ),
                 TextButton(
                   onPressed: widget.busy ? null : () => pick(thumbnail: true),
                   style: TextButton.styleFrom(
-                      foregroundColor: IvoryColors.burgundy),
+                    foregroundColor: IvoryColors.burgundy,
+                  ),
                   child: Text(thumb == null ? 'ADD' : 'CHANGE'),
                 ),
               ],
