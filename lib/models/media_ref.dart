@@ -14,6 +14,7 @@ enum MediaSource {
   telegram,
   telegramChannel,
   r2,
+  b2,
   supabase,
   direct,
   vimeo,
@@ -44,6 +45,8 @@ enum MediaSource {
         return 'Private Telegram channel';
       case MediaSource.r2:
         return 'Cloudflare R2';
+      case MediaSource.b2:
+        return 'Private Backblaze B2';
       case MediaSource.supabase:
         return 'Supabase Storage';
       case MediaSource.direct:
@@ -98,6 +101,7 @@ class MediaRef {
 
     switch (source) {
       case MediaSource.r2:
+      case MediaSource.b2:
       case MediaSource.direct:
         return r.startsWith('http') ? r : null;
       case MediaSource.supabase:
@@ -136,6 +140,7 @@ class MediaRef {
       case MediaSource.dailymotion:
         return 'https://www.dailymotion.com/video/$r';
       case MediaSource.r2:
+      case MediaSource.b2:
       case MediaSource.direct:
       case MediaSource.supabase:
         return r.startsWith('http') ? r : null;
@@ -174,23 +179,24 @@ class MediaRef {
     }
 
     // ---- Vimeo ----
-    final RegExpMatch? vimeo =
-        RegExp(r'vimeo\.com/(?:video/)?(\d+)').firstMatch(s);
+    final RegExpMatch? vimeo = RegExp(
+      r'vimeo\.com/(?:video/)?(\d+)',
+    ).firstMatch(s);
     if (vimeo != null) {
       return MediaRef(source: MediaSource.vimeo, ref: vimeo.group(1));
     }
 
     // ---- Dailymotion ----
-    final RegExpMatch? dm =
-        RegExp(r'dailymotion\.com/video/([A-Za-z0-9]+)').firstMatch(s);
+    final RegExpMatch? dm = RegExp(
+      r'dailymotion\.com/video/([A-Za-z0-9]+)',
+    ).firstMatch(s);
     if (dm != null) {
       return MediaRef(source: MediaSource.dailymotion, ref: dm.group(1));
     }
 
     // ---- Telegram: private channel post links look like
     //      https://t.me/c/1234567890/42
-    final RegExpMatch? tg =
-        RegExp(r't\.me/c/(\d+)/(\d+)').firstMatch(s);
+    final RegExpMatch? tg = RegExp(r't\.me/c/(\d+)/(\d+)').firstMatch(s);
     if (tg != null) {
       return MediaRef(
         source: MediaSource.telegramChannel,
@@ -235,3 +241,5 @@ class MediaRef {
   @override
   String toString() => '${source.name}:$ref';
 }
+
+// END OF FILE - lib/models/media_ref.dart
