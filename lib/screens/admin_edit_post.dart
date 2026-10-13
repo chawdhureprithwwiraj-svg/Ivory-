@@ -192,6 +192,7 @@ class _AdminEditPostState extends State<AdminEditPost> {
         type: _type,
         at: at,
         hasLink: hasLink,
+        isPublished: _live,
         onStatus: (String label) {
           if (mounted) setState(() => _busyLabel = label);
         },
