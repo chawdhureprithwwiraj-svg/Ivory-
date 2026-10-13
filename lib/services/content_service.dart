@@ -1,7 +1,46 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/ivory_post.dart';
+import 'b2_media_service.dart';
 import 'vault_service.dart';
+
+/// Resolve private B2 preview keys to short-lived URLs before cards render.
+/// Only unlocked rows are passed here, and b2-media repeats the entitlement
+/// check before signing any object.
+Future<void> _signB2PreviewRows(List<Map<String, dynamic>> rows) async {
+  final List<int> ids = <int>[];
+  for (final Map<String, dynamic> row in rows) {
+    if (row['is_unlocked'] != true) continue;
+    final String? thumb = row['thumb_ref'] as String?;
+    final bool hasThumb = thumb != null && thumb.trim().isNotEmpty;
+    if ((hasThumb && row['thumb_source'] == 'b2') ||
+        (!hasThumb &&
+            row['type'] == 'image' &&
+            row['cover_source'] == 'b2')) {
+      ids.add((row['id'] as num).toInt());
+    }
+  }
+  if (ids.isEmpty) return;
+  Map<int, String> signed;
+  try {
+    signed = await B2MediaService.instance.signPreviewUrls(ids);
+  } catch (_) {
+    return;
+  }
+  for (final Map<String, dynamic> row in rows) {
+    final int id = (row['id'] as num).toInt();
+    final String? url = signed[id];
+    if (url == null) continue;
+    final String? thumb = row['thumb_ref'] as String?;
+    if (thumb != null &&
+        thumb.trim().isNotEmpty &&
+        row['thumb_source'] == 'b2') {
+      row['thumb_ref'] = url;
+    } else if (row['type'] == 'image' && row['cover_source'] == 'b2') {
+      row['cover_ref'] = url;
+    }
+  }
+}
 
 /// Reads the storytelling feed. All access rules are enforced by the
 /// database, so this layer never has to decide what a user may see.
@@ -26,12 +65,15 @@ class ContentService {
       final String s = search.trim();
       query = query.or('title.ilike.%$s%,summary.ilike.%$s%');
     }
-    final List<dynamic> rows =
-        await query.order('created_at', ascending: false).limit(limit);
+    final List<dynamic> rows = await query
+        .order('created_at', ascending: false)
+        .limit(limit);
 
-    return rows
-        .map((dynamic r) => IvoryPost.fromPreview(r as Map<String, dynamic>))
+    final List<Map<String, dynamic>> previews = rows
+        .map((dynamic r) => Map<String, dynamic>.from(r as Map))
         .toList();
+    await _signB2PreviewRows(previews);
+    return previews.map(IvoryPost.fromPreview).toList();
   }
 
   /// Ivory's Firstlist: the posts the house wants every member to see
@@ -48,10 +90,11 @@ class ContentService {
     try {
       final dynamic rows = await _db.rpc('firstlist');
       if (rows is! List) return <IvoryPost>[];
-      return rows
-          .map((dynamic r) =>
-              IvoryPost.fromPreview(r as Map<String, dynamic>))
+      final List<Map<String, dynamic>> previews = rows
+          .map((dynamic r) => Map<String, dynamic>.from(r as Map))
           .toList();
+      await _signB2PreviewRows(previews);
+      return previews.map(IvoryPost.fromPreview).toList();
     } catch (_) {
       return <IvoryPost>[];
     }
@@ -68,47 +111,68 @@ class ContentService {
     required String utr,
     String? screenshotUrl,
   }) async {
-    await _db.rpc<dynamic>('submit_post_payment', params: <String, dynamic>{
-      'post_id_in': postId,
-      'utr_in': utr.trim(),
-      'shot_in': screenshotUrl,
-    });
+    await _db.rpc<dynamic>(
+      'submit_post_payment',
+      params: <String, dynamic>{
+        'post_id_in': postId,
+        'utr_in': utr.trim(),
+        'shot_in': screenshotUrl,
+      },
+    );
   }
 
   Future<void> submitLivePassPayment({
     required int sessionId,
     required String utr,
   }) async {
-    await _db.rpc<dynamic>('submit_live_pass_payment',
-        params: <String, dynamic>{
-          'session_id_in': sessionId,
-          'utr_in': utr.trim(),
-        });
+    await _db.rpc<dynamic>(
+      'submit_live_pass_payment',
+      params: <String, dynamic>{
+        'session_id_in': sessionId,
+        'utr_in': utr.trim(),
+      },
+    );
   }
 
   /// The only place a media link is handed out. open_post() checks
   /// the tier, the price and whether this member bought it, and
   /// returns nothing at all if none of those apply.
   Future<IvoryPost?> fetchFullPost(int id) async {
-    final dynamic res = await _db
-        .rpc<dynamic>('open_post', params: <String, dynamic>{'post_id_in': id});
+    final dynamic res = await _db.rpc<dynamic>(
+      'open_post',
+      params: <String, dynamic>{'post_id_in': id},
+    );
     if (res is List && res.isNotEmpty) {
       final Map<String, dynamic> row = res.first as Map<String, dynamic>;
-      // Vault media is private: swap the raw path for a one-hour
-      // signed URL. The vault's storage policy re-checks
-      // can_open_post(), so signing only ever succeeds for a member
-      // who may open the post.
       final String? ref = row['media_ref'] as String?;
-      // Vault films live in Cloudflare R2: the edge signs a GET for
-      // this member (it re-checks can_open_post), and the in-app
-      // player streams the signed url.
+      // Private B2 links are signed only after the Edge Function repeats
+      // can_open_post, including the paid-post entitlement check.
+      if (row['media_source'] == 'b2' &&
+          ref != null &&
+          !ref.startsWith('http')) {
+        final String? signed = await B2MediaService.instance.openPostMedia(id);
+        if (signed != null && signed.isNotEmpty) row['media_ref'] = signed;
+      }
+      final String? thumbRef = row['thumb_ref'] as String?;
+      if (row['thumb_source'] == 'b2' &&
+          thumbRef != null &&
+          !thumbRef.startsWith('http')) {
+        final String? signed = await B2MediaService.instance.openPostMedia(
+          id,
+          field: 'thumb',
+        );
+        if (signed != null && signed.isNotEmpty) row['thumb_ref'] = signed;
+      }
+      // Private R2 films remain on their existing signed-read route.
       if (row['media_source'] == 'r2' &&
-          ref != null && !ref.startsWith('http')) {
+          ref != null &&
+          !ref.startsWith('http')) {
         final String? signed = await VaultService.instance.openUrl(id);
         if (signed != null && signed.isNotEmpty) row['media_ref'] = signed;
       }
       if (row['media_source'] == 'supabase' &&
-          ref != null && !ref.startsWith('http')) {
+          ref != null &&
+          !ref.startsWith('http')) {
         // Vault media is private, and some older posts kept the raw
         // path with the bucket column still on 'media'. Sign from
         // whichever bucket actually holds the file. The vault's
@@ -144,16 +208,15 @@ class ContentService {
   /// Admin only: who voted what. optionId -> member names.
   Future<Map<int, List<String>>> fetchPollVoters(int postId) async {
     try {
-      final List<dynamic> rows = await _db
-          .rpc<dynamic>('poll_voters', params: <String, dynamic>{
-        'post_id_in': postId,
-      });
+      final List<dynamic> rows = await _db.rpc<dynamic>(
+        'poll_voters',
+        params: <String, dynamic>{'post_id_in': postId},
+      );
       final Map<int, List<String>> out = <int, List<String>>{};
       for (final dynamic r in rows) {
         final Map<String, dynamic> m = r as Map<String, dynamic>;
         out
-            .putIfAbsent((m['option_id'] as num).toInt(),
-                () => <String>[])
+            .putIfAbsent((m['option_id'] as num).toInt(), () => <String>[])
             .add((m['member_name'] as String?) ?? 'A member');
       }
       return out;
@@ -187,9 +250,10 @@ class ContentService {
 
   Future<void> incrementView(int postId) async {
     try {
-      await _db.rpc('increment_view', params: <String, dynamic>{
-        'post_id_in': postId,
-      });
+      await _db.rpc(
+        'increment_view',
+        params: <String, dynamic>{'post_id_in': postId},
+      );
     } catch (_) {
       // A failed view count must never interrupt playback.
     }
