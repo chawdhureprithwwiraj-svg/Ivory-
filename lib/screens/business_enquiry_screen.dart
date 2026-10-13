@@ -55,7 +55,18 @@ class _BusinessEnquiryScreenState extends State<BusinessEnquiryScreen> {
     return Scaffold(
       backgroundColor: IvoryColors.surface,
       appBar: AppBar(
-        title: const Text('BUSINESS & PARTNERSHIPS'),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'BUSINESS & PARTNERSHIPS',
+            maxLines: 1,
+            style: Theme.of(context).appBarTheme.titleTextStyle?.copyWith(
+                  fontSize: 17,
+                  letterSpacing: 1.8,
+                ),
+          ),
+        ),
         leading: IconButton(
           tooltip: 'Back to Ivory',
           onPressed: () => Navigator.of(context).maybePop(),
@@ -89,9 +100,30 @@ class _BusinessEnquiryScreenState extends State<BusinessEnquiryScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-              const IvoryEyebrow(
-                'A quiet door for thoughtful ideas',
-                icon: Icons.auto_awesome_rounded,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 15,
+                      color: IvoryColors.amber,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  const Expanded(
+                    child: Text(
+                      'Have a thoughtful proposal? Feel free to quietly drop here.',
+                      style: TextStyle(
+                        color: IvoryColors.plum,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               Text(
