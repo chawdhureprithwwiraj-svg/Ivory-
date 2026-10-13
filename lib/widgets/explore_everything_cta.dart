@@ -2,7 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
 
-/// A clearly tappable, gently pulsing secondary route into Explore.
+const Duration _explorePulsePeriod = Duration(milliseconds: 1400);
+const double _explorePulseScale = 0.055;
+const double _explorePulseGoldMix = 0.50;
+
+Color _explorePulseColor(double phase) =>
+    Color.lerp(
+      IvoryColors.burgundy,
+      IvoryColors.gold,
+      phase * _explorePulseGoldMix,
+    )!;
+
+/// A text-only, gently throbbing route into Explore.
+/// The text remains a real accessible tap target, with no visible button chrome.
 /// Animation stops when the user has requested reduced motion.
 class ExploreEverythingCta extends StatefulWidget {
   const ExploreEverythingCta({super.key, required this.onTap});
@@ -17,7 +29,7 @@ class _ExploreEverythingCtaState extends State<ExploreEverythingCta>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulse = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1400),
+    duration: _explorePulsePeriod,
   );
 
   @override
@@ -63,84 +75,34 @@ class _ExploreEverythingCtaState extends State<ExploreEverythingCta>
           final double breath = reduceMotion
               ? 0
               : Curves.easeInOut.transform(_pulse.value);
-          final Color edge = Color.lerp(
-            IvoryColors.gold,
-            IvoryColors.amber,
-            breath,
-          )!;
+          final Color labelColor = _explorePulseColor(breath);
           return Transform.scale(
-            scale: 1 + breath * 0.018,
-            child: Semantics(
-              button: true,
-              label: 'Explore everything',
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: IvoryColors.gold.withValues(
-                        alpha: 0.10 + breath * 0.12,
-                      ),
-                      blurRadius: 8 + breath * 8,
-                      spreadRadius: breath * 1.2,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+            scale: 1 + breath * _explorePulseScale,
+            child: TextButton(
+              onPressed: widget.onTap,
+              style: TextButton.styleFrom(
+                foregroundColor: labelColor,
+                backgroundColor: Colors.transparent,
+                disabledBackgroundColor: Colors.transparent,
+                overlayColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 8,
                 ),
-                child: Material(
-                  color: IvoryColors.surface,
-                  borderRadius: BorderRadius.circular(30),
-                  child: InkWell(
-                    onTap: widget.onTap,
-                    borderRadius: BorderRadius.circular(30),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 240),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 19,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: edge, width: 1.5),
-                        gradient: LinearGradient(
-                          colors: <Color>[
-                            IvoryColors.surface,
-                            Color.lerp(
-                              IvoryColors.surfaceWarm,
-                              IvoryColors.amber.withValues(alpha: 0.22),
-                              breath * 0.35,
-                            )!,
-                          ],
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Icon(
-                            Icons.explore_outlined,
-                            size: 18,
-                            color: IvoryColors.burgundy,
-                          ),
-                          const SizedBox(width: 9),
-                          Text(
-                            'EXPLORE EVERYTHING',
-                            style: TextStyle(
-                              color: IvoryColors.burgundy,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.65,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.arrow_forward_rounded,
-                            size: 17,
-                            color: IvoryColors.burgundy,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+              child: Text(
+                'EXPLORE EVERYTHING →',
+                semanticsLabel: 'Explore everything',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: labelColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.65,
                 ),
               ),
             ),
