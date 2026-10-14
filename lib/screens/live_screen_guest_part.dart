@@ -1,6 +1,31 @@
 part of 'live_screen.dart';
 
 extension _LiveScreenGuests on _LiveScreenState {
+  Future<void> _loadSelfCallBadge() async {
+    final badge = await MemberBadgeService.instance.forCurrentMember();
+    if (!mounted || badge == null || !badge.isActivePaid) return;
+    setState(() {
+      _selfCallTierName = badge.tierName;
+      _selfCallTierLevel = badge.tierLevel;
+    });
+  }
+
+  Widget? get _selfCallEmblem => _selfCallTierLevel > 0
+      ? PremiumBadge.emblem(
+          tierName: _selfCallTierName ?? '',
+          level: _selfCallTierLevel,
+          size: 18,
+        )
+      : null;
+
+  Widget? get _memberCallEmblem => widget.memberTierLevel > 0
+      ? PremiumBadge.emblem(
+          tierName: widget.memberTierName ?? '',
+          level: widget.memberTierLevel,
+          size: 18,
+        )
+      : null;
+
   bool get _guestActive => _guestJoined && _guestRequest != null;
 
   void _showEndingNotice() {
@@ -162,6 +187,8 @@ extension _LiveScreenGuests on _LiveScreenState {
       engine: engine,
       selfView: selfLarge,
       remoteUid: _remoteUid,
+      selfBadge: _isOwner ? null : this._selfCallEmblem,
+      remoteBadge: _isOwner ? this._memberCallEmblem : null,
       channel: _ticket?.channel ?? '',
       portrait: true,
       pipSelf: _camOn && !selfLarge,
