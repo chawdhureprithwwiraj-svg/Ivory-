@@ -6,6 +6,7 @@ import '../services/live_service.dart';
 import '../services/profile_photo_service.dart';
 import '../theme/ivory_theme.dart';
 import 'member_avatar.dart';
+import 'premium_badge.dart';
 
 /// ============================================================
 /// IVORY - THE WALL. WHO GIFTED ON THIS POST.
@@ -238,7 +239,8 @@ class _GiftWallState extends State<GiftWall> {
                 displayName: top.sender,
                 size: 46,
                 imageUrl: top.avatarUrl,
-                premiumFrame: top.hasActivePaidTier,
+                premiumFrame: top.hasActivePaidTier &&
+                    (top.avatarUrl?.isNotEmpty ?? false),
               ),
               const SizedBox(width: 9),
               Expanded(
@@ -301,6 +303,13 @@ class _GiftWallState extends State<GiftWall> {
                         ),
                       ],
                     ),
+                    if (top.hasActivePaidTier && top.tierLevel > 0) ...<Widget>[
+                      const SizedBox(height: 3),
+                      PremiumBadge.compact(
+                        tierName: top.tierName ?? '',
+                        level: top.tierLevel,
+                      ),
+                    ],
                     Text(
                       '${top.giftName}  \u00B7  Rs.${top.amountInr}',
                       maxLines: 1,
@@ -390,7 +399,8 @@ class _GiftWallState extends State<GiftWall> {
             displayName: g.sender,
             size: 34,
             imageUrl: g.avatarUrl,
-            premiumFrame: g.hasActivePaidTier,
+            premiumFrame: g.hasActivePaidTier &&
+                (g.avatarUrl?.isNotEmpty ?? false),
           ),
           const SizedBox(width: 6),
           ConstrainedBox(
@@ -406,6 +416,14 @@ class _GiftWallState extends State<GiftWall> {
               ),
             ),
           ),
+          if (g.hasActivePaidTier && g.tierLevel > 0) ...<Widget>[
+            const SizedBox(width: 4),
+            PremiumBadge.emblem(
+              tierName: g.tierName ?? '',
+              level: g.tierLevel,
+              size: 15,
+            ),
+          ],
         ],
       ),
     );
