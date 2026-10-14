@@ -149,7 +149,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-                    if ((p?.isAdmin ?? false) || _membership != null)
+                    if ((p?.isAdmin ?? false) ||
+                        (_membership?.tierLevel ?? 0) > 0)
                       Padding(
                         padding: const EdgeInsets.only(top: 10),
                         child: Align(
@@ -239,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 12),
                     if (p?.isAdmin ?? false) ...<Widget>[
                       const OwnerHouseCard(),
-                    ] else if (_membership != null) ...<Widget>[
+                    ] else if ((_membership?.tierLevel ?? 0) > 0) ...<Widget>[
                       PremiumBadge.ribbon(
                         tierName: _membership!.tierName,
                         level: _membership!.tierLevel,
