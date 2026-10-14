@@ -394,7 +394,22 @@ def cmd_prepare():
         sys.exit('ERROR: no android/build.gradle(.kts) found')
 
     text = read(root)
-    if 'Ivory: raise every module' in text:
+
+    # Agora 6.6.x reads rootProject.ext.compileSdkVersion and otherwise
+    # falls back to API 31. Raising :app alone does not change that plugin.
+    extra_marker = 'Ivory: Agora root compileSdkVersion 36'
+    if extra_marker not in text:
+        if root.endswith('.kts'):
+            extra_line = 'rootProject.extra["compileSdkVersion"] = 36'
+        else:
+            extra_line = "rootProject.ext.set('compileSdkVersion', 36)"
+        text = ('// ' + extra_marker + '\n' + extra_line + '\n\n' + text)
+        write(root, text)
+        print('Set the root compileSdkVersion extra to 36 for Agora.')
+
+    block_marker = ('Ivory: raise every module' if root.endswith('.kts')
+                    else 'Ivory: give every module a modern compileSdk')
+    if block_marker in text:
         print('compileSdk override already present in', root)
     else:
         block = KTS_BLOCK if root.endswith('.kts') else GROOVY_BLOCK
@@ -518,26 +533,4 @@ def cmd_icons():
               'icon was NOT changed.')
         sys.exit(0)
 
-    layers_ok = (os.path.exists('assets/icon/ivory_icon_foreground.png')
-                 and os.path.exists('assets/icon/ivory_icon_bg.png'))
-    if not layers_ok:
-        print('::warning::Adaptive icon layers missing - plain icon only.')
-        lines = read('pubspec.yaml').splitlines(True)
-        write('pubspec.yaml',
-              ''.join(l for l in lines if 'adaptive_icon_' not in l))
-        print('Removed adaptive_icon_* from pubspec.yaml for this build.')
-    print('ICON_READY')
-
-COMMANDS = {
-    'verify': cmd_verify,
-    'prepare': cmd_prepare,
-    'firebase': cmd_firebase,
-    'icons': cmd_icons,
-}
-
-if __name__ == '__main__':
-    if len(sys.argv) != 2 or sys.argv[1] not in COMMANDS:
-        sys.exit('usage: ci_android.py %s' % '|'.join(COMMANDS))
-        COMMANDS[sys.argv[1]]()
-
-# END OF FILE - tools/ci_android.py
+    layers_ok = (os.path.exists('assets/icon/ivory_ico
