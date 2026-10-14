@@ -181,8 +181,9 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
             displayName: widget.displayName,
             imageUrl: _imageUrl,
             size: widget.size,
-            premiumFrame: widget.isActivePaidMember &&
-                (_imageUrl?.isNotEmpty ?? false),
+            premiumFrame: AuthService.instance.isAdminCached ||
+                (widget.isActivePaidMember &&
+                    (_imageUrl?.isNotEmpty ?? false)),
           ),
         ),
         if (canTap)
