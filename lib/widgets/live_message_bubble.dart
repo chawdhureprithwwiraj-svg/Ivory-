@@ -110,7 +110,7 @@ class LiveMessageBubble extends StatelessWidget {
       );
     }
 
-    final String message = _said(m.body).$1;
+    final String displayText = _said(m.body).$1;
     final String? note = _said(m.body).$2;
     final bool premium = m.senderMembershipResolved &&
         m.senderHasActivePaidTier &&
@@ -179,7 +179,7 @@ class LiveMessageBubble extends StatelessWidget {
                             ),
                           ),
                         ),
-                      TextSpan(text: message),
+                      TextSpan(text: displayText),
                       if (note != null)
                         TextSpan(
                           text: '\n\u201C$note\u201D',
