@@ -62,6 +62,16 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
       (widget.avatarPath?.isNotEmpty ?? false) ||
       (widget.legacyAvatarUrl?.isNotEmpty ?? false);
 
+  // Photo permission is deliberately separate from paid-member styling:
+  // Ivory may choose a plain profile photo without receiving member benefits.
+  bool get _canChoosePhoto =>
+      widget.isActivePaidMember || AuthService.instance.isAdminCached;
+
+  String get _photoHint => AuthService.instance.isAdminCached
+      ? 'Used on your Profile and audio-call identity; it does not add '
+          'member benefits.'
+      : 'It appears on your Profile and beside your live-chat messages.';
+
   Future<void> _actions() async {
     if (_busy) return;
     final String? action = await showModalBottomSheet<String>(
@@ -71,14 +81,12 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            if (widget.isActivePaidMember)
+            if (_canChoosePhoto)
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined,
                     color: IvoryColors.plum),
                 title: const Text('Choose a profile photo'),
-                subtitle: const Text(
-                  'It appears on your Profile and beside your live-chat messages.',
-                ),
+                subtitle: Text(_photoHint),
                 onTap: () => Navigator.pop(sheetContext, 'choose'),
               ),
             if (_canRemove)
@@ -99,7 +107,7 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
   }
 
   Future<void> _choose() async {
-    if (!widget.isActivePaidMember || _busy) return;
+    if (!_canChoosePhoto || _busy) return;
     setState(() => _busy = true);
     String? uploadedPath;
     try {
@@ -162,8 +170,7 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final bool canTap = !_busy &&
-        (widget.isActivePaidMember || _canRemove);
+    final bool canTap = !_busy && (_canChoosePhoto || _canRemove);
     return Stack(
       clipBehavior: Clip.none,
       children: <Widget>[
@@ -180,8 +187,8 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
         ),
         if (canTap)
           Positioned(
-            right: widget.isActivePaidMember ? widget.size * 0.12 : -1,
-            bottom: widget.isActivePaidMember ? widget.size * 0.12 : -1,
+            right: _canChoosePhoto ? widget.size * 0.12 : -1,
+            bottom: _canChoosePhoto ? widget.size * 0.12 : -1,
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: const BoxDecoration(
@@ -192,7 +199,7 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
                 ),
               ),
               child: Icon(
-                widget.isActivePaidMember
+                _canChoosePhoto
                     ? Icons.photo_camera_outlined
                     : Icons.delete_outline,
                 size: 13,
