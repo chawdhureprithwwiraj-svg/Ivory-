@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
 
-/// The administrator's audio-call portrait. The single transparent artwork
-/// keeps the crown and jewelled frame on one clock, rotating clockwise together.
+/// The administrator's royal portrait. The frame turns clockwise while its
+/// separately layered crown turns counterclockwise in sync.
 class AdminCallRoyalAvatar extends StatefulWidget {
   const AdminCallRoyalAvatar({
     super.key,
@@ -25,7 +25,14 @@ class AdminCallRoyalAvatar extends StatefulWidget {
 class _AdminCallRoyalAvatarState extends State<AdminCallRoyalAvatar>
     with SingleTickerProviderStateMixin {
   static const String _frameAsset =
-      'assets/premium/ivory_admin_queen_call_frame.png';
+      'assets/premium/ivory_admin_queen_call_frame_ring.png';
+  static const String _crownAsset =
+      'assets/premium/ivory_admin_queen_call_crown.png';
+  static const double _canvasSide = 979;
+  static const double _crownLeft = 350;
+  static const double _crownTop = 10;
+  static const double _crownWidth = 270;
+  static const double _crownHeight = 194;
 
   late final AnimationController _turn = AnimationController(
     vsync: this,
@@ -96,7 +103,6 @@ class _AdminCallRoyalAvatarState extends State<AdminCallRoyalAvatar>
     final double size = widget.size;
     final double rotationFootprint = size * 1.45;
     // The artwork's measured clear opening is 63.3% of its square canvas.
-    // A 60% portrait leaves a clean margin beneath the jewelled inner rim.
     final double portraitSize = size * 0.60;
     return SizedBox(
       width: rotationFootprint,
@@ -108,38 +114,54 @@ class _AdminCallRoyalAvatarState extends State<AdminCallRoyalAvatar>
           _portrait(portraitSize),
           AnimatedBuilder(
             animation: _turn,
-            builder: (BuildContext context, Widget? child) => Transform.rotate(
-              // Flutter's positive angle is clockwise in its downward-y canvas.
-              angle: _turn.value * math.pi * 2,
-              child: child,
-            ),
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: Stack(
-                fit: StackFit.expand,
-                children: <Widget>[
-                  Image.asset(
-                    _frameAsset,
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.high,
-                    gaplessPlayback: true,
-                    errorBuilder: (_, __, ___) => const SizedBox.expand(),
-                  ),
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: AnimatedBuilder(
-                        animation: _turn,
-                        builder: (BuildContext context, Widget? child) =>
-                            CustomPaint(
-                          painter: _DiamondShimmer(progress: _turn.value),
+            builder: (BuildContext context, Widget? child) {
+              // In Flutter's downward-y canvas, positive rotation is clockwise.
+              final double frameAngle = _turn.value * math.pi * 2;
+              // The outer frame adds +frameAngle. Applying -2x locally makes
+              // the crown's visible, attached rotation -frameAngle.
+              final double crownAngle = -2 * frameAngle;
+              return Transform.rotate(
+                angle: frameAngle,
+                child: SizedBox(
+                  width: size,
+                  height: size,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      Image.asset(
+                        _frameAsset,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        gaplessPlayback: true,
+                        errorBuilder: (_, __, ___) => const SizedBox.expand(),
+                      ),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: CustomPaint(
+                            painter: _DiamondShimmer(progress: _turn.value),
+                          ),
                         ),
                       ),
-                    ),
+                      Positioned(
+                        left: size * (_crownLeft / _canvasSide),
+                        top: size * (_crownTop / _canvasSide),
+                        width: size * (_crownWidth / _canvasSide),
+                        height: size * (_crownHeight / _canvasSide),
+                        child: Transform.rotate(
+                          angle: crownAngle,
+                          child: Image.asset(
+                            _crownAsset,
+                            fit: BoxFit.fill,
+                            filterQuality: FilterQuality.high,
+                            gaplessPlayback: true,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ],
       ),
