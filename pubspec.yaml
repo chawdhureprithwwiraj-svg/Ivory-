@@ -18,6 +18,7 @@ dependencies:
   video_player: ^2.14.0
   share_plus: ^10.1.4
   agora_rtc_engine: ^6.6.4
+  vector_math: ^2.4.3
   # 13.x compiles against Android 17 preview APIs that the
   # current stable SDK does not ship. 12.x is the newest line
   # that builds on Android 16.
