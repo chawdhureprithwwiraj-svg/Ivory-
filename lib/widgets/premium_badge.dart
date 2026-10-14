@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/premium_tier_badge.dart';
 import '../theme/ivory_theme.dart';
+import 'lion_eye_fire_emblem.dart';
 
 /// ============================================================
 /// THE PREMIUM BADGE
@@ -106,28 +107,9 @@ class PremiumBadge extends StatelessWidget {
 
   String get _label => premiumTierLabel(tierName, level);
 
-  Widget _lion(double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: IvoryColors.gold, width: 1),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: IvoryColors.gold.withValues(alpha: 0.28),
-              blurRadius: size * 0.42,
-            ),
-          ],
-        ),
-        child: ClipOval(
-          child: Image.asset(
-            _lionAsset,
-            width: size,
-            height: size,
-            fit: BoxFit.cover,
-            filterQuality: FilterQuality.high,
-          ),
-        ),
+  Widget _lion(double size) => LionEyeFireEmblem(
+        imageAsset: _lionAsset,
+        size: size,
       );
 
   Widget _chip() {
@@ -190,7 +172,7 @@ class PremiumBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            _lion(17),
+            _lion(22),
             const SizedBox(width: 4),
             Flexible(
               child: Text(
@@ -213,7 +195,7 @@ class PremiumBadge extends StatelessWidget {
 
   Widget _emblem() => Tooltip(
         message: _label,
-        child: _lion(emblemSize),
+        child: _lion(emblemSize < 18 ? 18 : emblemSize),
       );
 
   // --------------------------------------------------------------- crest
