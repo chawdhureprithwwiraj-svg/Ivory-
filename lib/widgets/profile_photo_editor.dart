@@ -174,13 +174,14 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
             displayName: widget.displayName,
             imageUrl: _imageUrl,
             size: widget.size,
-            premiumFrame: widget.isActivePaidMember,
+            premiumFrame: widget.isActivePaidMember &&
+                (_imageUrl?.isNotEmpty ?? false),
           ),
         ),
         if (canTap)
           Positioned(
-            right: -1,
-            bottom: -1,
+            right: widget.isActivePaidMember ? widget.size * 0.12 : -1,
+            bottom: widget.isActivePaidMember ? widget.size * 0.12 : -1,
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: const BoxDecoration(
