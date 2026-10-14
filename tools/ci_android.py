@@ -58,6 +58,7 @@ REQUIRED = [
     'lib/screens/checkout_screen.dart',
     'lib/screens/admin_screen.dart',
     'lib/screens/admin_payments_tab.dart',
+    'assets/premium/ivory_admin_queen_call_frame.png',
     'pubspec.yaml',
 ]
 
@@ -86,6 +87,13 @@ GATED = [
         'lib/screens/live_screen_beauty_part.dart',
         'lib/services/live_beauty_service.dart',
         'lib/widgets/live_beauty_panel.dart',
+        'lib/models/call_audio_identity.dart',
+        'lib/services/call_audio_identity_service.dart',
+        'lib/services/profile_photo_service.dart',
+        'lib/widgets/member_avatar.dart',
+        'lib/widgets/profile_photo_editor.dart',
+        'lib/widgets/admin_call_royal_avatar.dart',
+        'lib/widgets/audio_call_identity_stage.dart',
     ]),
     ('video_player', [
         'lib/widgets/ivory_media_view.dart',
@@ -133,6 +141,12 @@ MARKED = [
     'lib/screens/live_screen.dart',
     'lib/screens/live_screen_guest_part.dart',
     'lib/widgets/live_stage_bits.dart',
+    'lib/models/call_audio_identity.dart',
+    'lib/services/call_audio_identity_service.dart',
+    'lib/services/profile_photo_service.dart',
+    'lib/widgets/profile_photo_editor.dart',
+    'lib/widgets/admin_call_royal_avatar.dart',
+    'lib/widgets/audio_call_identity_stage.dart',
     'lib/widgets/live_video_stage.dart',
     'lib/screens/admin_live_beauty_preview.dart',
     'lib/screens/admin_live_tab_beauty_part.dart',
@@ -524,6 +538,4 @@ COMMANDS = {
 if __name__ == '__main__':
     if len(sys.argv) != 2 or sys.argv[1] not in COMMANDS:
         sys.exit('usage: ci_android.py %s' % '|'.join(COMMANDS))
-    COMMANDS[sys.argv[1]]()
-
-# END OF FILE - tools/ci_android.py
+    COMMANDS[sys.argv
