@@ -129,7 +129,7 @@ class _MemberAvatarState extends State<MemberAvatar>
       child: AnimatedBuilder(
         animation: _motion,
         builder: (BuildContext context, Widget? child) {
-          final double flap = math.sin(_motion.value * math.pi * 2) * 0.075;
+          final double flap = math.sin(_motion.value * math.pi * 2) * 0.20;
           return Stack(
             alignment: Alignment.center,
             clipBehavior: Clip.none,
