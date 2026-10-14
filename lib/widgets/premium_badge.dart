@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/premium_tier_badge.dart';
 import '../theme/ivory_theme.dart';
 
 /// ============================================================
@@ -21,6 +22,7 @@ class PremiumBadge extends StatelessWidget {
     required this.level,
     required this.variant,
     this.subtitle,
+    this.emblemSize = 18,
   });
 
   /// A small pill for headers, list rows and app bars.
@@ -29,6 +31,30 @@ class PremiumBadge extends StatelessWidget {
         tierName: tierName,
         level: level,
         variant: _BadgeVariant.chip,
+      );
+
+  /// A smaller name-line tag for live chat and call headers.
+  factory PremiumBadge.compact({
+    required String tierName,
+    required int level,
+  }) =>
+      PremiumBadge._(
+        tierName: tierName,
+        level: level,
+        variant: _BadgeVariant.compact,
+      );
+
+  /// A small lion emblem for narrow live tiles and post-gifter chips.
+  factory PremiumBadge.emblem({
+    required String tierName,
+    required int level,
+    double size = 18,
+  }) =>
+      PremiumBadge._(
+        tierName: tierName,
+        level: level,
+        variant: _BadgeVariant.emblem,
+        emblemSize: size,
       );
 
   /// The circular medallion for the Profile header.
@@ -56,28 +82,17 @@ class PremiumBadge extends StatelessWidget {
   final int level;
   final _BadgeVariant variant;
   final String? subtitle;
-
-  /// Level one is a crown; every step up adds a star to the right of it.
-  IconData get _icon {
-    switch (level) {
-      case 0:
-        return Icons.auto_awesome_outlined;
-      case 1:
-        return Icons.workspace_premium;
-      case 2:
-        return Icons.military_tech;
-      case 3:
-        return Icons.diamond;
-      default:
-        return Icons.emoji_events;
-    }
-  }
+  final double emblemSize;
 
   @override
   Widget build(BuildContext context) {
     switch (variant) {
       case _BadgeVariant.chip:
         return _chip();
+      case _BadgeVariant.compact:
+        return _compact();
+      case _BadgeVariant.emblem:
+        return _emblem();
       case _BadgeVariant.crest:
         return _crest();
       case _BadgeVariant.ribbon:
@@ -87,16 +102,45 @@ class PremiumBadge extends StatelessWidget {
 
   // ---------------------------------------------------------------- chip
 
+  static const String _lionAsset = 'assets/premium/ivory_crowned_lion.jpg';
+
+  String get _label => premiumTierLabel(tierName, level);
+
+  Widget _lion(double size) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: IvoryColors.gold, width: 1),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: IvoryColors.gold.withValues(alpha: 0.28),
+              blurRadius: size * 0.42,
+            ),
+          ],
+        ),
+        child: ClipOval(
+          child: Image.asset(
+            _lionAsset,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.high,
+          ),
+        ),
+      );
+
   Widget _chip() {
     return _Sheen(
       borderRadius: BorderRadius.circular(22),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: <Color>[
+              Color(0xFFFFF0C2),
               Color(0xFFF3D98A),
               IvoryColors.gold,
               Color(0xFFE8C766),
@@ -109,15 +153,19 @@ class PremiumBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(_icon, size: 14, color: IvoryColors.burgundy),
-            const SizedBox(width: 6),
-            Text(
-              tierName.toUpperCase(),
-              style: const TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.0,
-                color: IvoryColors.burgundy,
+            _lion(28),
+            const SizedBox(width: 7),
+            Flexible(
+              child: Text(
+                _label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.25,
+                  color: IvoryColors.burgundy,
+                ),
               ),
             ),
           ],
@@ -125,6 +173,48 @@ class PremiumBadge extends StatelessWidget {
       ),
     );
   }
+
+  Widget _compact() {
+    return _Sheen(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 152),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: <Color>[Color(0xFF67243A), Color(0xFF341621)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: IvoryColors.gold.withValues(alpha: 0.72)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            _lion(17),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                _label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 8.2,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.15,
+                  color: IvoryColors.cream,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emblem() => Tooltip(
+        message: _label,
+        child: _lion(emblemSize),
+      );
 
   // --------------------------------------------------------------- crest
 
@@ -176,14 +266,10 @@ class PremiumBadge extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    ShaderMask(
-                      shaderCallback: (Rect b) =>
-                          IvoryColors.goldGradient.createShader(b),
-                      child: Icon(_icon, size: 26, color: Colors.white),
-                    ),
+                    _lion(45),
                     const SizedBox(height: 2),
                     Text(
-                      'TIER $level',
+                      'VIP$level',
                       style: TextStyle(
                         fontSize: 8.5,
                         letterSpacing: 1.4,
@@ -199,7 +285,7 @@ class PremiumBadge extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          tierName,
+          _label,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontFamily: IvoryTheme.displayFont,
@@ -236,21 +322,7 @@ class PremiumBadge extends StatelessWidget {
         ),
         child: Row(
           children: <Widget>[
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: IvoryColors.goldGradient,
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: IvoryColors.gold.withValues(alpha: 0.45),
-                    blurRadius: 14,
-                  ),
-                ],
-              ),
-              child: Icon(_icon, size: 24, color: IvoryColors.burgundy),
-            ),
+            _lion(46),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -262,7 +334,7 @@ class PremiumBadge extends StatelessWidget {
                         shaderCallback: (Rect b) =>
                             IvoryColors.goldGradient.createShader(b),
                         child: Text(
-                          tierName,
+                          _label,
                           style: const TextStyle(
                             fontFamily: IvoryTheme.displayFont,
                             fontSize: 19,
@@ -305,7 +377,7 @@ class PremiumBadge extends StatelessWidget {
   }
 }
 
-enum _BadgeVariant { chip, crest, ribbon }
+enum _BadgeVariant { chip, compact, emblem, crest, ribbon }
 
 /// A slow diagonal highlight that travels across the badge, the way
 /// light moves over polished metal.
@@ -323,7 +395,18 @@ class _SheenState extends State<_Sheen> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 3200),
-  )..repeat();
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      _c.stop();
+      _c.value = 0;
+    } else if (!_c.isAnimating) {
+      _c.repeat();
+    }
+  }
 
   @override
   void dispose() {
