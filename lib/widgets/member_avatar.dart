@@ -27,6 +27,8 @@ class MemberAvatar extends StatefulWidget {
 class _MemberAvatarState extends State<MemberAvatar>
     with SingleTickerProviderStateMixin {
   static const String _frameAsset =
+      'assets/premium/ivory_ornate_avatar_frame_large.png';
+  static const String _fallbackFrameAsset =
       'assets/premium/ivory_ornate_avatar_frame.png';
   late final AnimationController _motion = AnimationController(
     vsync: this,
@@ -122,7 +124,9 @@ class _MemberAvatarState extends State<MemberAvatar>
 
     // The side feathers need a little room beyond the circular artwork.
     final double footprint = frameSize * 1.24;
-    final double portraitSize = frameSize * 0.495;
+    // This frame variant has a larger transparent opening. Keep the photo
+    // slightly larger than that opening so the inner rim cleanly masks it.
+    final double portraitSize = frameSize * 0.57;
     return SizedBox(
       width: footprint,
       height: footprint,
@@ -154,6 +158,13 @@ class _MemberAvatarState extends State<MemberAvatar>
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
                 gaplessPlayback: true,
+                errorBuilder: (_, __, ___) => Image.asset(
+                  _fallbackFrameAsset,
+                  width: frameSize,
+                  height: frameSize,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                ),
               ),
               Positioned.fill(
                 child: CustomPaint(
