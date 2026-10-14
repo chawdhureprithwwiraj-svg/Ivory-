@@ -7,6 +7,7 @@ import '../services/profile_photo_service.dart';
 import '../theme/ivory_theme.dart';
 import 'member_avatar.dart';
 import 'premium_badge.dart';
+import 'rotating_gift_crown.dart';
 
 /// ============================================================
 /// IVORY - THE WALL. WHO GIFTED ON THIS POST.
@@ -161,11 +162,7 @@ class _GiftWallState extends State<GiftWall> {
       ),
       child: Row(
         children: <Widget>[
-          const SizedBox(
-            width: 20,
-            height: 20,
-            child: CustomPaint(painter: _CrownPainter(faded: true)),
-          ),
+          const RotatingGiftCrown(size: 22, faded: true, animated: false),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -229,11 +226,7 @@ class _GiftWallState extends State<GiftWall> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              const SizedBox(
-                width: 26,
-                height: 26,
-                child: CustomPaint(painter: _CrownPainter()),
-              ),
+              const RotatingGiftCrown(size: 36),
               const SizedBox(width: 9),
               MemberAvatar(
                 displayName: top.sender,
@@ -428,71 +421,6 @@ class _GiftWallState extends State<GiftWall> {
       ),
     );
   }
-}
-
-/// A small drawn crown. Five points, a band, three gold studs.
-/// Drawn rather than an emoji, for the same reason the gift
-/// scenes are drawn: a borrowed picture in somebody else's
-/// colours does not belong beside a paid name.
-class _CrownPainter extends CustomPainter {
-  const _CrownPainter({this.faded = false});
-
-  final bool faded;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double w = size.width;
-    final double h = size.height;
-    final double a = faded ? 0.38 : 1.0;
-
-    final Path p = Path()
-      ..moveTo(w * 0.08, h * 0.74)
-      ..lineTo(w * 0.08, h * 0.34)
-      ..lineTo(w * 0.29, h * 0.54)
-      ..lineTo(w * 0.50, h * 0.20)
-      ..lineTo(w * 0.71, h * 0.54)
-      ..lineTo(w * 0.92, h * 0.34)
-      ..lineTo(w * 0.92, h * 0.74)
-      ..close();
-
-    canvas.drawPath(
-      p,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            IvoryColors.amber.withValues(alpha: a),
-            IvoryColors.gold.withValues(alpha: a),
-          ],
-        ).createShader(Offset.zero & size),
-    );
-    canvas.drawPath(
-      p,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = w * 0.045
-        ..color = IvoryColors.burgundy.withValues(alpha: 0.55 * a),
-    );
-
-    // The band.
-    canvas.drawRect(
-      Rect.fromLTWH(w * 0.08, h * 0.74, w * 0.84, h * 0.13),
-      Paint()..color = IvoryColors.burgundy.withValues(alpha: 0.78 * a),
-    );
-
-    // Three studs along the band.
-    for (int i = 0; i < 3; i++) {
-      canvas.drawCircle(
-        Offset(w * (0.27 + i * 0.23), h * 0.805),
-        w * 0.045,
-        Paint()..color = IvoryColors.cream.withValues(alpha: a),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_CrownPainter old) => old.faded != faded;
 }
 
 // END OF FILE - lib/widgets/gift_wall.dart
