@@ -34,6 +34,7 @@ class LiveVideoStage {
   static Widget _pip({
     required Widget video,
     required VoidCallback? onTap,
+    Widget? badge,
   }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
@@ -41,6 +42,12 @@ class LiveVideoStage {
         fit: StackFit.expand,
         children: <Widget>[
           Positioned.fill(child: video),
+          if (badge != null)
+            Positioned(
+              left: 5,
+              bottom: 5,
+              child: badge,
+            ),
           if (onTap != null)
             Tooltip(
               message: 'Tap to swap the large and small video views',
@@ -83,6 +90,8 @@ class LiveVideoStage {
     required bool selfView,
     required int? remoteUid,
     required String channel,
+    Widget? selfBadge,
+    Widget? remoteBadge,
     required bool portrait,
     required bool pipSelf,
     bool pipRemote = false,
@@ -139,6 +148,10 @@ class LiveVideoStage {
           // Native Agora surfaces do not always honor loose Stack
           // constraints on every handset; make the fill explicit.
           Positioned.fill(child: video),
+          if (selfView && selfBadge != null)
+            Positioned(left: 10, top: 10, child: selfBadge),
+          if (!selfView && !pipRemote && remoteBadge != null)
+            Positioned(left: 10, top: 10, child: remoteBadge),
           if (pipSelf)
             Positioned(
               right: 10,
@@ -156,6 +169,7 @@ class LiveVideoStage {
                   ),
                 ),
                 onTap: onTapPipSelf,
+                badge: selfBadge,
               ),
             ),
           if (pipRemote && remoteUid != null)
@@ -176,6 +190,7 @@ class LiveVideoStage {
                   ),
                 ),
                 onTap: onTapPipRemote,
+                badge: remoteBadge,
               ),
             ),
         ],
