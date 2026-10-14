@@ -25,6 +25,7 @@ import '../widgets/live_room_body.dart';
 import '../widgets/call_time_watch.dart';
 import '../widgets/live_controls.dart';
 import '../widgets/live_stage_bits.dart';
+import '../widgets/audio_call_identity_stage.dart';
 import '../widgets/live_member_top_bar.dart';
 import '../widgets/premium_badge.dart';
 import '../widgets/live_ended_notice.dart';
