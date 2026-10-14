@@ -34,6 +34,7 @@ flutter:
   assets:
     - assets/icon/
     - assets/logo/
+    - assets/premium/
 
 # The launcher icon. Regenerated in CI by "dart run flutter_launcher_icons"
 # right after "flutter create", because android/ is not in the repo.
