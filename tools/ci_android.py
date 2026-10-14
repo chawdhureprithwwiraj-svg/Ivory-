@@ -539,3 +539,6 @@ if __name__ == '__main__':
     if len(sys.argv) != 2 or sys.argv[1] not in COMMANDS:
         sys.exit('usage: ci_android.py %s' % '|'.join(COMMANDS))
     COMMANDS[sys.argv
+    COMMANDS[sys.argv[1]]()
+
+# END OF FILE - tools/ci_android.py
