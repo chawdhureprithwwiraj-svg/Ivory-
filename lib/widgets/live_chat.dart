@@ -114,7 +114,10 @@ class _LiveChatState extends State<LiveChat> {
       if (!mounted) return;
       setState(() => _messages = rows);
       _toBottom();
-      unawaited(_resolveAvatars(rows));
+      if (rows.isNotEmpty) {
+        unawaited(_resolveMembership(rows));
+        unawaited(_resolveAvatars(rows));
+      }
     } catch (_) {
       // An empty rail is better than an error during a broadcast.
     }
