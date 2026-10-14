@@ -6,6 +6,7 @@ import '../core/agora_config.dart';
 import '../models/live_models.dart';
 import '../models/agora_ticket.dart';
 import '../models/live_night.dart';
+import 'member_badge_service.dart';
 
 /// ============================================================
 /// IVORY - LIVE SESSIONS AND ONE-ON-ONE CALLS
@@ -435,9 +436,13 @@ class LiveService {
         .eq('session_id', sessionId)
         .order('created_at', ascending: true)
         .limit(200);
-    return rows
+    final List<LiveMessage> messages = rows
         .map((dynamic r) => LiveMessage.fromDb(r as Map<String, dynamic>))
         .toList();
+    return MemberBadgeService.instance.resolveLiveMessages(
+      sessionId,
+      messages,
+    );
   }
 
   /// Postgres checks entitlement again here, so a member who is not
