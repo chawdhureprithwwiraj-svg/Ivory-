@@ -87,9 +87,9 @@ class _RotatingGiftCrownState extends State<RotatingGiftCrown>
               ),
             ),
             builder: (BuildContext context, Widget? child) {
-              // Negative Y rotation turns the image horizontally, left to right.
+              // Positive Y rotation follows the left-pointing direction shown.
               // Perspective narrows it toward an edge-on view.
-              final double angle = -_turn.value * math.pi * 2;
+              final double angle = _turn.value * math.pi * 2;
               final Matrix4 transform = Matrix4.identity()
                 ..setEntry(3, 2, 0.0015)
                 ..rotateY(angle);
