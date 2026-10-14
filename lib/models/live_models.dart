@@ -6,6 +6,8 @@
 /// just the shapes the database rows arrive in.
 /// ============================================================
 
+export 'live_member_identity_models.dart';
+
 // =====================================================================
 // MODELS
 // =====================================================================
@@ -422,56 +424,6 @@ class GiftSend {
       );
 }
 
-/// A line of chat during a broadcast. The only way a viewer takes
-/// part: nobody but the host ever gets a microphone.
-class LiveMessage {
-  const LiveMessage({
-    required this.id,
-    required this.body,
-    required this.isHost,
-    this.memberId,
-    this.createdAt,
-    this.senderName,
-    this.senderAvatarPath,
-    this.senderAvatarUrl,
-    this.senderHasActivePaidTier = false,
-  });
-
-  final int id;
-  final String body;
-  final bool isHost;
-  final String? memberId;
-  final DateTime? createdAt;
-  final String? senderName;
-  final String? senderAvatarPath;
-  final String? senderAvatarUrl;
-  final bool senderHasActivePaidTier;
-
-  LiveMessage withSenderAvatarUrl(String? value) => LiveMessage(
-        id: id,
-        body: body,
-        isHost: isHost,
-        memberId: memberId,
-        createdAt: createdAt,
-        senderName: senderName,
-        senderAvatarPath: senderAvatarPath,
-        senderAvatarUrl: value,
-        senderHasActivePaidTier: senderHasActivePaidTier,
-      );
-
-  factory LiveMessage.fromDb(Map<String, dynamic> m) => LiveMessage(
-        id: ((m['id'] as num?) ?? 0).toInt(),
-        body: (m['body'] as String?) ?? '',
-        isHost: (m['is_host'] as bool?) ?? false,
-        memberId: m['member_id'] as String?,
-        createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
-        senderName: m['sender_name'] as String?,
-        senderAvatarPath: m['sender_avatar_path'] as String?,
-        senderHasActivePaidTier:
-            (m['sender_has_active_paid_tier'] as bool?) ?? false,
-      );
-}
-
 /// Where a member goes to pick a time slot. Provider-agnostic on
 /// purpose: Cal.com today, anything with a URL tomorrow.
 class BookingLink {
@@ -500,67 +452,6 @@ class BookingLink {
         url: m['url'] as String?,
         headline: m['headline'] as String?,
         note: m['note'] as String?,
-      );
-}
-
-/// ONE NAME ON THE WALL OF A POST.
-///
-/// Returned by `post_gifters`, which gives back CONFIRMED
-/// sends only - so every one of these is a real member who
-/// really paid. See `lib/widgets/gift_wall.dart` for why that
-/// matters and must never be loosened.
-class PostGifter {
-  const PostGifter({
-    required this.sender,
-    required this.giftName,
-    required this.emoji,
-    required this.amountInr,
-    this.note,
-    this.avatarPath,
-    this.avatarUrl,
-    this.hasActivePaidTier = false,
-  });
-
-  final String sender;
-  final String giftName;
-  final String emoji;
-  final int amountInr;
-
-  /// Private profile photo path, available only to viewers who can
-  /// open this post and see its confirmed gift wall.
-  final String? avatarPath;
-  final String? avatarUrl;
-
-  /// Current paid status controls the gold frame. It does not change
-  /// the member's tier name, gift, or other membership entitlements.
-  final bool hasActivePaidTier;
-
-  /// The line they wrote with it, or null. Null covers BOTH
-  /// "they wrote nothing" and "she took it down" - the wall
-  /// treats those the same, because a removed line must leave
-  /// no trace that there was ever a line to remove.
-  final String? note;
-
-  PostGifter withAvatarUrl(String? value) => PostGifter(
-        sender: sender,
-        giftName: giftName,
-        emoji: emoji,
-        amountInr: amountInr,
-        note: note,
-        avatarPath: avatarPath,
-        avatarUrl: value,
-        hasActivePaidTier: hasActivePaidTier,
-      );
-
-  factory PostGifter.fromDb(Map<String, dynamic> m) => PostGifter(
-        sender: (m['sender'] as String?) ?? 'A member',
-        giftName: (m['gift_name'] as String?) ?? 'A gift',
-        emoji: (m['emoji'] as String?) ?? '',
-        amountInr: ((m['amount_inr'] as num?) ?? 0).toInt(),
-        note: m['note'] as String?,
-        avatarPath: m['sender_avatar_path'] as String?,
-        hasActivePaidTier:
-            (m['sender_has_active_paid_tier'] as bool?) ?? false,
       );
 }
 
