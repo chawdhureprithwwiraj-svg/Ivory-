@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../models/live_guest_models.dart';
 import '../theme/ivory_theme.dart';
+import 'premium_badge.dart';
 
 /// Ivory stays full-screen; up to five speakers share a draggable, snap-to-place
 /// dock above the chat. Camera-off guests remain named audio tiles.
@@ -97,16 +98,30 @@ class LiveBroadcastStage extends StatelessWidget {
                 width: double.infinity,
                 color: IvoryColors.burgundy.withValues(alpha: 0.72),
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                child: Text(
-                  guest.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: IvoryColors.cream,
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        guest.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: IvoryColors.cream,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    if (guest.hasActivePaidTier) ...<Widget>[
+                      const SizedBox(width: 3),
+                      PremiumBadge.emblem(
+                        tierName: guest.tierName ?? '',
+                        level: guest.tierLevel,
+                        size: 13,
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
