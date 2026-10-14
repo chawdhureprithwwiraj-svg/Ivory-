@@ -92,6 +92,8 @@ class LiveGuestParticipant {
     required this.mediaKind,
     required this.videoEnabled,
     required this.status,
+    this.tierName,
+    this.tierLevel = 0,
   });
 
   final int requestId;
@@ -100,8 +102,26 @@ class LiveGuestParticipant {
   final String mediaKind;
   final bool videoEnabled;
   final String status;
+  final String? tierName;
+  final int tierLevel;
 
+  bool get hasActivePaidTier => tierLevel > 0;
   int get agoraUid => liveAgoraUid(userId);
+
+  LiveGuestParticipant withPremiumTier({
+    String? tierName,
+    int tierLevel = 0,
+  }) =>
+      LiveGuestParticipant(
+        requestId: requestId,
+        userId: userId,
+        displayName: displayName,
+        mediaKind: mediaKind,
+        videoEnabled: videoEnabled,
+        status: status,
+        tierName: tierLevel > 0 ? tierName : null,
+        tierLevel: tierLevel,
+      );
 
   factory LiveGuestParticipant.fromMap(Map<String, dynamic> m) =>
       LiveGuestParticipant(
@@ -111,6 +131,8 @@ class LiveGuestParticipant {
         mediaKind: (m['media_kind'] as String?) ?? 'video',
         videoEnabled: (m['video_enabled'] as bool?) ?? false,
         status: (m['status'] as String?) ?? 'joining',
+        tierName: m['tier_name'] as String?,
+        tierLevel: ((m['tier_level'] as num?) ?? 0).toInt(),
       );
 }
 
