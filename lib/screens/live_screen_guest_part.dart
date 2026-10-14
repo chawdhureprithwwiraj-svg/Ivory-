@@ -172,10 +172,16 @@ extension _LiveScreenGuests on _LiveScreenState {
       name: _otherName,
     );
     if (!widget.videoEnabled) {
-      return LiveAudioStage(
+      return AudioCallIdentityStage(
+        callId: widget.sessionId,
+        memberDisplayName: _isOwner
+            ? widget.title
+            : (AuthService.instance.cachedProfile?.displayName ?? 'A member'),
         heading: words.heading,
         subtitle: words.note,
         pulse: _remoteUid != null,
+        memberTierLevel:
+            _isOwner ? widget.memberTierLevel : _selfCallTierLevel,
       );
     }
     if (_remoteUid == null) {
