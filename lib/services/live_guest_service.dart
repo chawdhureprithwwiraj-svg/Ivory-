@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/live_guest_models.dart';
+import '../models/premium_tier_badge.dart';
+import 'member_badge_service.dart';
 
 /// Server-gated live co-host requests, capacity and future-entry credits.
 /// Prices, payment state, approvals and guest publisher permission are never
@@ -126,10 +128,20 @@ class LiveGuestService {
       params: <String, dynamic>{'session_id_in': sessionId},
     );
     if (result is! List) return <LiveGuestParticipant>[];
-    return result
+    final List<LiveGuestParticipant> rows = result
         .map((dynamic row) => LiveGuestParticipant.fromMap(
             Map<String, dynamic>.from(row as Map)))
         .toList();
+    final Map<String, PremiumTierBadge>? badges =
+        await MemberBadgeService.instance.forLiveSession(sessionId);
+    if (badges == null) return rows;
+    return rows.map((LiveGuestParticipant participant) {
+      final PremiumTierBadge? badge = badges[participant.userId];
+      return participant.withPremiumTier(
+        tierName: badge?.tierName,
+        tierLevel: badge?.tierLevel ?? 0,
+      );
+    }).toList();
   }
 
   Future<void> respond(int requestId, {required bool approve}) => _db.rpc<void>(
