@@ -1,11 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' show Matrix4;
 
 import '../theme/ivory_theme.dart';
 
-/// A realistic emerald-and-gold crown, rotating slowly clockwise on the
-/// post-gifter wall. The empty-state version stays softly faded.
+/// A slow, continuous left-to-right turn around the crown's vertical axis.
+/// This is a perspective yaw, not a clockwise screen-plane roll.
 class RotatingGiftCrown extends StatefulWidget {
   const RotatingGiftCrown({
     super.key,
@@ -85,11 +86,19 @@ class _RotatingGiftCrownState extends State<RotatingGiftCrown>
                 ),
               ),
             ),
-            builder: (BuildContext context, Widget? child) => Transform.rotate(
-              // Positive angles are clockwise in Flutter's screen coordinates.
-              angle: _turn.value * math.pi * 2,
-              child: child,
-            ),
+            builder: (BuildContext context, Widget? child) {
+              // Negative Y rotation turns the image horizontally, left to right.
+              // Perspective narrows it toward an edge-on view.
+              final double angle = -_turn.value * math.pi * 2;
+              final Matrix4 transform = Matrix4.identity()
+                ..setEntry(3, 2, 0.0015)
+                ..rotateY(angle);
+              return Transform(
+                alignment: Alignment.center,
+                transform: transform,
+                child: child,
+              );
+            },
           ),
         ),
       ),
