@@ -13,6 +13,7 @@ import '../services/live_guest_room_state.dart';
 import '../services/auth_service.dart';
 import '../services/live_service.dart';
 import '../services/live_beauty_service.dart';
+import '../services/member_badge_service.dart';
 
 import '../theme/ivory_theme.dart';
 import '../widgets/house_consent.dart';
@@ -24,6 +25,8 @@ import '../widgets/live_room_body.dart';
 import '../widgets/call_time_watch.dart';
 import '../widgets/live_controls.dart';
 import '../widgets/live_stage_bits.dart';
+import '../widgets/live_member_top_bar.dart';
+import '../widgets/premium_badge.dart';
 import '../widgets/live_ended_notice.dart';
 import '../widgets/live_broadcast_stage.dart';
 import '../widgets/live_guest_consent.dart';
@@ -49,6 +52,8 @@ class LiveScreen extends StatefulWidget {
     this.guestPriceInr = 0,
     this.guestRequestsOpen = true,
     this.hostVideoEnabled = true,
+    this.memberTierName,
+    this.memberTierLevel = 0,
   });
 
   final int sessionId;
@@ -66,6 +71,8 @@ class LiveScreen extends StatefulWidget {
   final int guestPriceInr;
   final bool guestRequestsOpen;
   final bool hostVideoEnabled;
+  final String? memberTierName;
+  final int memberTierLevel;
 
   @override
   State<LiveScreen> createState() => _LiveScreenState();
@@ -77,6 +84,8 @@ class _LiveScreenState extends State<LiveScreen> {
 
   String _status = 'Connecting you...';
   String? _error;
+  String? _selfCallTierName;
+  int _selfCallTierLevel = 0;
   bool _joined = false;
   bool _extShown = false;
   int _extTick = 0;
@@ -160,6 +169,7 @@ class _LiveScreenState extends State<LiveScreen> {
       _guestStateReady = _guestState!.start();
     }
     if (widget.mode == LiveMode.call) {
+      if (!_isOwner) unawaited(this._loadSelfCallBadge());
       // A call lives in call_requests, not live_sessions. Watching
       // the wrong table is what left a member on a frozen frame.
       _statusChannel = LiveService.instance.watchCall(
@@ -506,13 +516,16 @@ class _LiveScreenState extends State<LiveScreen> {
   Widget _bar(BuildContext context) {
     // ONCE IT IS OVER, IT IS OVER. The clock used to keep
     // counting underneath the words "the broadcast has ended".
-    return LiveTopBar.forRoom(
+    return LiveMemberTopBar.forRoom(
       title: widget.title,
       clock: _clk.text,
       live: _joined && _error == null && !_ended && _clk.running,
       isCall: widget.mode == LiveMode.call,
       hosting: widget.mode == LiveMode.host,
       watching: widget.mode == LiveMode.watch,
+      memberTierName: _isOwner ? widget.memberTierName : _selfCallTierName,
+      memberTierLevel: _isOwner ? widget.memberTierLevel : _selfCallTierLevel,
+      forSelf: !_isOwner,
       onGift: () => showGiftSheet(context, sessionId: widget.sessionId),
       onBeauty: _showLiveBeauty ? _openLiveBeautyPanel : null,
       onClose: () => Navigator.of(context).maybePop(),
