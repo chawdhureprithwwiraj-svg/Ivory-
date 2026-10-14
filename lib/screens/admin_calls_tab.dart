@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/live_models.dart';
 import '../services/live_service.dart';
+import '../services/member_badge_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_call_pill.dart';
 import '../widgets/call_sheet_bits.dart';
@@ -14,9 +15,8 @@ import 'live_screen.dart';
 /// Your consent gate. A member can ask for a session; nobody can
 /// put one in your evening without you tapping ACCEPT.
 ///
-///   ACCEPT   creates the private room, sets the agreed time and
-///            tells them it is confirmed
-///   DECLINE  no room is ever created, no minutes are touched
+///   ACCEPT   tells them yes; they choose the day and time inside Ivory
+///   DECLINE  no room is opened and no minutes are touched
 ///
 /// The sweep runs each time this tab opens: any session whose
 /// window closed with nobody inside is marked missed - forgiven
@@ -67,46 +67,6 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
       await LiveService.instance.respondToCall(c.id, accept: true);
       _say('Accepted. ${c.displayName} will now choose their time '
           'inside Ivory.');
-    } catch (e) {
-      _say(e.toString().replaceFirst('Exception: ', ''));
-    }
-    _load();
-  }
-
-  /// The member is in the room: offer them more minutes at a price
-  /// you set. Only wish-payers ever see it on their screen.
-  Future<void> _offerExtension(AdminCall c) async {
-    final TextEditingController price = TextEditingController();
-    final int? amount = await showDialog<int>(
-      context: context,
-      builder: (BuildContext d) => AlertDialog(
-        backgroundColor: IvoryColors.surface,
-        title: const Text('Offer more time',
-            style: TextStyle(color: IvoryColors.burgundy)),
-        content: TextField(
-          controller: price,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Price for the extension (Rs.)',
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(d),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () =>
-                Navigator.pop(d, int.tryParse(price.text.trim())),
-            child: const Text('OFFER'),
-          ),
-        ],
-      ),
-    );
-    if (amount == null || amount <= 0) return;
-    try {
-      await LiveService.instance.offerExtension(c.id, amount);
-      _say('Offered. They will see it on their call screen.');
     } catch (e) {
       _say(e.toString().replaceFirst('Exception: ', ''));
     }
@@ -181,7 +141,12 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
         .showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  // An extension is offered from inside the active call room, where
+  // the house sets both duration and price. The old list action only
+  // took a price and produced a notification with nowhere to accept.
   Future<void> _join(AdminCall c) async {
+    final badge = await MemberBadgeService.instance.forAdminCall(c.id);
+    if (!mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => LiveScreen(
@@ -190,10 +155,12 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
           subtitle: '${c.minutes} minutes - ${c.kind}',
           mode: LiveMode.call,
           videoEnabled: c.kind == 'video',
+          memberTierName: badge?.tierName,
+          memberTierLevel: badge?.tierLevel ?? 0,
         ),
       ),
     );
-    _load();
+    if (mounted) _load();
   }
 
   @override
@@ -430,18 +397,6 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
                   ),
                 ),
               ],
-            ),
-          ],
-          if (c.status == 'active' &&
-              c.requestedFor != null &&
-              !c.extensionPaid) ...<Widget>[
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () => _offerExtension(c),
-              icon: const Icon(Icons.hourglass_bottom_rounded, size: 17),
-              label: Text(c.extensionPrice == null
-                  ? 'OFFER EXTENSION'
-                  : 'EXTENSION OFFERED AT RS.${c.extensionPrice}'),
             ),
           ],
           if (joinable) ...<Widget>[
