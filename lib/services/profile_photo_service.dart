@@ -16,6 +16,7 @@ class ProfilePhotoService {
   static const String bucket = 'profile-photos';
   static const int _maxBytes = 5 * 1024 * 1024;
   static const int _signedUrlSeconds = 7 * 24 * 60 * 60;
+  static const int _callSignedUrlSeconds = 10 * 60;
 
   SupabaseClient get _db => Supabase.instance.client;
   final Map<String, _SignedAvatar> _urlCache = <String, _SignedAvatar>{};
@@ -78,6 +79,20 @@ class ProfilePhotoService {
         DateTime.now().add(const Duration(days: 6, hours: 23)),
       );
       return url;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// A private call portrait is shared only with the other participant.
+  /// Its URL is intentionally short-lived; the audio stage refreshes it while
+  /// the call remains open instead of extending a call photo for seven days.
+  Future<String?> signedCallAvatarUrl(String path) async {
+    if (path.trim().isEmpty || path.contains('://')) return null;
+    try {
+      return await _db.storage
+          .from(bucket)
+          .createSignedUrl(path, _callSignedUrlSeconds);
     } catch (_) {
       return null;
     }
