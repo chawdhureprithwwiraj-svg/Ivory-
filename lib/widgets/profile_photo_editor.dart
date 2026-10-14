@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/profile_photo_service.dart';
 import '../theme/ivory_theme.dart';
+import 'admin_call_royal_avatar.dart';
 import 'member_avatar.dart';
 
 class ProfilePhotoEditor extends StatefulWidget {
@@ -177,14 +178,19 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
         InkWell(
           onTap: canTap ? _actions : null,
           customBorder: const CircleBorder(),
-          child: MemberAvatar(
-            displayName: widget.displayName,
-            imageUrl: _imageUrl,
-            size: widget.size,
-            premiumFrame: AuthService.instance.isAdminCached ||
-                (widget.isActivePaidMember &&
-                    (_imageUrl?.isNotEmpty ?? false)),
-          ),
+          child: AuthService.instance.isAdminCached
+              ? AdminCallRoyalAvatar(
+                  displayName: widget.displayName,
+                  imageUrl: _imageUrl,
+                  size: widget.size,
+                )
+              : MemberAvatar(
+                  displayName: widget.displayName,
+                  imageUrl: _imageUrl,
+                  size: widget.size,
+                  premiumFrame: widget.isActivePaidMember &&
+                      (_imageUrl?.isNotEmpty ?? false),
+                ),
         ),
         if (canTap)
           Positioned(
