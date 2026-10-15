@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../models/live_models.dart';
 import '../models/agora_ticket.dart';
+import '../services/audio_call_beat_meter.dart';
 import '../services/live_service.dart';
 import '../core/ivory_errors.dart';
 import 'call_extension_prompt.dart';
@@ -255,6 +256,7 @@ class RoomEntry {
   static Future<RtcEngine> engine({
     required String appId,
     required bool isCall,
+    bool monitorCallAudio = false,
   }) async {
     final RtcEngine e = createAgoraRtcEngine();
     await e.initialize(RtcEngineContext(
@@ -263,6 +265,18 @@ class RoomEntry {
           ? ChannelProfileType.channelProfileCommunication
           : ChannelProfileType.channelProfileLiveBroadcasting,
     ));
+    if (monitorCallAudio) {
+      AudioCallBeatMeter.instance.reset();
+      try {
+        await e.enableAudioVolumeIndication(
+          interval: 200,
+          smooth: 3,
+          reportVad: true,
+        );
+      } catch (_) {
+        // A failed meter must never stop an otherwise healthy audio call.
+      }
+    }
     return e;
   }
 
