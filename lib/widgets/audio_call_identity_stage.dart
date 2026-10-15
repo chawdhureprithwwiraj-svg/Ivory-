@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../models/call_audio_identity.dart';
 import '../services/call_audio_identity_service.dart';
 import '../theme/ivory_theme.dart';
+import 'audio_call_connection_status.dart';
 import 'admin_call_royal_avatar.dart';
 import 'member_avatar.dart';
 import 'premium_badge.dart';
@@ -165,6 +166,11 @@ class _AudioCallIdentityStageState extends State<AudioCallIdentityStage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
+              AudioCallConnectionStatus(
+                connected: widget.pulse,
+                waitingText: widget.heading,
+              ),
+              const SizedBox(height: 14),
               AnimatedBuilder(
                 animation: _breath,
                 builder: (BuildContext context, Widget? child) {
@@ -226,16 +232,6 @@ class _AudioCallIdentityStageState extends State<AudioCallIdentityStage>
                       ),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                widget.heading,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: IvoryColors.ivory,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
                 ),
               ),
               if (widget.pulse || widget.subtitle != null) ...<Widget>[
