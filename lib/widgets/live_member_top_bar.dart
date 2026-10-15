@@ -4,8 +4,8 @@ import '../theme/ivory_theme.dart';
 import 'live_stage_bits.dart';
 import 'premium_badge.dart';
 
-/// Keeps LiveTopBar's controls intact and adds the member's tier mark to
-/// both the administrator's call view and the member's own call view.
+/// Keeps LiveTopBar's controls intact. Call badges belong beside the
+/// member identity tile; a header badge is opt-in to avoid misattribution.
 class LiveMemberTopBar {
   LiveMemberTopBar._();
 
@@ -20,6 +20,7 @@ class LiveMemberTopBar {
     String? memberTierName,
     int memberTierLevel = 0,
     bool forSelf = false,
+    bool showTierInHeader = false,
     VoidCallback? onGift,
     VoidCallback? onBeauty,
   }) {
@@ -34,7 +35,7 @@ class LiveMemberTopBar {
       onGift: onGift,
       onBeauty: onBeauty,
     );
-    if (!isCall || memberTierLevel <= 0) return roomBar;
+    if (!isCall || memberTierLevel <= 0 || !showTierInHeader) return roomBar;
     final Widget insignia = PremiumBadge.compact(
       tierName: memberTierName ?? '',
       level: memberTierLevel,
