@@ -8,6 +8,7 @@ import '../services/call_audio_identity_service.dart';
 import '../theme/ivory_theme.dart';
 import 'admin_call_royal_avatar.dart';
 import 'member_avatar.dart';
+import 'premium_badge.dart';
 
 /// The two identities shown together on both sides of an audio-only call.
 /// Only the admin tile uses the royal artwork; the member's existing avatar
@@ -19,6 +20,7 @@ class AudioCallIdentityStage extends StatefulWidget {
     required this.memberDisplayName,
     required this.heading,
     required this.memberTierLevel,
+    this.memberTierName,
     this.subtitle,
     this.pulse = false,
   });
@@ -28,6 +30,7 @@ class AudioCallIdentityStage extends StatefulWidget {
   final String heading;
   final String? subtitle;
   final int memberTierLevel;
+  final String? memberTierName;
   final bool pulse;
 
   @override
@@ -115,19 +118,12 @@ class _AudioCallIdentityStageState extends State<AudioCallIdentityStage>
   }
 
   Widget _memberPortrait({required double baseSize, required String name}) {
-    final bool hasPhoto = _member?.imageUrl?.isNotEmpty ?? false;
-    if (widget.memberTierLevel > 0 && hasPhoto) {
-      return MemberAvatar(
-        displayName: name,
-        imageUrl: _member?.imageUrl,
-        size: baseSize * 1.05,
-        premiumFrame: true,
-      );
-    }
+    final bool hasPremiumTier = widget.memberTierLevel > 0;
     return MemberAvatar(
       displayName: name,
       imageUrl: _member?.imageUrl,
-      size: baseSize * 0.62,
+      size: hasPremiumTier ? baseSize * 1.05 : baseSize * 0.62,
+      premiumFrame: hasPremiumTier,
     );
   }
 
@@ -219,6 +215,13 @@ class _AudioCallIdentityStageState extends State<AudioCallIdentityStage>
                           ),
                           const SizedBox(height: 4),
                           _nameLabel(memberName, tileWidth),
+                          if (widget.memberTierLevel > 0) ...<Widget>[
+                            const SizedBox(height: 4),
+                            PremiumBadge.compact(
+                              tierName: widget.memberTierName ?? '',
+                              level: widget.memberTierLevel,
+                            ),
+                          ],
                         ],
                       ),
                     ),
