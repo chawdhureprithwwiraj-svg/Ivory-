@@ -180,6 +180,7 @@ extension _LiveScreenGuests on _LiveScreenState {
         heading: words.heading,
         subtitle: words.note,
         pulse: _remoteUid != null,
+        memberTierName: _isOwner ? widget.memberTierName : _selfCallTierName,
         memberTierLevel:
             _isOwner ? widget.memberTierLevel : _selfCallTierLevel,
       );
