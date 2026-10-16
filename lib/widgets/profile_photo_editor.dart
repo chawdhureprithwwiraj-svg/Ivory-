@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
+import '../services/lapsed_photo_cleanup.dart';
 import '../services/profile_photo_service.dart';
 import '../theme/ivory_theme.dart';
 import 'admin_call_royal_avatar.dart';
@@ -36,20 +37,38 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
   void initState() {
     super.initState();
     _loadImage();
+    _tidyIfLapsed();
   }
 
   @override
   void didUpdateWidget(ProfilePhotoEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.avatarPath != widget.avatarPath ||
-        oldWidget.legacyAvatarUrl != widget.legacyAvatarUrl) {
+        oldWidget.legacyAvatarUrl != widget.legacyAvatarUrl ||
+        oldWidget.isActivePaidMember != widget.isActivePaidMember) {
       _loadImage();
     }
+  }
+
+  // CC.120: a photo belongs to an ACTIVE paid membership (or to Ivory).
+  // Once the tier has lapsed the photo is never shown; Ivory's default
+  // portrait takes its place and the stored photo is removed for good.
+  bool get _canShowPhoto =>
+      widget.isActivePaidMember || AuthService.instance.isAdminCached;
+
+  Future<void> _tidyIfLapsed() async {
+    if (_canShowPhoto) return;
+    final bool removed = await LapsedPhotoCleanup.instance.runIfLapsed();
+    if (removed && mounted) widget.onPathChanged(null);
   }
 
   Future<void> _loadImage() async {
     final String? path = widget.avatarPath;
     final String? legacy = widget.legacyAvatarUrl;
+    if (!_canShowPhoto) {
+      if (mounted) setState(() => _imageUrl = null);
+      return;
+    }
     final String? url = path == null
         ? legacy
         : await ProfilePhotoService.instance.signedAvatarUrl(path);
@@ -60,8 +79,9 @@ class _ProfilePhotoEditorState extends State<ProfilePhotoEditor> {
   }
 
   bool get _canRemove =>
-      (widget.avatarPath?.isNotEmpty ?? false) ||
-      (widget.legacyAvatarUrl?.isNotEmpty ?? false);
+      _canShowPhoto &&
+      ((widget.avatarPath?.isNotEmpty ?? false) ||
+          (widget.legacyAvatarUrl?.isNotEmpty ?? false));
 
   // Photo permission is deliberately separate from paid-member styling:
   // Ivory may choose a plain profile photo without receiving member benefits.
