@@ -224,18 +224,20 @@ extension _LiveScreenGuests on _LiveScreenState {
         guestVideoEnabled: _camOn,
         selfRequestId: _guestRequest?.id,
         guests: _guestState?.participants ?? <LiveGuestParticipant>[],
-        guestDockAnchor: _guestState?.guestDockAnchor ??
-            LiveGuestDockAnchor.aboveChatCenter,
-        canMoveGuestDock:
-            widget.mode == LiveMode.host && _isOwner,
-        onGuestDockAnchorChanged: _saveGuestDockAnchor,
+        tilePositions: _guestState?.tilePositions ??
+            const <String, LiveGuestTilePosition>{},
+        canMoveTiles: widget.mode == LiveMode.host && _isOwner,
+        onTileMoved: _saveGuestTile,
       );
 
-  Future<void> _saveGuestDockAnchor(LiveGuestDockAnchor anchor) async {
+  Future<void> _saveGuestTile(
+    String memberId,
+    LiveGuestTilePosition position,
+  ) async {
     final LiveGuestRoomState? state = _guestState;
     if (state == null) return;
     try {
-      await state.setGuestDockAnchor(anchor);
+      await state.setTilePosition(memberId, position);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -245,7 +247,37 @@ extension _LiveScreenGuests on _LiveScreenState {
     }
   }
 
-  Widget _controls() => LiveControls(
+  /// A broadcast has no red leave button - the X in the corner already
+  /// leaves. Ivory and co-hosts get a slim column of speaker buttons; a
+  /// co-host also gets STEP DOWN (back to the audience). Calls keep the
+  /// original row of controls exactly as it was.
+  Widget _controls() => widget.mode == LiveMode.call
+      ? _callControls()
+      : LiveRailControls(
+          visible: _error == null && _joined && !_ended,
+          publishes: _publishes,
+          videoEnabled: _localVideoEnabled,
+          micOn: _micOn,
+          speakerOn: _speaker,
+          camOn: _camOn,
+          canStepDown: _guestActive,
+          onToggleMic: () async {
+            setState(() => _micOn = !_micOn);
+            await _engine?.muteLocalAudioStream(!_micOn);
+          },
+          onToggleSpeaker: () async {
+            setState(() => _speaker = !_speaker);
+            await _engine?.setEnableSpeakerphone(_speaker);
+          },
+          onToggleCam: _toggleRoomCamera,
+          onSwitchCamera: () async {
+            setState(() => _frontCamera = !_frontCamera);
+            await _engine?.switchCamera();
+          },
+          onStepDown: _leaveGuest,
+        );
+
+  Widget _callControls() => LiveControls(
         visible: _error == null && _joined && !_ended,
         publishes: _publishes,
         videoEnabled: _localVideoEnabled,
