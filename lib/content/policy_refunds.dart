@@ -9,7 +9,7 @@
 library;
 
 const String kRefundsTitle = 'Refunds';
-const String kRefundsUpdated = 'Last updated 9 October 2026';
+const String kRefundsUpdated = 'Last updated 2026';
 
 const String kRefundsBody = '''
 1. THE IDEA
