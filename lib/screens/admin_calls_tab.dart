@@ -7,6 +7,7 @@ import '../theme/ivory_theme.dart';
 import '../widgets/admin_call_pill.dart';
 import '../widgets/call_sheet_bits.dart';
 import '../widgets/admin_bits.dart';
+import '../widgets/ivory_footer.dart';
 import 'live_screen.dart';
 
 /// ============================================================
@@ -149,14 +150,16 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
     if (!mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => LiveScreen(
-          sessionId: c.id,
-          title: c.displayName,
-          subtitle: '${c.minutes} minutes - ${c.kind}',
-          mode: LiveMode.call,
-          videoEnabled: c.kind == 'video',
-          memberTierName: badge?.tierName,
-          memberTierLevel: badge?.tierLevel ?? 0,
+        builder: (_) => IvoryFooterHide(
+          child: LiveScreen(
+            sessionId: c.id,
+            title: c.displayName,
+            subtitle: '${c.minutes} minutes - ${c.kind}',
+            mode: LiveMode.call,
+            videoEnabled: c.kind == 'video',
+            memberTierName: badge?.tierName,
+            memberTierLevel: badge?.tierLevel ?? 0,
+          ),
         ),
       ),
     );
