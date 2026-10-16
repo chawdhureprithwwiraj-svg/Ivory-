@@ -12,7 +12,7 @@
 library;
 
 const String kTermsTitle = 'Terms of use';
-const String kTermsUpdated = 'Last updated 9 October 2026';
+const String kTermsUpdated = 'Last updated 2026';
 
 const String kTermsBody = '''
 1. WHO THIS IS BETWEEN
