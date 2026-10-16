@@ -6,6 +6,7 @@ import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'services/push_service.dart';
 import 'theme/ivory_theme.dart';
+import 'widgets/ivory_footer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,8 @@ class IvoryApp extends StatelessWidget {
       title: 'Ivory',
       debugShowCheckedModeBanner: false,
       theme: IvoryTheme.light(),
+      // The small-print footer, under every screen of the app.
+      builder: IvoryFooter.wrap,
       home: SupabaseConfig.isConfigured
           ? const AuthGate()
           : const SetupNeededScreen(),
@@ -154,3 +157,5 @@ class SetupNeededScreen extends StatelessWidget {
     );
   }
 }
+
+// END OF FILE - lib/main.dart
