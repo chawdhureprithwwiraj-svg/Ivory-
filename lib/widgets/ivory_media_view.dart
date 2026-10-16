@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../theme/ivory_theme.dart';
+import 'ivory_footer.dart';
 
 /// ============================================================
 /// IVORY - IN-APP MEDIA
@@ -117,45 +118,47 @@ class _FullScreenImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: IvoryColors.burgundy,
-      body: SafeArea(
-        child: Stack(
-          children: <Widget>[
-            Positioned.fill(
-              child: InteractiveViewer(
-                minScale: 1,
-                maxScale: 5,
-                child: Center(
-                  child: Image.network(
-                    url,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const _MediaError(
-                      message: 'This image could not be loaded.',
-                      onDark: true,
+    return IvoryFooterHide(
+      child: Scaffold(
+        backgroundColor: IvoryColors.burgundy,
+        body: SafeArea(
+          child: Stack(
+            children: <Widget>[
+              Positioned.fill(
+                child: InteractiveViewer(
+                  minScale: 1,
+                  maxScale: 5,
+                  child: Center(
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const _MediaError(
+                        message: 'This image could not be loaded.',
+                        onDark: true,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: Material(
-                color: IvoryColors.ivory,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Padding(
-                    padding: EdgeInsets.all(9),
-                    child: Icon(Icons.close_rounded,
-                        color: IvoryColors.burgundy, size: 22),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Material(
+                  color: IvoryColors.ivory,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => Navigator.of(context).pop(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(9),
+                      child: Icon(Icons.close_rounded,
+                          color: IvoryColors.burgundy, size: 22),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
