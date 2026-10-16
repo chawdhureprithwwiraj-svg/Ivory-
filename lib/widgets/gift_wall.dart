@@ -90,7 +90,8 @@ class _GiftWallState extends State<GiftWall> {
       final List<PostGifter> r = await Future.wait<PostGifter>(
         raw.map((PostGifter g) async {
           final String? path = g.avatarPath;
-          if (path == null || path.isEmpty) return g;
+          // CC.120: a photo belongs to an ACTIVE paid membership only.
+          if (!g.hasActivePaidTier || path == null || path.isEmpty) return g;
           final String? url =
               await ProfilePhotoService.instance.signedAvatarUrl(path);
           return g.withAvatarUrl(url);
