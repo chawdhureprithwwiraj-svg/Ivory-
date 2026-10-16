@@ -9,7 +9,7 @@
 library;
 
 const String kContentTitle = 'Content & conduct';
-const String kContentUpdated = 'Last updated 9 October 2026';
+const String kContentUpdated = 'Last updated 2026';
 
 const String kContentBody = '''
 1. WHAT IVORY IS
