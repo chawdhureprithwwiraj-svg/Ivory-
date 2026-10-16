@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/live_guest_models.dart';
 import 'live_guest_service.dart';
+import 'live_guest_tile_service.dart';
 
 class LiveGuestRoomState extends ChangeNotifier {
   LiveGuestRoomState(this.sessionId);
@@ -14,6 +15,11 @@ class LiveGuestRoomState extends ChangeNotifier {
   bool hostVideoEnabled = true;
   LiveGuestDockAnchor guestDockAnchor =
       LiveGuestDockAnchor.aboveChatCenter;
+  Map<String, LiveGuestTilePosition> tilePositions =
+      <String, LiveGuestTilePosition>{};
+  final Map<String, LiveGuestTilePosition> _pendingTiles =
+      <String, LiveGuestTilePosition>{};
+  final Map<String, Future<void>> _tileWrites = <String, Future<void>>{};
   RealtimeChannel? _presence;
   RealtimeChannel? _settings;
   bool _dead = false;
@@ -34,10 +40,23 @@ class LiveGuestRoomState extends ChangeNotifier {
           await LiveGuestService.instance.hostVideoEnabled(sessionId);
       final LiveGuestDockAnchor anchor =
           await LiveGuestService.instance.guestDockAnchor(sessionId);
+      final Map<String, LiveGuestTilePosition>? tiles =
+          await LiveGuestTileService.instance.positions(sessionId);
       if (_dead) return;
       participants = rows;
       hostVideoEnabled = video;
       guestDockAnchor = anchor;
+      if (tiles != null) {
+        // A spot Ivory has just set stays where she put it until the
+        // database has caught up, so a window never jumps back.
+        _pendingTiles.removeWhere(
+          (String id, LiveGuestTilePosition p) => tiles[id] == p,
+        );
+        tilePositions = <String, LiveGuestTilePosition>{
+          ...tiles,
+          ..._pendingTiles,
+        };
+      }
       notifyListeners();
     } catch (_) {}
   }
@@ -65,6 +84,45 @@ class LiveGuestRoomState extends ChangeNotifier {
     } catch (_) {
       if (!_dead && revision == _dockRevision) {
         guestDockAnchor = previous;
+        notifyListeners();
+      }
+      rethrow;
+    }
+  }
+
+  /// Moves ONE co-host window. Other windows are never touched.
+  Future<void> setTilePosition(
+    String memberId,
+    LiveGuestTilePosition position,
+  ) async {
+    if (_dead || memberId.isEmpty) return;
+    final LiveGuestTilePosition? previous = tilePositions[memberId];
+    _pendingTiles[memberId] = position;
+    tilePositions = <String, LiveGuestTilePosition>{
+      ...tilePositions,
+      memberId: position,
+    };
+    notifyListeners();
+
+    final Future<void> before = _tileWrites[memberId] ?? Future<void>.value();
+    final Future<void> write = before.catchError((Object _) {}).then<void>(
+          (_) => LiveGuestTileService.instance
+              .setPosition(sessionId, memberId, position),
+        );
+    _tileWrites[memberId] = write;
+    try {
+      await write;
+    } catch (_) {
+      if (!_dead && _pendingTiles[memberId] == position) {
+        _pendingTiles.remove(memberId);
+        final Map<String, LiveGuestTilePosition> back =
+            <String, LiveGuestTilePosition>{...tilePositions};
+        if (previous == null) {
+          back.remove(memberId);
+        } else {
+          back[memberId] = previous;
+        }
+        tilePositions = back;
         notifyListeners();
       }
       rethrow;
