@@ -1,12 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:vector_math/vector_math_64.dart' as vector_math;
-
 import '../theme/ivory_theme.dart';
 
-/// Admin-only royal portrait: the centered frame turns clockwise while the
-/// enlarged crown stays at 12 o'clock and yaws counterclockwise in 3D.
+/// Admin-only royal portrait: the frame keeps its slow clockwise turn;
+/// the isolated jeweled crown gently bobs vertically above it.
 class AdminCallRoyalAvatar extends StatefulWidget {
   const AdminCallRoyalAvatar({
     super.key,
@@ -24,7 +22,7 @@ class AdminCallRoyalAvatar extends StatefulWidget {
 }
 
 class _AdminCallRoyalAvatarState extends State<AdminCallRoyalAvatar>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const String _frameAsset =
       'assets/premium/ivory_admin_queen_call_frame_ring.png';
   static const String _crownAsset =
@@ -37,11 +35,14 @@ class _AdminCallRoyalAvatarState extends State<AdminCallRoyalAvatar>
   static const double _crownSourceHeight = 194;
   static const double _crownScale = 3;
   static const double _portraitScale = 0.66;
-  static const double _perspective = 0.0015;
 
   late final AnimationController _turn = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 48),
+  );
+  late final AnimationController _crownBob = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3200),
   );
 
   @override
@@ -53,14 +54,18 @@ class _AdminCallRoyalAvatarState extends State<AdminCallRoyalAvatar>
   void _syncMotion() {
     if (MediaQuery.of(context).disableAnimations) {
       if (_turn.isAnimating) _turn.stop();
+      if (_crownBob.isAnimating) _crownBob.stop();
       _turn.value = 0;
-    } else if (!_turn.isAnimating) {
-      _turn.repeat();
+      _crownBob.value = 0;
+    } else {
+      if (!_turn.isAnimating) _turn.repeat();
+      if (!_crownBob.isAnimating) _crownBob.repeat();
     }
   }
 
   @override
   void dispose() {
+    _crownBob.dispose();
     _turn.dispose();
     super.dispose();
   }
@@ -133,13 +138,8 @@ class _AdminCallRoyalAvatarState extends State<AdminCallRoyalAvatar>
           AnimatedBuilder(
             animation: _turn,
             builder: (BuildContext context, Widget? child) {
-              // Positive Z rotation is clockwise in Flutter's downward-y plane.
+              // Keep this existing frame turn unchanged.
               final double frameAngle = _turn.value * math.pi * 2;
-              final double crownYaw = -frameAngle;
-              final vector_math.Matrix4 crownTransform =
-                  vector_math.Matrix4.identity()
-                    ..setEntry(3, 2, _perspective)
-                    ..rotateY(crownYaw);
 
               return SizedBox(
                 width: rotationFootprint,
@@ -184,15 +184,23 @@ class _AdminCallRoyalAvatarState extends State<AdminCallRoyalAvatar>
                           frameInset + size * (crownTopInCanvas / _canvasSide),
                       width: crownWidth,
                       height: crownHeight,
-                      child: Transform(
-                        alignment: Alignment.center,
-                        transform: crownTransform,
+                      child: AnimatedBuilder(
+                        animation: _crownBob,
                         child: Image.asset(
                           _crownAsset,
                           fit: BoxFit.fill,
                           filterQuality: FilterQuality.high,
                           gaplessPlayback: true,
                         ),
+                        builder: (BuildContext context, Widget? child) {
+                          final double bob =
+                              math.sin(_crownBob.value * math.pi * 2) *
+                                  size * 0.025;
+                          return Transform.translate(
+                            offset: Offset(0, bob),
+                            child: child,
+                          );
+                        },
                       ),
                     ),
                   ],
