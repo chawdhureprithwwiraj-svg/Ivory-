@@ -13,7 +13,7 @@
 library;
 
 const String kPrivacyTitle = 'Privacy';
-const String kPrivacyUpdated = 'Last updated 12 October 2026';
+const String kPrivacyUpdated = 'Last updated 2026';
 
 const String kPrivacyBody = '''
 1. THE SHORT VERSION
@@ -80,9 +80,14 @@ birthday token; it is not guaranteed.
 
 Supabase holds sign-in, the database and private profile-photo
 files; Google Firebase delivers notifications; Agora carries
-the live audio and video; Cloudflare R2 stores film and voice
-files; Razorpay, where used, handles payment. Each receives
+the live audio and video; Cloudflare R2 stores film, voice and published post photo/cover files;
+Razorpay, where used, handles payment. Each receives
 only what is needed to make that service work.
+
+Published post photos and covers use public image links; only
+publish images intended to be visible to anyone with their link.
+Profile photos and payment screenshots stay on a private path
+and use time-limited viewing links.
 
 The Ivory house can access optional phone and birthday details
 for account administration and the possible birthday token.
