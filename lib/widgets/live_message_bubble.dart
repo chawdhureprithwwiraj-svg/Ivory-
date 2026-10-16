@@ -124,7 +124,8 @@ class LiveMessageBubble extends StatelessWidget {
           children: <Widget>[
             MemberAvatar(
               displayName: m.senderName ?? 'A member',
-              imageUrl: m.senderAvatarUrl,
+              // CC.120: only an active paid member's photo is shown.
+              imageUrl: premium ? m.senderAvatarUrl : null,
               size: 36,
               premiumFrame: premium && (m.senderAvatarUrl?.isNotEmpty ?? false),
             ),
