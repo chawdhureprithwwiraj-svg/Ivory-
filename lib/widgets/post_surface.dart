@@ -7,6 +7,7 @@ import 'dart:ui' show FlutterView;
 import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
+import 'ivory_footer.dart';
 
 /// HOW A POST ARRIVES ON SCREEN.
 ///
@@ -272,34 +273,36 @@ class _FullPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(gradient: IvoryColors.pageGradient),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-                child: Row(
-                  children: <Widget>[
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded,
-                          color: IvoryColors.burgundy),
-                      onPressed: () => Navigator.of(context).maybePop(),
-                    ),
-                    const Spacer(),
-                  ],
+    return IvoryFooterHide(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Container(
+          decoration: const BoxDecoration(gradient: IvoryColors.pageGradient),
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                  child: Row(
+                    children: <Widget>[
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded,
+                            color: IvoryColors.burgundy),
+                        onPressed: () => Navigator.of(context).maybePop(),
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(22, 0, 22, 40),
-                  child: child,
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(22, 0, 22, 40),
+                    child: child,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
