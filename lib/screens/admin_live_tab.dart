@@ -11,6 +11,7 @@ import '../widgets/admin_bits.dart';
 import '../widgets/admin_post_chips.dart';
 import '../widgets/admin_live_guest_fee.dart';
 import 'admin_live_beauty_preview.dart';
+import '../widgets/ivory_footer.dart';
 import 'live_screen.dart';
 
 part 'admin_live_tab_beauty_part.dart';
@@ -154,14 +155,16 @@ class _AdminLiveTabState extends State<AdminLiveTab> with _AdminLiveBeautyMixin 
   }) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => LiveScreen(
-          sessionId: id,
-          title: title,
-          mode: LiveMode.host,
-          startedAt: startedAt,
-          guestPriceInr: guestPriceInr,
-          guestRequestsOpen: guestRequestsOpen,
-          hostVideoEnabled: hostVideoEnabled,
+        builder: (_) => IvoryFooterHide(
+          child: LiveScreen(
+            sessionId: id,
+            title: title,
+            mode: LiveMode.host,
+            startedAt: startedAt,
+            guestPriceInr: guestPriceInr,
+            guestRequestsOpen: guestRequestsOpen,
+            hostVideoEnabled: hostVideoEnabled,
+          ),
         ),
       ),
     );
