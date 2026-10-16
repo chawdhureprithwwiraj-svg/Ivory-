@@ -6,6 +6,7 @@ import 'live_pass_sheet.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../screens/live_screen.dart';
+import 'ivory_footer.dart';
 import '../models/live_models.dart';
 import '../services/auth_service.dart';
 import '../services/live_service.dart';
@@ -79,16 +80,18 @@ class _LiveBannerState extends State<LiveBanner>
 
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => LiveScreen(
-          sessionId: s.id,
-          title: s.title,
-          subtitle: s.subtitle,
-          guestPriceInr: s.guestPriceInr,
-          guestRequestsOpen: s.guestRequestsOpen,
-          hostVideoEnabled: s.hostVideoEnabled,
-          // Everyone counts from the moment it opened, so two
-          // members sitting together read the same clock.
-          startedAt: s.startedAt,
+        builder: (_) => IvoryFooterHide(
+          child: LiveScreen(
+            sessionId: s.id,
+            title: s.title,
+            subtitle: s.subtitle,
+            guestPriceInr: s.guestPriceInr,
+            guestRequestsOpen: s.guestRequestsOpen,
+            hostVideoEnabled: s.hostVideoEnabled,
+            // Everyone counts from the moment it opened, so two
+            // members sitting together read the same clock.
+            startedAt: s.startedAt,
+          ),
         ),
       ),
     );
