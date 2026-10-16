@@ -2,7 +2,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/call_audio_identity.dart';
 import '../models/ivory_profile.dart';
+import '../models/premium_tier_badge.dart';
 import 'auth_service.dart';
+import 'member_badge_service.dart';
 import 'profile_photo_service.dart';
 
 /// Returns only the two public identity cards for the signed-in side of an
@@ -66,11 +68,35 @@ class CallAudioIdentityService {
       }
     }
 
+    await _hideLapsedMemberPhoto(identities, callId);
+
     identities.sort((CallAudioIdentity a, CallAudioIdentity b) {
       if (a.isAdmin == b.isAdmin) return 0;
       return a.isAdmin ? -1 : 1;
     });
     return identities;
+  }
+
+  /// CC.120: a photo belongs to an ACTIVE paid membership. When the member
+  /// on this call has no active paid tier, the call shows the default
+  /// portrait (their initial) instead of any photo still on file.
+  Future<void> _hideLapsedMemberPhoto(
+    List<CallAudioIdentity> identities,
+    int callId,
+  ) async {
+    final int index =
+        identities.indexWhere((CallAudioIdentity p) => !p.isAdmin);
+    if (index < 0 || (identities[index].imageUrl?.isEmpty ?? true)) return;
+    final PremiumTierBadge? tier = AuthService.instance.isAdminCached
+        ? await MemberBadgeService.instance.forAdminCall(callId)
+        : await MemberBadgeService.instance.forCurrentMember();
+    if (tier != null && tier.isActivePaid) return;
+    final CallAudioIdentity old = identities[index];
+    identities[index] = CallAudioIdentity(
+      displayName: old.displayName,
+      imageUrl: null,
+      isAdmin: false,
+    );
   }
 
   Future<CallAudioIdentity?> _currentProfileIdentity() async {
