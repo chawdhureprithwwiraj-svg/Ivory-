@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -6,6 +8,7 @@ import 'business_enquiry_screen.dart';
 import '../models/ivory_notification.dart';
 import '../models/ivory_profile.dart';
 import '../services/auth_service.dart';
+import '../services/lapsed_photo_cleanup.dart';
 import '../services/notification_service.dart';
 import '../services/push_service.dart';
 import '../theme/ivory_theme.dart';
@@ -70,6 +73,8 @@ class _MainShellState extends State<MainShell> {
     _loadProfile();
     NotificationService.instance.start();
     PushService.instance.start();
+    // CC.120: a lapsed membership no longer keeps its profile photo.
+    unawaited(LapsedPhotoCleanup.instance.runIfLapsed());
     MainShell.onOpenTab = _openTab;
   }
 
