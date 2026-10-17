@@ -213,13 +213,15 @@ class VaultEmblem extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: <Widget>[
-          GoldCoin(size: size),
-          Transform.rotate(
-            angle: -math.pi / 4,
-            child: Icon(
-              Icons.vpn_key_rounded,
-              size: size * 0.5,
-              color: IvoryColors.burgundy,
+          GoldCoin(
+            size: size,
+            glyph: Transform.rotate(
+              angle: -math.pi / 2,
+              child: Icon(
+                Icons.vpn_key_rounded,
+                size: size * 0.4,
+                color: IvoryColors.burgundy,
+              ),
             ),
           ),
         ],
