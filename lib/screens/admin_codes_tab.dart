@@ -1,3 +1,4 @@
+import '../widgets/admin_stat_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -139,7 +140,6 @@ class _AdminCodesTabState extends State<AdminCodesTab> {
 
   Widget _tile(String label, String value) {
     return Container(
-      width: 150,
       padding: const EdgeInsets.all(14),
       decoration: IvoryTheme.card(),
       child: Column(
@@ -210,7 +210,7 @@ class _AdminCodesTabState extends State<AdminCodesTab> {
                   Text(
                     _details(c),
                     style: TextStyle(
-                      color: IvoryColors.textFaint,
+                      color: IvoryColors.plum.withValues(alpha: 0.82),
                       fontSize: 11.5,
                       height: 1.35,
                     ),
@@ -290,9 +290,7 @@ class _AdminCodesTabState extends State<AdminCodesTab> {
             ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          AdminStatGrid(
             children: <Widget>[
               _tile('CODES MADE', '${_n('shared_codes')}'),
               _tile('SWITCHED ON', '${_n('shared_on')}'),
@@ -310,7 +308,10 @@ class _AdminCodesTabState extends State<AdminCodesTab> {
           if (_codes.isEmpty)
             Text(
               'No codes yet. Tap NEW CODE to make the first.',
-              style: TextStyle(color: IvoryColors.textFaint, fontSize: 13),
+              style: TextStyle(
+                color: IvoryColors.plum.withValues(alpha: 0.82),
+                fontSize: 13,
+              ),
             ),
           for (final Map<String, dynamic> c in _codes) _row(c),
           const SizedBox(height: 8),
@@ -326,7 +327,7 @@ class _AdminCodesTabState extends State<AdminCodesTab> {
             'by treasures; they are private to each member and not listed '
             'here. Codes cannot be deleted: switch one off.',
             style: TextStyle(
-              color: IvoryColors.textFaint,
+              color: IvoryColors.plum.withValues(alpha: 0.82),
               fontSize: 12.5,
               height: 1.5,
             ),
