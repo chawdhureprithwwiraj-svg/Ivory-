@@ -7,9 +7,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/payment.dart';
 import '../services/payment_service.dart';
+import '../services/quiz_service.dart';
 import '../services/razorpay_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/checkout_cards.dart';
+import '../widgets/golden_credit_ribbon.dart';
 
 /// The UPI checkout.
 ///
@@ -24,12 +26,18 @@ class CheckoutScreen extends StatefulWidget {
     required this.tierName,
     required this.priceInr,
     this.durationDays = 30,
+    this.creditId,
+    this.creditInr = 0,
   });
 
   final int tierId;
   final String tierName;
   final int priceInr;
   final int durationDays;
+
+  /// A Golden Knock-off being spent on this order (CC.123), or null.
+  final int? creditId;
+  final int creditInr;
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -95,13 +103,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  /// What the member actually pays: the price less any Golden Knock-off.
+  int get _payInr => widget.creditId == null
+      ? widget.priceInr
+      : (widget.priceInr - widget.creditInr).clamp(1, widget.priceInr).toInt();
+
   String get _note =>
       '${_settings?.noteTemplate ?? 'Ivory'} - ${widget.tierName}';
 
   Future<void> _payInUpiApp() async {
     final PaymentSettings? s = _settings;
     if (s == null) return;
-    final Uri uri = s.intentUri(amountInr: widget.priceInr, note: _note);
+    final int? cid = widget.creditId;
+    if (cid != null &&
+        !GoldenCreditStore.instance.hasTime(cid, const Duration(minutes: 8))) {
+      _snack('Your Golden Knock-off ends too soon to finish this payment. '
+          'Go back and choose again.');
+      return;
+    }
+    final Uri uri = s.intentUri(amountInr: _payInr, note: _note);
     bool opened = false;
     try {
       opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -153,11 +173,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (_proof != null) {
         path = await PaymentService.instance.uploadProof(_proof!);
       }
-      await PaymentService.instance.submit(
-        tierId: widget.tierId,
-        utr: utr,
-        screenshotPath: path,
-      );
+      if (widget.creditId != null) {
+        await QuizService.instance.submitWithCredit(
+          tierId: widget.tierId,
+          utr: utr,
+          creditId: widget.creditId!,
+          screenshotPath: path,
+        );
+        GoldenCreditStore.instance.refresh();
+      } else {
+        await PaymentService.instance.submit(
+          tierId: widget.tierId,
+          utr: utr,
+          screenshotPath: path,
+        );
+      }
       if (!mounted) return;
       setState(() {
         _submitting = false;
@@ -167,7 +197,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _error = PaymentService.friendly(e);
+        _error = QuizService.instance.payError(e);
       });
     }
   }
@@ -213,6 +243,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           purpose: 'subscription',
                           tierId: widget.tierId,
                           label: widget.tierName,
+                          creditId: widget.creditId,
                         )
                       else ...<Widget>[
                         _stepOne(),
@@ -277,7 +308,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             textBaseline: TextBaseline.alphabetic,
             children: <Widget>[
               Text(
-                '₹${widget.priceInr}',
+                '₹$_payInr',
                 style: const TextStyle(
                   color: IvoryColors.gold,
                   fontSize: 32,
@@ -296,6 +327,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ],
           ),
+          GoldenOrderNote(creditInr: widget.creditId == null ? 0 : widget.creditInr),
         ],
       ),
     );
@@ -379,7 +411,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const SizedBox(height: 16),
           if (configured)
             IvoryGradientButton(
-              label: 'PAY ₹${widget.priceInr} IN YOUR UPI APP',
+              label: 'PAY ₹$_payInr IN YOUR UPI APP',
               icon: Icons.account_balance_wallet_outlined,
               onPressed: _payInUpiApp,
             )
