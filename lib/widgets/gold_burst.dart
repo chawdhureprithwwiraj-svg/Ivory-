@@ -17,9 +17,13 @@ import 'gold_fx.dart';
 /// A solid gold coin that turns on its edge: a real thickness made of
 /// layered discs, a face on each side, light moving across it.
 class GoldCoin extends StatefulWidget {
-  const GoldCoin({super.key, this.size = 54});
+  const GoldCoin({super.key, this.size = 54, this.glyph});
 
   final double size;
+
+  /// What is stamped on the coin instead of the rupee sign. It turns with
+  /// the coin.
+  final Widget? glyph;
 
   @override
   State<GoldCoin> createState() => _GoldCoinState();
@@ -68,21 +72,23 @@ class _GoldCoinState extends State<GoldCoin>
             width: 1.2,
           ),
         ),
-        child: Text(
-          '\u20B9',
-          style: TextStyle(
-            fontFamily: IvoryTheme.displayFont,
-            fontWeight: FontWeight.w900,
-            fontSize: s * 0.42,
-            color: IvoryColors.burgundy,
-            shadows: <Shadow>[
-              Shadow(
-                color: GoldTones.shine.withValues(alpha: 0.9),
-                offset: const Offset(0, 1),
+        child:
+            widget.glyph ??
+            Text(
+              '\u20B9',
+              style: TextStyle(
+                fontFamily: IvoryTheme.displayFont,
+                fontWeight: FontWeight.w900,
+                fontSize: s * 0.42,
+                color: IvoryColors.burgundy,
+                shadows: <Shadow>[
+                  Shadow(
+                    color: GoldTones.shine.withValues(alpha: 0.9),
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
       ),
     );
   }
