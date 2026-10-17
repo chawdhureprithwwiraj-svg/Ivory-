@@ -221,8 +221,7 @@ class _FxPainter extends CustomPainter {
           continue;
         }
         final double a = 1 - u;
-        final Offset b =
-            r.from * (a * a) + ctrl * (2 * a * u) + r.to * (u * u);
+        final Offset b = r.from * (a * a) + ctrl * (2 * a * u) + r.to * (u * u);
         final double w =
             math.sin(u * 6 * math.pi + ph + (t - r.start) * 9) *
             amp *
@@ -279,12 +278,12 @@ class _FxPainter extends CustomPainter {
     canvas.save();
     canvas.clipRect(r);
     final List<Color> cs = <Color>[
-      BellTones.dawn,
-      BellTones.dusk,
-      BellTones.noon,
-      BellTones.night,
+      BellTones.of(0),
+      BellTones.of(2),
+      BellTones.of(1),
+      BellTones.of(3),
       BellTones.amethyst,
-      BellTones.dawn,
+      BellTones.of(0),
     ];
     canvas.drawRect(
       r,
@@ -308,7 +307,8 @@ class _FxPainter extends CustomPainter {
     final double y = l.y0 - age * l.speed;
     final double x = l.x + math.sin(l.phase + age * 1.4) * 14;
     final double life = l.life;
-    final double a = math.min(1.0, age / 0.8) * math.min(1.0, (life - age) / 1.2);
+    final double a =
+        math.min(1.0, age / 0.8) * math.min(1.0, (life - age) / 1.2);
     if (a <= 0) return;
     final Offset p = Offset(x, y);
     _glowDot(canvas, p, l.radius * 0.55, l.color, a.clamp(0.0, 1.0));
