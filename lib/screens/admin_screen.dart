@@ -6,6 +6,8 @@ import 'admin_business_enquiries_tab.dart';
 import 'admin_calls_tab.dart';
 import 'admin_gold_tab.dart';
 import 'admin_heart_tab.dart';
+import 'admin_codes_tab.dart';
+import 'admin_rewards_tab.dart';
 import 'admin_live_tab.dart';
 import 'admin_members_tab.dart';
 import 'admin_reports_tab.dart';
@@ -29,7 +31,7 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs = TabController(
-    length: 13,
+    length: 15,
     initialIndex: widget.initialTab,
     vsync: this,
   );
@@ -71,6 +73,8 @@ class _AdminScreenState extends State<AdminScreen>
             Tab(text: 'ENQUIRIES'),
             Tab(text: 'GOLD'),
             Tab(text: 'HEART'),
+            Tab(text: 'REWARDS'),
+            Tab(text: 'CODES'),
           ],
         ),
       ),
@@ -93,6 +97,8 @@ class _AdminScreenState extends State<AdminScreen>
               AdminBusinessEnquiriesTab(),
               AdminGoldTab(),
               AdminHeartTab(),
+              AdminRewardsTab(),
+              AdminCodesTab(),
             ],
           ),
         ),
