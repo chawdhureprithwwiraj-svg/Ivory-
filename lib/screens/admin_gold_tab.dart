@@ -1,3 +1,4 @@
+import '../widgets/admin_stat_grid.dart';
 import 'package:flutter/material.dart';
 
 import '../core/ivory_errors.dart';
@@ -153,7 +154,6 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
 
   Widget _tile(String label, String value, {String? sub}) {
     return Container(
-      width: 150,
       padding: const EdgeInsets.all(14),
       decoration: IvoryTheme.card(),
       child: Column(
@@ -181,7 +181,10 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
           if (sub != null)
             Text(
               sub,
-              style: TextStyle(color: IvoryColors.textFaint, fontSize: 11.5),
+              style: TextStyle(
+                color: IvoryColors.plum.withValues(alpha: 0.82),
+                fontSize: 11.5,
+              ),
             ),
         ],
       ),
@@ -254,9 +257,7 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
         ),
       ),
       const SizedBox(height: 12),
-      Wrap(
-        spacing: 10,
-        runSpacing: 10,
+      AdminStatGrid(
         children: <Widget>[
           _tile('VAULTS STARTED', '${_v('started')}'),
           _tile('RUNNING NOW', '${_v('active')}'),
@@ -279,7 +280,10 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
       const SizedBox(height: 8),
       Text(
         '${_v('questions')} active vault questions.',
-        style: TextStyle(color: IvoryColors.textFaint, fontSize: 12.5),
+        style: TextStyle(
+          color: IvoryColors.plum.withValues(alpha: 0.82),
+          fontSize: 12.5,
+        ),
       ),
       const SizedBox(height: 14),
       Container(
@@ -376,7 +380,7 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
         'creates gold and never locks anything, and its days can be moved '
         'forward with the buttons above.',
         style: TextStyle(
-          color: IvoryColors.textFaint,
+          color: IvoryColors.plum.withValues(alpha: 0.82),
           fontSize: 12.5,
           height: 1.5,
         ),
@@ -416,9 +420,7 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
             ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          AdminStatGrid(
             children: <Widget>[
               _tile(
                 'QUIZZES PLAYED',
@@ -453,7 +455,10 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
           const SizedBox(height: 8),
           Text(
             '${_n('questions')} active questions across ${_n('topics')} topics.',
-            style: TextStyle(color: IvoryColors.textFaint, fontSize: 12.5),
+            style: TextStyle(
+              color: IvoryColors.plum.withValues(alpha: 0.82),
+              fontSize: 12.5,
+            ),
           ),
           const SizedBox(height: 18),
           Container(
@@ -538,7 +543,7 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
             'Admins can rehearse the quiz from the Home card; a rehearsal '
             'never creates gold and never locks anything.',
             style: TextStyle(
-              color: IvoryColors.textFaint,
+              color: IvoryColors.plum.withValues(alpha: 0.82),
               fontSize: 12.5,
               height: 1.5,
             ),
