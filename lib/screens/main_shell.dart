@@ -148,7 +148,13 @@ class _MainShellState extends State<MainShell> {
         titleSpacing: 18,
         title: Row(
           children: <Widget>[
-            Text(_titles[_index]),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(_titles[_index]),
+              ),
+            ),
             if (_isAdmin) ...<Widget>[
               const SizedBox(width: 10),
               Container(
