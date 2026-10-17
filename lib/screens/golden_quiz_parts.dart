@@ -132,7 +132,11 @@ class GoldenIntro extends StatelessWidget {
         const GoldRise(
           delayMs: 150,
           child: Center(
-            child: Text('EVERY STORY LEAVES A MARK', style: goldKick),
+            child: Text(
+              'EVERY STEP TO CLIMB UP THE MEMBERSHIP LADDER',
+              textAlign: TextAlign.center,
+              style: goldKick,
+            ),
           ),
         ),
         const SizedBox(height: 8),
