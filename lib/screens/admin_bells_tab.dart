@@ -4,6 +4,7 @@ import '../core/ivory_errors.dart';
 import '../services/bells_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_stat_grid.dart';
+import 'admin_bells_plus.dart';
 
 /// ============================================================
 /// ADMIN STUDIO - RING MY DOORBELL
@@ -377,6 +378,8 @@ class _AdminBellsTabState extends State<AdminBellsTab> {
               _tile('FULL DAYS EVER', '${_n('full_total')}'),
               _tile('BEST RUN', '${_n('best_peal')}'),
               _tile('NIGHT LINES IN USE', '${_n('lines_active')}'),
+              _tile('PLEDGES GOING', '${_n('pledges_active')}'),
+              _tile('PLEDGES KEPT', '${_n('pledges_kept')}'),
             ],
           ),
           _heading('THE DOORBELL'),
@@ -439,6 +442,7 @@ class _AdminBellsTabState extends State<AdminBellsTab> {
           ),
           const SizedBox(height: 10),
           for (final Map<String, dynamic> l in _lines) _lineRow(l),
+          AdminBellsPlus(onChanged: _load),
         ],
       ),
     );
