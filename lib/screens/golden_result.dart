@@ -8,6 +8,7 @@ import '../models/quiz_models.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/gold_burst.dart';
 import '../widgets/gold_button.dart';
+import '../widgets/gold_fireworks.dart';
 import '../widgets/gold_fx.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_light.dart';
@@ -103,6 +104,14 @@ class _GoldenResultState extends State<GoldenResult> {
     final bool won = s.totalInr > 0 && !s.rehearsal;
     return Stack(
       children: <Widget>[
+        if (s.score >= 7)
+          Positioned.fill(
+            child: GoldFireworks(
+              rate: s.perfect ? 2.2 : 1.2,
+              strength: s.perfect ? 1 : 0.85,
+              seed: 17,
+            ),
+          ),
         if (s.score >= 7) const Positioned.fill(child: GlitterRain(count: 46)),
         ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
