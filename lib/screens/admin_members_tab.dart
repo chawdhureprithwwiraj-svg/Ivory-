@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../theme/ivory_insets.dart';
+import '../services/reward_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/reward_badge.dart';
 import '../widgets/admin_bits.dart';
 
 /// ============================================================
@@ -30,6 +32,8 @@ class _AdminMembersTabState extends State<AdminMembersTab> {
 
   List<Map<String, dynamic>> _members = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _tiers = <Map<String, dynamic>>[];
+  Map<String, List<Map<String, dynamic>>> _badges =
+      <String, List<Map<String, dynamic>>>{};
   bool _loading = true;
 
   SupabaseClient get _db => Supabase.instance.client;
@@ -61,8 +65,16 @@ class _AdminMembersTabState extends State<AdminMembersTab> {
           .select('id, name, level')
           .order('level', ascending: true);
 
+      // Badges earned (a missing rewards setup must never hide the list).
+      Map<String, List<Map<String, dynamic>>> badges =
+          <String, List<Map<String, dynamic>>>{};
+      try {
+        badges = await RewardService.instance.adminMemberBadges();
+      } catch (_) {}
+
       if (!mounted) return;
       setState(() {
+        _badges = badges;
         _members = rows is List
             ? rows.cast<Map<String, dynamic>>()
             : <Map<String, dynamic>>[];
@@ -287,7 +299,7 @@ class _AdminMembersTabState extends State<AdminMembersTab> {
     final int level = ((m['tier_level'] as num?) ?? 0).toInt();
     final bool manual = (m['is_manual'] as bool?) ?? false;
     final bool isAdmin = (m['role'] as String?) == 'admin';
-    final String tier = (m['tier_name'] as String?) ?? 'Tier $level';
+    final String tier = (m['tier_name'] as String?) ?? 'Free';
 
     return InkWell(
       borderRadius: BorderRadius.circular(18),
@@ -356,6 +368,23 @@ class _AdminMembersTabState extends State<AdminMembersTab> {
                           : IvoryColors.plum,
                     ),
                   ),
+                  if ((_badges['${m['id']}'] ?? const <Map<String, dynamic>>[])
+                      .isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 4,
+                      children: <Widget>[
+                        for (final Map<String, dynamic> b
+                            in (_badges['${m['id']}']!).take(6))
+                          RewardBadge(
+                            shape: '${b['shape']}',
+                            metal: '${b['metal']}',
+                            size: 26,
+                            animate: false,
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
