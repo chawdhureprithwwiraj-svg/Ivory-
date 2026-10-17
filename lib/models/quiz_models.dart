@@ -51,6 +51,8 @@ class GoldenState {
     this.runningInr = 0,
     this.lastScore = 0,
     this.lastInr = 0,
+    this.unlockAt,
+    this.renewDays = 10,
     this.skew = Duration.zero,
   });
 
@@ -75,6 +77,12 @@ class GoldenState {
   final int runningInr;
   final int lastScore;
   final int lastInr;
+
+  /// When a running membership lets the quiz open again (null: never).
+  final DateTime? unlockAt;
+
+  /// The days of membership left at which the quiz opens again.
+  final int renewDays;
   final Duration skew;
 
   DateTime get now => DateTime.now().add(skew);
@@ -121,6 +129,8 @@ class GoldenState {
       runningInr: _i(m['running_inr']),
       lastScore: _i(m['last_score']),
       lastInr: _i(m['last_inr']),
+      unlockAt: _dt(m['unlock_at']),
+      renewDays: m.containsKey('renew_days') ? _i(m['renew_days']) : 10,
       skew: _skew(m['server_now']),
     );
   }
