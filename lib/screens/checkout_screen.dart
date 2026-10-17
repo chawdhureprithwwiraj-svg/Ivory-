@@ -5,20 +5,20 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../models/discount_models.dart';
 import '../models/payment.dart';
+import '../services/code_service.dart';
 import '../services/payment_service.dart';
 import '../services/quiz_service.dart';
 import '../services/razorpay_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/checkout_cards.dart';
+import '../widgets/checkout_savings.dart';
 import '../widgets/golden_credit_ribbon.dart';
 
-/// The UPI checkout.
-///
-/// Pay in any UPI app -> come back -> enter the reference number ->
-/// Pending Verification. Nothing unlocks until an admin approves, and the
-/// database refuses a reference number that has been used before, so a
-/// screenshot borrowed from a friend gets nobody anywhere.
+/// The UPI checkout: pay in any UPI app, come back, enter the reference
+/// number, wait for approval. Nothing unlocks until an admin approves, and
+/// a reference number can only be used once.
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({
     super.key,
@@ -56,6 +56,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _done = false;
   String? _error;
   String? _loadError;
+  CodeQuote? _quote; // a discount code in force, never with a Knock-off
+  bool _useCredit = true;
+  int? get _cid => _useCredit ? widget.creditId : null;
 
   @override
   void initState() {
@@ -103,10 +106,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  /// What the member actually pays: the price less any Golden Knock-off.
-  int get _payInr => widget.creditId == null
-      ? widget.priceInr
-      : (widget.priceInr - widget.creditInr).clamp(1, widget.priceInr).toInt();
+  /// What the member actually pays: the price less a code or Knock-off.
+  int get _payInr =>
+      _quote?.payInr ??
+      (_cid == null
+          ? widget.priceInr
+          : (widget.priceInr - widget.creditInr).clamp(1, widget.priceInr).toInt());
 
   String get _note =>
       '${_settings?.noteTemplate ?? 'Ivory'} - ${widget.tierName}';
@@ -114,7 +119,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _payInUpiApp() async {
     final PaymentSettings? s = _settings;
     if (s == null) return;
-    final int? cid = widget.creditId;
+    final int? cid = _cid;
     if (cid != null &&
         !GoldenCreditStore.instance.hasTime(cid, const Duration(minutes: 8))) {
       _snack('Your Golden Knock-off ends too soon to finish this payment. '
@@ -173,14 +178,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (_proof != null) {
         path = await PaymentService.instance.uploadProof(_proof!);
       }
-      if (widget.creditId != null) {
+      if (_cid != null) {
         await QuizService.instance.submitWithCredit(
           tierId: widget.tierId,
           utr: utr,
-          creditId: widget.creditId!,
+          creditId: _cid!,
           screenshotPath: path,
         );
         GoldenCreditStore.instance.refresh();
+      } else if (_quote != null) {
+        await CodeService.instance.submitWithCode(
+          tierId: widget.tierId,
+          utr: utr,
+          code: _quote!.code,
+          screenshotPath: path,
+        );
       } else {
         await PaymentService.instance.submit(
           tierId: widget.tierId,
@@ -197,7 +209,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _error = QuizService.instance.payError(e);
+        _error = _quote != null
+            ? CodeService.instance.payError(e)
+            : QuizService.instance.payError(e);
       });
     }
   }
@@ -233,6 +247,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     children: <Widget>[
                       if (_loadError != null) _message(_loadError!),
                       _orderCard(),
+                      if (!_done && _pending == null)
+                        CheckoutSavings(
+                          tierId: widget.tierId,
+                          creditInr: widget.creditId == null
+                              ? 0
+                              : widget.creditInr,
+                          onChanged: (CodeQuote? q, bool c) => setState(() {
+                            _quote = q;
+                            _useCredit = c;
+                          }),
+                        ),
                       const SizedBox(height: 16),
                       if (_done)
                         CheckoutCards.submitted(context, widget.tierName)
@@ -243,7 +268,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           purpose: 'subscription',
                           tierId: widget.tierId,
                           label: widget.tierName,
-                          creditId: widget.creditId,
+                          creditId: _cid,
+                          code: _quote?.code,
                         )
                       else ...<Widget>[
                         _stepOne(),
@@ -327,7 +353,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ],
           ),
-          GoldenOrderNote(creditInr: widget.creditId == null ? 0 : widget.creditInr),
+          GoldenOrderNote(creditInr: _cid == null ? 0 : widget.creditInr),
         ],
       ),
     );
