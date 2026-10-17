@@ -30,7 +30,20 @@ class GoldenResult extends StatefulWidget {
     required this.creditHours,
     required this.onSpend,
     required this.onClose,
+    this.shareName = 'The Golden Knock-off',
+    this.waitLine =
+        'No gold this time. Your next quiz opens when the wait is over, and we will tell you.',
+    this.extra,
   });
+
+  /// What a shared score calls the game.
+  final String shareName;
+
+  /// Said when no gold was won.
+  final String waitLine;
+
+  /// An optional widget above the DONE button (the vault adds its review).
+  final Widget? extra;
 
   final GoldenSummary summary;
   final int creditHours;
@@ -78,7 +91,7 @@ class _GoldenResultState extends State<GoldenResult> {
   void _share() {
     final GoldenSummary s = widget.summary;
     Share.share(
-      'I scored ${s.score}/${s.questions} on The Golden Knock-off in Ivory'
+      'I scored ${s.score}/${s.questions} on ${widget.shareName} in Ivory'
       '${s.totalInr > 0 ? ' and won \u20B9${s.totalInr} off a membership' : ''}. '
       'Every story leaves a mark.',
     );
@@ -245,10 +258,14 @@ class _GoldenResultState extends State<GoldenResult> {
               ),
             ] else
               Text(
-                'No gold this time. Your next quiz opens when the wait is over, and we will tell you.',
+                widget.waitLine,
                 textAlign: TextAlign.center,
                 style: goldSerif(14, italic: true),
               ),
+            if (widget.extra != null) ...<Widget>[
+              const SizedBox(height: 12),
+              widget.extra!,
+            ],
             const SizedBox(height: 12),
             GoldButton(
               label: 'SHARE MY SCORE',
