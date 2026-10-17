@@ -21,6 +21,7 @@ import 'premium_screen.dart';
 import 'profile_screen.dart';
 import 'wish_screen.dart';
 import '../widgets/heart_button.dart';
+import '../widgets/bells_button.dart';
 
 /// The signed-in container.
 /// Home · Explore · Wish · Premium · Inbox · Profile,
@@ -180,6 +181,8 @@ class _MainShellState extends State<MainShell> {
         actions: <Widget>[
           // The Golden Heart sits first among the top-bar icons.
           const HeartButton(),
+          // The doorbell: four bells a day, beside the heart.
+          BellsButton(onOpenTab: _openTab),
           if (_isAdmin)
             IconButton(
               tooltip: 'Admin console',
