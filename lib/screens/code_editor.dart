@@ -267,6 +267,14 @@ class _CodeEditorState extends State<_CodeEditor> {
                   label: Text('Percent off'),
                 ),
               ],
+              style: SegmentedButton.styleFrom(
+                foregroundColor: IvoryColors.burgundy,
+                selectedForegroundColor: Colors.white,
+                selectedBackgroundColor: IvoryColors.burgundy,
+                side: BorderSide(
+                  color: IvoryColors.plum.withValues(alpha: 0.5),
+                ),
+              ),
               selected: <String>{_kind},
               onSelectionChanged: (Set<String> s) =>
                   setState(() => _kind = s.first),
