@@ -44,6 +44,7 @@ class RazorpayPayPanel extends StatefulWidget {
     this.sessionId,
     this.callRequestId,
     this.liveGuestRequestId,
+    this.creditId,
     this.onUnlocked,
     required this.label,
   });
@@ -56,6 +57,9 @@ class RazorpayPayPanel extends StatefulWidget {
   final int? sessionId;
   final int? callRequestId;
   final int? liveGuestRequestId;
+
+  /// A Golden Knock-off to spend on this subscription (CC.123).
+  final int? creditId;
   final VoidCallback? onUnlocked;
   final String label;
 
@@ -159,6 +163,7 @@ class _RazorpayPayPanelState extends State<RazorpayPayPanel> {
           'live_session_id': widget.sessionId,
           'call_request_id': widget.callRequestId,
           'live_guest_request_id': widget.liveGuestRequestId,
+          'credit_id': widget.creditId,
         },
       );
       if (fr.status != 200) {
@@ -174,6 +179,18 @@ class _RazorpayPayPanelState extends State<RazorpayPayPanel> {
       }
       final Map<String, dynamic> d =
           Map<String, dynamic>.from(fr.data as Map);
+      // Never open the card sheet at the wrong price: when a Golden
+      // Discount was asked for, the house must say it was applied.
+      if (widget.creditId != null && d['credit_applied'] != true) {
+        if (mounted) {
+          setState(() {
+            _busy = false;
+            _error = 'The Golden Knock-off could not be applied just now. '
+                'Please try again in a moment.';
+          });
+        }
+        return;
+      }
       final Map<String, dynamic> options = <String, dynamic>{
         'key': d['key_id'],
         'amount': d['amount_paise'],
