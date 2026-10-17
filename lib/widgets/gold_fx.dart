@@ -219,12 +219,17 @@ class _SparklePainter extends CustomPainter {
         }
       }
       p.close();
+      final Rect glow = Rect.fromCircle(center: c, radius: r * 2.2);
       canvas.drawCircle(
         c,
-        r * 1.7,
+        r * 2.2,
         Paint()
-          ..color = color.withValues(alpha: 0.16 * k)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+          ..shader = RadialGradient(
+            colors: <Color>[
+              color.withValues(alpha: 0.22 * k),
+              color.withValues(alpha: 0),
+            ],
+          ).createShader(glow),
       );
       canvas.drawPath(p, Paint()..color = color.withValues(alpha: 0.95 * k));
     }
@@ -414,7 +419,15 @@ class _GoldenFrameState extends State<GoldenFrame>
               ),
             if (widget.sparkles && !widget.calm)
               const Positioned.fill(
-                child: GoldFireworks(rate: 0.9, strength: 0.9),
+                child: GoldFireworks(
+                  rate: 0.7,
+                  strength: 0.8,
+                  xMin: 0.45,
+                  xMax: 0.92,
+                  yMin: 0.05,
+                  yMax: 0.2,
+                  reach: 0.6,
+                ),
               ),
             Padding(padding: widget.padding, child: widget.child),
           ],
