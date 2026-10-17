@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/vault_models.dart';
 import '../screens/vault_screen.dart';
-import '../services/vault_service.dart';
+import '../services/ten_day_vault_service.dart';
 import '../theme/ivory_theme.dart';
 import 'gold_burst.dart';
 import 'gold_button.dart';
@@ -64,7 +64,7 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
     _reloading = true;
     _lastLoad = DateTime.now();
     try {
-      final VaultState s = await VaultService.instance.homeState();
+      final VaultState s = await TenDayVaultService.instance.homeState();
       if (!mounted) return;
       setState(() {
         _s = s;
