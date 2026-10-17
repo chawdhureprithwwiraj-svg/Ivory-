@@ -41,10 +41,7 @@ class IvoryTheme {
   }
 
   /// Standard card decoration used across every screen.
-  static BoxDecoration card({
-    bool highlighted = false,
-    double radius = 20,
-  }) {
+  static BoxDecoration card({bool highlighted = false, double radius = 20}) {
     return BoxDecoration(
       gradient: IvoryColors.cardGradient,
       borderRadius: BorderRadius.circular(radius),
@@ -52,7 +49,10 @@ class IvoryTheme {
         color: highlighted ? IvoryColors.gold : IvoryColors.hairline,
         width: highlighted ? 1.6 : 1,
       ),
-      boxShadow: softShadow(blur: highlighted ? 20 : 12, y: highlighted ? 8 : 5),
+      boxShadow: softShadow(
+        blur: highlighted ? 20 : 12,
+        y: highlighted ? 8 : 5,
+      ),
     );
   }
 
@@ -76,6 +76,24 @@ class IvoryTheme {
       shadowColor: IvoryColors.burgundy.withValues(alpha: 0.12),
       splashColor: IvoryColors.peach.withValues(alpha: 0.16),
       highlightColor: IvoryColors.amber.withValues(alpha: 0.10),
+      // A switch that is OFF is a soft rose and sand, never black.
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> st) => st.contains(WidgetState.selected)
+              ? null
+              : const Color(0xFFB59A9F),
+        ),
+        trackColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> st) => st.contains(WidgetState.selected)
+              ? null
+              : const Color(0xFFF3E8DB),
+        ),
+        trackOutlineColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> st) => st.contains(WidgetState.selected)
+              ? null
+              : const Color(0xFFCDB4A8),
+        ),
+      ),
       dividerTheme: DividerThemeData(
         color: IvoryColors.hairline,
         thickness: 1,
@@ -222,17 +240,17 @@ class IvoryTheme {
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: IvoryColors.surface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 15,
+        ),
         hintStyle: TextStyle(color: IvoryColors.textFaint, fontSize: 14),
         labelStyle: TextStyle(color: IvoryColors.textSoft),
         prefixIconColor: IvoryColors.plum,
@@ -259,8 +277,10 @@ class IvoryTheme {
         backgroundColor: IvoryColors.surface,
         selectedItemColor: IvoryColors.burgundy,
         unselectedItemColor: IvoryColors.burgundy.withValues(alpha: 0.42),
-        selectedLabelStyle:
-            const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+        selectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
         unselectedLabelStyle: const TextStyle(fontSize: 11),
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
@@ -271,13 +291,12 @@ class IvoryTheme {
         backgroundColor: IvoryColors.burgundy,
         contentTextStyle: const TextStyle(color: IvoryColors.cream),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
 
-      progressIndicatorTheme:
-          const ProgressIndicatorThemeData(color: IvoryColors.amber),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: IvoryColors.amber,
+      ),
     );
   }
 }
@@ -351,8 +370,7 @@ class IvoryGradientButton extends StatelessWidget {
               boxShadow: IvoryTheme.softShadow(blur: 12, y: 5),
             ),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
               child: content,
             ),
           ),
