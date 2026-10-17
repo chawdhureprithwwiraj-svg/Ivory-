@@ -124,16 +124,19 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
   );
 
   Widget _head(bool calm) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Text('EVERY STORY LEAVES A MARK', style: _kicker),
-              const SizedBox(height: 6),
-              GoldShimmerText(
+        Text(
+          'EVERY STEP TO CLIMB UP THE MEMBERSHIP LADDER',
+          style: _kicker.copyWith(letterSpacing: 1.5),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Expanded(
+              child: GoldShimmerText(
                 'THE GOLDEN\nKNOCK-OFF',
                 extrude: calm ? 0 : 3,
                 style: const TextStyle(
@@ -144,33 +147,32 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
                   letterSpacing: 1.2,
                 ),
               ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        calm
-            ? Opacity(opacity: 0.55, child: const GoldCoin(size: 50))
-            : const SizedBox(
-                width: 70,
-                height: 70,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: <Widget>[
-                    OverflowBox(
-                      maxWidth: 170,
-                      maxHeight: 170,
-                      child: GoldRays(size: 170, opacity: 0.4),
+            ),
+            const SizedBox(width: 10),
+            calm
+                ? Opacity(opacity: 0.55, child: const GoldCoin(size: 50))
+                : const SizedBox(
+                    width: 70,
+                    height: 70,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: <Widget>[
+                        OverflowBox(
+                          maxWidth: 170,
+                          maxHeight: 170,
+                          child: GoldRays(size: 170, opacity: 0.4),
+                        ),
+                        GoldCoin(size: 62),
+                      ],
                     ),
-                    GoldCoin(size: 62),
-                  ],
-                ),
-              ),
+                  ),
+          ],
+        ),
       ],
     );
   }
 
   Widget _ready(GoldenState s) {
-    final bool typ = s.typicalMin > 0 && s.typicalMax > 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -178,9 +180,21 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
           children: <Widget>[
             const GoldPulseDot(size: 7),
             const SizedBox(width: 2),
-            Text(
-              s.rehearsal ? 'ADMIN REHEARSAL' : 'OPEN FOR YOU NOW',
-              style: _kicker,
+            GoldBeat(
+              child: Text(
+                s.rehearsal ? 'ADMIN REHEARSAL' : 'OPEN FOR YOU NOW',
+                style: _kicker.copyWith(
+                  fontSize: 12.5,
+                  letterSpacing: 2.4,
+                  color: GoldTones.shine,
+                  shadows: <Shadow>[
+                    Shadow(
+                      color: GoldTones.mid.withValues(alpha: 0.9),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -191,9 +205,6 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
             style: _lead(),
             lines: <String>[
               'Ten questions. Every right answer turns to gold.',
-              'Up to \u20B9${s.maxPerAnswer} off for every right answer.',
-              if (s.maxBonus > 0)
-                'Ten out of ten adds a bonus of up to \u20B9${s.maxBonus}.',
               '${s.sealTotal} topics. ${s.sealTotal} seals. Which one is yours?',
             ],
           ),
@@ -209,15 +220,15 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
         ),
         const SizedBox(height: 12),
         Text(
-          'Up to \u20B9${s.maxPerAnswer} off for every right answer.'
-          '${typ ? ' Most pay \u20B9${s.typicalMin} to \u20B9${s.typicalMax}.' : ''}'
-          '${s.maxBonus > 0 ? ' A perfect ten adds a bonus of up to \u20B9${s.maxBonus}.' : ''}',
+          'Up to \u20B9${s.maxPerAnswer} off for every correct answer.'
+          '${s.maxBonus > 0 ? ' A perfect 10 out of 10 adds an additional bonus of up to \u20B9${s.maxBonus}.' : ''}',
           style: _fine(),
         ),
         const SizedBox(height: 4),
         Text(
-          'Spend your gold within ${s.creditHours} hours. '
-          'One quiz every ${s.cooldownDays} days.',
+          'Get ${s.creditHours} hours of buffer time to spend your gold. '
+          'You get one chance in every ${s.cooldownDays} days. '
+          "So let's bring out the champion within.",
           style: _fine(),
         ),
         const SizedBox(height: 16),
