@@ -15,6 +15,123 @@ import 'gold_synth.dart';
 ///
 /// Pure Dart on purpose (no Flutter imports) so it can be tested alone.
 /// ============================================================
+/// How one bell set sounds: its four notes, how bright the upper
+/// partials are, how long the bell rings and how big the room is.
+class BellTone {
+  const BellTone(this.notes, this.bright, this.decay, this.wet);
+
+  final List<double> notes;
+  final double bright;
+  final double decay;
+  final double wet;
+
+  static const BellTone jewel = BellTone(
+    <double>[523.25, 659.25, 783.99, 987.77],
+    1.0,
+    1.0,
+    1.0,
+  );
+
+  /// The tone for a set key (Jewel for any key not listed).
+  static BellTone of(String? key) {
+    switch (key) {
+      case 'opal':
+        return const BellTone(
+          <double>[587.33, 739.99, 880.0, 1108.73],
+          1.1,
+          1.0,
+          1.0,
+        );
+      case 'sunset':
+        return const BellTone(
+          <double>[466.16, 587.33, 698.46, 880.0],
+          0.8,
+          1.2,
+          1.1,
+        );
+      case 'ocean':
+        return const BellTone(
+          <double>[523.25, 587.33, 783.99, 880.0],
+          0.9,
+          1.15,
+          1.2,
+        );
+      case 'aurora':
+        return const BellTone(
+          <double>[659.25, 830.61, 987.77, 1244.51],
+          1.3,
+          1.3,
+          1.3,
+        );
+      case 'orchid':
+        return const BellTone(
+          <double>[698.46, 880.0, 1046.5, 1318.51],
+          1.0,
+          1.0,
+          1.0,
+        );
+      case 'citrus':
+        return const BellTone(
+          <double>[783.99, 987.77, 1174.66, 1479.98],
+          1.4,
+          0.8,
+          0.9,
+        );
+      case 'lagoon':
+        return const BellTone(
+          <double>[440.0, 554.37, 659.25, 830.61],
+          0.9,
+          1.25,
+          1.2,
+        );
+      case 'ember':
+        return const BellTone(
+          <double>[392.0, 493.88, 587.33, 739.99],
+          0.7,
+          1.4,
+          1.1,
+        );
+      case 'twilight':
+        return const BellTone(
+          <double>[523.25, 622.25, 783.99, 932.33],
+          0.9,
+          1.3,
+          1.3,
+        );
+      case 'meadow':
+        return const BellTone(
+          <double>[587.33, 659.25, 880.0, 987.77],
+          1.0,
+          1.0,
+          0.9,
+        );
+      case 'lotus':
+        return const BellTone(
+          <double>[349.23, 440.0, 523.25, 698.46],
+          0.8,
+          1.35,
+          1.3,
+        );
+      case 'crystal':
+        return const BellTone(
+          <double>[1046.5, 1318.51, 1567.98, 1975.53],
+          1.6,
+          1.5,
+          1.4,
+        );
+      case 'celestial':
+        return const BellTone(
+          <double>[1046.5, 1567.98, 1318.51, 2093.0],
+          1.5,
+          1.8,
+          1.6,
+        );
+      default:
+        return jewel;
+    }
+  }
+}
+
 class BellSynth {
   BellSynth._();
 
@@ -43,16 +160,19 @@ class BellSynth {
     double hz,
     double len, {
     double amp = 0.5,
+    double bright = 1.0,
+    double decay = 1.0,
   }) {
     final int s0 = (start * rate).round();
     final int n = (len * rate).round();
     for (int k = 0; k < _partials.length; k++) {
       final List<double> p = _partials[k];
-      final double tau = p[2] * len / 3.5 / 2.2;
+      final double tau = p[2] * len / 3.5 / 2.2 * decay;
       final int twins = k < 5 ? 2 : 1;
       for (int w = 0; w < twins; w++) {
         final double f = hz * p[0] * (w == 0 ? 1.0 : 1.004 + k * 0.0007);
-        final double g = amp * p[1] * (w == 0 ? 1.0 : 0.55);
+        final double g =
+            amp * p[1] * (k >= 3 ? bright : 1.0) * (w == 0 ? 1.0 : 0.55);
         final double step = 2 * math.pi * f / rate;
         if (f > rate / 2.2) continue;
         for (int i = 0; i < n && s0 + i < b.length; i++) {
@@ -133,16 +253,16 @@ class BellSynth {
     return b;
   }
 
-  // the four notes of the day: C, E, G, B
+  // the four notes of the day in the Jewel set: C, E, G, B
   static const List<double> notes = <double>[523.25, 659.25, 783.99, 987.77];
 
   /// Bell [i] (0 dawn, 1 noon, 2 dusk, 3 night), rung once.
-  static List<double> ring(int i) {
+  static List<double> ring(int i, [BellTone t = BellTone.jewel]) {
     final List<double> b = _blank(5.2);
-    final double hz = notes[i % 4];
-    strike(b, 0, hz, 3.8, amp: 0.6);
-    strike(b, 0.012, hz * 2, 1.6, amp: 0.10);
-    return _fin(_room(b, 1.0), 0.9);
+    final double hz = t.notes[i % 4];
+    strike(b, 0, hz, 3.8, amp: 0.6, bright: t.bright, decay: t.decay);
+    strike(b, 0.012, hz * 2, 1.6, amp: 0.10, bright: t.bright, decay: t.decay);
+    return _fin(_room(b, t.wet), 0.9);
   }
 
   /// The doorbell: a bright ding, then a lower dong.
@@ -158,17 +278,25 @@ class BellSynth {
   }
 
   /// A Full Day: the four notes climb, a sparkle, then the doorbell.
-  static List<double> full() {
+  static List<double> full([BellTone t = BellTone.jewel]) {
     final List<double> b = _blank(8.0);
     for (int i = 0; i < 4; i++) {
-      strike(b, i * 0.24, notes[i], 3.4, amp: 0.5);
+      strike(
+        b,
+        i * 0.24,
+        t.notes[i],
+        3.4,
+        amp: 0.5,
+        bright: t.bright,
+        decay: t.decay,
+      );
     }
     const List<double> spark = <double>[1046.5, 1318.5, 1568.0, 2093.0, 2637.0];
     for (int i = 0; i < spark.length; i++) {
       strike(b, 1.15 + i * 0.1, spark[i], 1.4, amp: 0.2);
     }
     _door(b, 2.3);
-    return _fin(_room(b, 1.1), 0.92);
+    return _fin(_room(b, 1.1 * t.wet), 0.92);
   }
 
   /// A tiny bright ping for tapping a button.
@@ -179,26 +307,36 @@ class BellSynth {
   }
 
   /// Ivory's line opens: three soft notes slipping down.
-  static List<double> line() {
+  static List<double> line([BellTone t = BellTone.jewel]) {
     final List<double> b = _blank(7.0);
-    const List<double> d = <double>[987.77, 783.99, 659.25];
+    final List<double> d = <double>[t.notes[3], t.notes[2], t.notes[1]];
     for (int i = 0; i < d.length; i++) {
-      strike(b, i * 0.5, d[i], 3.6, amp: 0.38);
+      strike(
+        b,
+        i * 0.5,
+        d[i],
+        3.6,
+        amp: 0.38,
+        bright: t.bright,
+        decay: t.decay,
+      );
     }
-    return _fin(_room(b, 1.3), 0.8);
+    return _fin(_room(b, 1.3 * t.wet), 0.8);
   }
 
   /// Every sound of the doorbell in one WAV, with where each starts.
-  static Bank build() {
+  /// [setKey] is the bell set being worn (its own four notes and tone).
+  static Bank build([String? setKey]) {
+    final BellTone t = BellTone.of(setKey);
     return GoldSynth.bank(<String, List<double>>{
-      'ring0': ring(0),
-      'ring1': ring(1),
-      'ring2': ring(2),
-      'ring3': ring(3),
+      'ring0': ring(0, t),
+      'ring1': ring(1, t),
+      'ring2': ring(2, t),
+      'ring3': ring(3, t),
       'door': door(),
-      'full': full(),
+      'full': full(t),
       'tap': tap(),
-      'line': line(),
+      'line': line(t),
     });
   }
 }
