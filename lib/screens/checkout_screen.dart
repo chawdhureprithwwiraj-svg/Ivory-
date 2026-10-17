@@ -333,6 +333,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: <Widget>[
+              if (_payInr < widget.priceInr) ...<Widget>[
+                Text(
+                  '₹${widget.priceInr}',
+                  style: TextStyle(
+                    color: IvoryColors.cream.withValues(alpha: 0.6),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.lineThrough,
+                    decorationColor: IvoryColors.cream.withValues(alpha: 0.8),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Text(
                 '₹$_payInr',
                 style: const TextStyle(
