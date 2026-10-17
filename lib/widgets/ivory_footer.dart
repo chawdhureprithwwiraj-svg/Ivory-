@@ -19,7 +19,7 @@ class IvoryFooter {
 
   /// The wording. Kept here, in one place.
   static const String line =
-      "This platform is maintained by 'Infinity'. All rights reserved.";
+      "This platform is maintained by 'Infinity'. All rights reserved 2026";
 
   /// How tall the strip is, above the phone's own navigation bar.
   static const double height = 24;
@@ -75,11 +75,15 @@ class _FooterStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // No coloured band: only burgundy small print. The strip is painted
+    // in the same warm cream as the bottom of the page (the last colour
+    // of the page gradient) so it can never show the phone's bare
+    // background behind the words.
     return Container(
       width: double.infinity,
       height: IvoryFooter.height + bottomInset,
       padding: EdgeInsets.fromLTRB(12, 0, 12, bottomInset),
-      color: IvoryColors.burgundy,
+      color: IvoryColors.pageGradient.colors.last,
       alignment: Alignment.center,
       child: MediaQuery.withNoTextScaling(
         child: Semantics(
@@ -92,7 +96,7 @@ class _FooterStrip extends StatelessWidget {
               maxLines: 1,
               softWrap: false,
               style: TextStyle(
-                color: IvoryColors.cream,
+                color: IvoryColors.burgundy,
                 fontSize: 11,
                 height: 1.2,
                 fontWeight: FontWeight.w500,
