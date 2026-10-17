@@ -137,15 +137,19 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             Expanded(
-              child: GoldShimmerText(
-                'THE GOLDEN\nKNOCK-OFF',
-                extrude: calm ? 0 : 3,
-                style: const TextStyle(
-                  fontFamily: IvoryTheme.displayFont,
-                  fontSize: 31,
-                  height: 1.04,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: GoldShimmerText(
+                  'THE GOLDEN\nKNOCK-OFF',
+                  extrude: calm ? 0 : 3,
+                  style: const TextStyle(
+                    fontFamily: IvoryTheme.displayFont,
+                    fontSize: 31,
+                    height: 1.04,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ),
             ),
