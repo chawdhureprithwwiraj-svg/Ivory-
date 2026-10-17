@@ -35,6 +35,10 @@ const Map<String, String> kRewardTriggers = <String, String>{
   'total_lit': 'Lights the heart on N days in all',
   'vault_done': 'Opens N Ten-Day Vaults',
   'knockoff_perfect': 'Scores a perfect 10 in the Knock-off, N times',
+  'bell_full_days': 'Rings all the bells (a Full Day) on N days in all',
+  'bell_peal': 'Rings Full Days N days in a row (best run)',
+  'bell_pledges': 'Keeps N bell pledges',
+  'bell_rounds': 'Completes N rounds of the bell sets',
 };
 
 /// What a member reads as the goal.
@@ -52,6 +56,18 @@ String rewardGoalText(String trigger, int n) {
       return n == 1
           ? 'Score a perfect 10 out of 10 in the Golden Knock-off'
           : 'Score a perfect 10 out of 10 in the Golden Knock-off, $n times';
+    case 'bell_full_days':
+      return n == 1
+          ? 'Ring all the bells on one day'
+          : 'Ring all the bells on $n days';
+    case 'bell_peal':
+      return 'Ring all the bells $n days in a row';
+    case 'bell_pledges':
+      return n == 1 ? 'Keep a bell pledge' : 'Keep $n bell pledges';
+    case 'bell_rounds':
+      return n == 1
+          ? 'Complete a round of the bell sets'
+          : 'Complete $n rounds of the bell sets';
     default:
       return '';
   }
