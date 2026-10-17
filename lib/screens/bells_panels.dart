@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/bell_models.dart';
+import '../widgets/bell_looks.dart';
+import '../widgets/bell_paint.dart';
 import '../widgets/bell_sound.dart';
 
 /// ============================================================
@@ -10,7 +12,7 @@ import '../widgets/bell_sound.dart';
 /// (Full Days in a row, best run, all Full Days) and the sound switch.
 /// Kept apart from the screen so each file stays short.
 /// ============================================================
-BoxDecoration _panel() => BoxDecoration(
+BoxDecoration bellsPanel() => BoxDecoration(
   borderRadius: const BorderRadius.only(
     topLeft: Radius.circular(44),
     topRight: Radius.circular(14),
@@ -29,7 +31,7 @@ BoxDecoration _panel() => BoxDecoration(
   ],
 );
 
-Widget _heading(String t) => Padding(
+Widget bellsHeading(String t) => Padding(
   padding: const EdgeInsets.only(bottom: 9),
   child: Text(
     t,
@@ -42,6 +44,63 @@ Widget _heading(String t) => Padding(
   ),
 );
 
+/// One tap to open the bell sets: shows the set being worn and the round.
+class BellsSetsRow extends StatelessWidget {
+  const BellsSetsRow({super.key, required this.state, required this.onTap});
+
+  final BellsState state;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final BellSet? w = state.setByKey(state.wear);
+    final BellLook look = BellLook.of(state.wear);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+        decoration: bellsPanel(),
+        child: Row(
+          children: <Widget>[
+            for (final Color c in look.colors)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: BellShape(color: c, width: 22, glow: 0.45),
+              ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Text(
+                    'BELL SETS',
+                    style: TextStyle(
+                      color: Color(0xFFBFF4FF),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Wearing ${w?.name ?? "Jewel"}  \u00b7  Round ${state.round}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFFBFF4FF)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class BellsLineCard extends StatelessWidget {
   const BellsLineCard({super.key, required this.line});
   final String line;
@@ -51,7 +110,7 @@ class BellsLineCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      decoration: _panel(),
+      decoration: bellsPanel(),
       child: TweenAnimationBuilder<double>(
         tween: Tween<double>(begin: 0, end: 1),
         duration: const Duration(milliseconds: 1400),
@@ -61,7 +120,7 @@ class BellsLineCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _heading('A LINE FROM IVORY'),
+            bellsHeading('A LINE FROM IVORY'),
             Text(
               line,
               style: const TextStyle(
@@ -106,11 +165,11 @@ class BellsHowBox extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(18),
-      decoration: _panel(),
+      decoration: bellsPanel(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _heading('HOW EACH BELL RINGS'),
+          bellsHeading('HOW EACH BELL RINGS'),
           Text.rich(
             TextSpan(
               style: const TextStyle(
@@ -220,11 +279,11 @@ class BellsCountsBox extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(18),
-      decoration: _panel(),
+      decoration: bellsPanel(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _heading('YOUR COUNTS'),
+          bellsHeading('YOUR COUNTS'),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[
