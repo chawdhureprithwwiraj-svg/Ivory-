@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../screens/golden_quiz_screen.dart';
 import '../services/quiz_service.dart';
 import '../models/quiz_models.dart';
+import '../models/vault_models.dart';
 import '../theme/ivory_theme.dart';
 import 'gold_burst.dart';
 import 'gold_button.dart';
@@ -441,8 +442,12 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
         GoldenPhase.gold => _gold(s),
         GoldenPhase.cooling || GoldenPhase.dust => _waiting(s),
         GoldenPhase.paid => _quiet(
-          'Your membership is running. The Golden Knock-off opens for '
-          'you when it ends.',
+          s.unlockAt == null
+              ? 'Your membership has no end date, so the Golden Knock-off '
+                    'stays closed for you.'
+              : 'Your membership is running. The Golden Knock-off opens '
+                    'again when it has ${s.renewDays} days left, on '
+                    '${vaultDate(s.unlockAt!)}.',
         ),
         GoldenPhase.closed => _quiet(
           'The Golden Knock-off is resting. Please come back soon.',
