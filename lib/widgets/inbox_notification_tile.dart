@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/ivory_notification.dart';
 import '../theme/ivory_theme.dart';
@@ -17,6 +18,19 @@ class InboxNotificationTile extends StatelessWidget {
   });
 
   final IvoryNotification item;
+
+  /// A discount code written in the note (capital letters, digits and
+  /// dashes, 5 to 24 characters, with at least one digit; or any IVORY-
+  /// prize code), so it can be copied with one tap.
+  String? get _prizeCode {
+    for (final RegExpMatch m in RegExp(
+      r'(?<![A-Za-z0-9-])[A-Z0-9][A-Z0-9-]{3,22}[A-Z0-9](?![A-Za-z0-9-])',
+    ).allMatches(item.body)) {
+      final String t = m.group(0)!;
+      if (t.startsWith('IVORY-') || RegExp(r'[0-9]').hasMatch(t)) return t;
+    }
+    return null;
+  }
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
   final bool priority;
@@ -170,6 +184,10 @@ class InboxNotificationTile extends StatelessWidget {
                               : IvoryColors.textSoft,
                         ),
                       ),
+                      if (_prizeCode != null) ...<Widget>[
+                        const SizedBox(height: 10),
+                        _CopyCodeChip(code: _prizeCode!),
+                      ],
                       if (showAttachment &&
                           item.actionUrl != null &&
                           item.actionUrl!.trim().isNotEmpty) ...<Widget>[
@@ -291,6 +309,56 @@ class InboxAttachment extends StatelessWidget {
           ],
         ),
       );
+}
+
+class _CopyCodeChip extends StatelessWidget {
+  const _CopyCodeChip({required this.code});
+
+  final String code;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: GestureDetector(
+        onTap: () async {
+          await Clipboard.setData(ClipboardData(text: code));
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Code copied.')),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: IvoryColors.gold.withValues(alpha: 0.22),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: IvoryColors.gold),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Icon(
+                Icons.copy_rounded,
+                size: 15,
+                color: IvoryColors.burgundy,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'COPY  $code',
+                style: const TextStyle(
+                  color: IvoryColors.burgundy,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // END OF FILE - lib/widgets/inbox_notification_tile.dart
