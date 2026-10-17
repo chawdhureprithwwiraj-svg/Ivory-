@@ -45,18 +45,25 @@ class _GoldTeaserState extends State<GoldTeaser> {
     if (widget.lines.isEmpty) return const SizedBox.shrink();
     final String line = widget.lines[_i % widget.lines.length];
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 900),
       switchInCurve: Curves.easeOutCubic,
-      transitionBuilder: (Widget child, Animation<double> a) => FadeTransition(
-        opacity: a,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.35),
-            end: Offset.zero,
-          ).animate(a),
-          child: child,
-        ),
-      ),
+      transitionBuilder: (Widget child, Animation<double> a) {
+        // The old line fades out in the first half, the new one fades in
+        // in the second half, so the two are never on top of each other.
+        final Animation<double> late = a.drive(
+          CurveTween(curve: const Interval(0.5, 1.0)),
+        );
+        return FadeTransition(
+          opacity: late,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.35),
+              end: Offset.zero,
+            ).animate(late),
+            child: child,
+          ),
+        );
+      },
       layoutBuilder: (Widget? cur, List<Widget> prev) => Stack(
         alignment: Alignment.topLeft,
         children: <Widget>[...prev, if (cur != null) cur],
