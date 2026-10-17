@@ -1,3 +1,4 @@
+import '../widgets/admin_stat_grid.dart';
 import 'package:flutter/material.dart';
 
 import '../core/ivory_errors.dart';
@@ -90,7 +91,6 @@ class _AdminRewardsTabState extends State<AdminRewardsTab> {
 
   Widget _tile(String label, String value) {
     return Container(
-      width: 150,
       padding: const EdgeInsets.all(14),
       decoration: IvoryTheme.card(),
       child: Column(
@@ -167,7 +167,7 @@ class _AdminRewardsTabState extends State<AdminRewardsTab> {
                 Text(
                   rewardGoalText('${d['trigger_type']}', n),
                   style: TextStyle(
-                    color: IvoryColors.textFaint,
+                    color: IvoryColors.plum.withValues(alpha: 0.82),
                     fontSize: 12,
                     height: 1.3,
                   ),
@@ -246,9 +246,7 @@ class _AdminRewardsTabState extends State<AdminRewardsTab> {
             ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          AdminStatGrid(
             children: <Widget>[
               _tile('TREASURES MADE', '${_defs.length}'),
               _tile('SWITCHED ON', '$active'),
@@ -275,7 +273,7 @@ class _AdminRewardsTabState extends State<AdminRewardsTab> {
             'already earned it keep it. The starter ideas are switched off '
             'until you turn them on. Nothing here can be bought.',
             style: TextStyle(
-              color: IvoryColors.textFaint,
+              color: IvoryColors.plum.withValues(alpha: 0.82),
               fontSize: 12.5,
               height: 1.5,
             ),
