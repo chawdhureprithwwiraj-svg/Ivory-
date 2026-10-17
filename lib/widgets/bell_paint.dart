@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'bell_looks.dart';
+
 /// ============================================================
 /// IVORY - THE FOUR JEWEL BELLS, PAINTED
 ///
@@ -24,7 +26,8 @@ class BellTones {
 
   static const List<String> keys = <String>['dawn', 'noon', 'dusk', 'night'];
 
-  static Color of(int i) => all[i % 4];
+  /// The colour of bell [i] in the set the member is wearing.
+  static Color of(int i) => BellLook.current.value.colors[i % 4];
 
   static Color mix(Color a, Color b, double t) => Color.lerp(a, b, t)!;
 }
@@ -46,11 +49,7 @@ Path bellBody(Size size) {
 }
 
 class BellPainter extends CustomPainter {
-  const BellPainter({
-    required this.color,
-    this.glow = 0.4,
-    this.shine = -1,
-  });
+  const BellPainter({required this.color, this.glow = 0.4, this.shine = -1});
 
   final Color color;
 
@@ -136,13 +135,16 @@ class BellPainter extends CustomPainter {
       canvas.drawPath(
         band,
         Paint()
-          ..shader = LinearGradient(
-            colors: <Color>[
-              Colors.white.withValues(alpha: 0),
-              Colors.white.withValues(alpha: 0.75),
-              Colors.white.withValues(alpha: 0),
-            ],
-          ).createShader(Rect.fromLTWH(x - bb.width * 0.3, 0, bb.width * 0.65, 1)),
+          ..shader =
+              LinearGradient(
+                colors: <Color>[
+                  Colors.white.withValues(alpha: 0),
+                  Colors.white.withValues(alpha: 0.75),
+                  Colors.white.withValues(alpha: 0),
+                ],
+              ).createShader(
+                Rect.fromLTWH(x - bb.width * 0.3, 0, bb.width * 0.65, 1),
+              ),
       );
       canvas.restore();
     }
@@ -230,7 +232,9 @@ class BellShape extends StatelessWidget {
 /// The swing of a struck bell: it throws wide and settles.
 double bellSwingAt(double seconds) {
   if (seconds < 0) return 0;
-  return 0.47 * math.exp(-2.4 * seconds) * math.cos(2 * math.pi * 1.7 * seconds);
+  return 0.47 *
+      math.exp(-2.4 * seconds) *
+      math.cos(2 * math.pi * 1.7 * seconds);
 }
 
 // END OF FILE - lib/widgets/bell_paint.dart
