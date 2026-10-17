@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
+import 'gold_fireworks.dart';
 
 /// ============================================================
 /// IVORY - THE GOLD TOOLKIT (shimmer, sheen, sparkle, button)
@@ -16,11 +17,31 @@ import '../theme/ivory_theme.dart';
 class GoldTones {
   GoldTones._();
 
-  static const Color shine = Color(0xFFFFF3C4);
-  static const Color light = Color(0xFFFFE08A);
-  static const Color mid = IvoryColors.gold;
-  static const Color deep = Color(0xFFB8860B);
-  static const Color rim = Color(0xFF9C7421);
+  // Vivid, high-contrast gold: a bright highlight, a saturated body and a
+  // deep warm shadow, like polished 24-carat leaf rather than flat paint.
+  static const Color shine = Color(0xFFFFF7CF);
+  static const Color light = Color(0xFFFFDB4D);
+  static const Color mid = Color(0xFFF5B800);
+  static const Color deep = Color(0xFFC98600);
+  static const Color rim = Color(0xFF8F5B00);
+
+  /// Gold foil for lettering: a bright top, a rich body, a dark horizon
+  /// band across the middle (the mark of real polished metal), then a
+  /// warm bounce of light underneath.
+  static const LinearGradient foil = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: <Color>[
+      Color(0xFFFFFBE3),
+      Color(0xFFFFE15A),
+      Color(0xFFFFC21A),
+      Color(0xFFB87400),
+      Color(0xFFFFD23F),
+      Color(0xFFFFF0A8),
+      Color(0xFFE9A400),
+    ],
+    stops: <double>[0, 0.2, 0.42, 0.54, 0.64, 0.84, 1],
+  );
 
   /// Polished gold: bright edge, soft body, a warm shadow, a glint.
   static const LinearGradient metal = LinearGradient(
@@ -93,24 +114,30 @@ class _GoldShimmerTextState extends State<GoldShimmerText>
         final double t = Curves.easeInOut.transform(
           (_c.value / 0.62).clamp(0.0, 1.0).toDouble(),
         );
-        final Widget top = ShaderMask(
+        Widget leaf(ShaderCallback cb) => ShaderMask(
           blendMode: BlendMode.srcIn,
-          shaderCallback: (Rect r) => LinearGradient(
-            colors: const <Color>[
-              GoldTones.mid,
-              GoldTones.light,
-              GoldTones.shine,
-              GoldTones.light,
-              GoldTones.mid,
-            ],
-            stops: const <double>[0, 0.4, 0.5, 0.6, 1],
-            transform: _Slide(t),
-          ).createShader(r),
+          shaderCallback: cb,
           child: Text(
             widget.text,
             textAlign: widget.textAlign,
             style: widget.style.copyWith(color: Colors.white),
           ),
+        );
+        final Widget top = Stack(
+          children: <Widget>[
+            leaf((Rect r) => GoldTones.foil.createShader(r)),
+            leaf(
+              (Rect r) => LinearGradient(
+                colors: <Color>[
+                  Colors.white.withValues(alpha: 0),
+                  Colors.white.withValues(alpha: 0.95),
+                  Colors.white.withValues(alpha: 0),
+                ],
+                stops: const <double>[0.4, 0.5, 0.6],
+                transform: _Slide(t),
+              ).createShader(r),
+            ),
+          ],
         );
         if (widget.extrude <= 0) return top;
         final int n = widget.extrude;
@@ -124,8 +151,8 @@ class _GoldShimmerTextState extends State<GoldShimmerText>
                 color: Colors.transparent,
                 shadows: <Shadow>[
                   Shadow(
-                    color: GoldTones.mid.withValues(alpha: 0.55),
-                    blurRadius: 18 + 6 * (1 - _c.value),
+                    color: GoldTones.light.withValues(alpha: 0.6),
+                    blurRadius: 20 + 8 * (1 - _c.value),
                     offset: Offset(0, n * 1.2),
                   ),
                 ],
@@ -143,6 +170,7 @@ class _GoldShimmerTextState extends State<GoldShimmerText>
                 ),
               ),
             top,
+            const Positioned.fill(child: SparkleField(count: 7, seed: 3)),
           ],
         );
       },
@@ -288,7 +316,7 @@ class _SheenPainter extends CustomPainter {
 }
 
 /// The Golden Knock-off's panel: deep burgundy, a polished gold rim,
-/// a glow, a slow sheen and a few stars. Reads the theme palette.
+/// a glow, a slow sheen and golden fireworks. Reads the theme palette.
 class GoldenFrame extends StatefulWidget {
   const GoldenFrame({
     super.key,
@@ -385,7 +413,9 @@ class _GoldenFrameState extends State<GoldenFrame>
                 ),
               ),
             if (widget.sparkles && !widget.calm)
-              const Positioned.fill(child: SparkleField()),
+              const Positioned.fill(
+                child: GoldFireworks(rate: 0.9, strength: 0.9),
+              ),
             Padding(padding: widget.padding, child: widget.child),
           ],
         ),
