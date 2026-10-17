@@ -11,6 +11,8 @@ import '../widgets/bell_paint.dart';
 import '../widgets/bell_sound.dart';
 import '../widgets/bells_stage.dart';
 import 'bells_panels.dart';
+import 'bells_pledge.dart';
+import 'bells_sets_sheet.dart';
 
 /// ============================================================
 /// IVORY - RING MY DOORBELL (the daily check-in)
@@ -35,6 +37,8 @@ class _BellsScreenState extends State<BellsScreen> {
   final GlobalKey<BellsStageState> _stage = GlobalKey<BellsStageState>();
   final Set<String> _shown = <String>{};
   bool _fullShown = false;
+  String _setsShown = '';
+  bool _resultShown = false;
   bool _playing = false;
   bool _busy = false;
   String? _error;
@@ -100,7 +104,32 @@ class _BellsScreenState extends State<BellsScreen> {
         setState(() => _fullShown = true);
         await Future<void>.delayed(const Duration(milliseconds: 2500));
       }
-      if (fresh.isNotEmpty || (s.fullUnseen)) {
+      // A set earned today, then how a pledge ended.
+      final String setsKey = s.newSets.join(',');
+      if (s.newSets.isNotEmpty && setsKey != _setsShown && mounted) {
+        _setsShown = setsKey;
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        if (!mounted) return;
+        final bool wear = await showSetUnlock(context, s);
+        if (wear && mounted) {
+          try {
+            await BellsService.instance.wear(s.newSets.last);
+          } catch (e) {
+            if (mounted) _say(houseMessage(e));
+          }
+        }
+      }
+      final PledgeResult? pr = s.pledgeResult;
+      if (pr != null && !_resultShown && mounted) {
+        _resultShown = true;
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        if (!mounted) return;
+        await showPledgeResult(context, pr);
+      }
+      if (fresh.isNotEmpty ||
+          s.fullUnseen ||
+          s.newSets.isNotEmpty ||
+          pr != null) {
         await BellsService.instance.markSeen();
       }
     } finally {
@@ -165,6 +194,54 @@ class _BellsScreenState extends State<BellsScreen> {
         if (mounted) setState(() => _busy = false);
         break;
     }
+  }
+
+  Future<void> _pickPledge(int n) async {
+    if (_busy) return;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext c) => AlertDialog(
+        backgroundColor: const Color(0xFF2A0E72),
+        title: Text(
+          'Pledge $n Full Days?',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'You promise yourself to ring all the bells every day, in a row. '
+          'It is free and nothing is at stake. A heart mend carries a '
+          'missed day. If it ends, you can begin another at once.',
+          style: TextStyle(color: Color(0xFFE4DAFF), height: 1.45),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(false),
+            child: const Text(
+              'NOT NOW',
+              style: TextStyle(color: Color(0xFFCFC2F5)),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(true),
+            child: const Text(
+              'I PLEDGE',
+              style: TextStyle(
+                color: Color(0xFF4DF0A8),
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await BellsService.instance.pledge(n);
+      BellSound.instance.play('ring2');
+    } catch (e) {
+      if (mounted) _say(houseMessage(e));
+    }
+    if (mounted) setState(() => _busy = false);
   }
 
   void _goTo(String tab) {
@@ -271,6 +348,10 @@ class _BellsScreenState extends State<BellsScreen> {
                       onOrb: _orb,
                     ),
               ),
+              if (s != null) ...<Widget>[
+                BellsPledgeCard(state: s, busy: _busy, onPick: _pickPledge),
+                BellsSetsRow(state: s, onTap: () => showBellSets(context)),
+              ],
               if (s?.line != null) BellsLineCard(line: s!.line!),
               BellsHowBox(state: s),
               if (s != null) BellsCountsBox(state: s),
