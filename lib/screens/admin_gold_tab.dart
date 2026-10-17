@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/ivory_errors.dart';
 import '../models/vault_models.dart';
 import '../services/quiz_service.dart';
-import '../services/vault_service.dart';
+import '../services/ten_day_vault_service.dart';
 import '../theme/ivory_theme.dart';
 
 /// ============================================================
@@ -69,7 +69,7 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
           .adminSettings();
       Map<String, dynamic> vsum = <String, dynamic>{};
       try {
-        vsum = await VaultService.instance.adminSummary();
+        vsum = await TenDayVaultService.instance.adminSummary();
       } catch (_) {}
       if (!mounted) return;
       setState(() {
@@ -131,9 +131,9 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
   Future<void> _rehearsal(bool reset) async {
     try {
       if (reset) {
-        await VaultService.instance.rehearsalReset();
+        await TenDayVaultService.instance.rehearsalReset();
       } else {
-        await VaultService.instance.rehearsalNextDay();
+        await TenDayVaultService.instance.rehearsalNextDay();
       }
       if (!mounted) return;
       _toast(
