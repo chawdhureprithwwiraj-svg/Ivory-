@@ -16,6 +16,7 @@ import '../widgets/premium_badge.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/profile_photo_editor.dart';
 import '../widgets/profile_folio_card.dart';
+import '../widgets/profile_treasures_card.dart';
 import '../widgets/profile_wish_shortcut.dart';
 import 'private_folio_screen.dart';
 
@@ -216,15 +217,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 18),
 
               // ---- membership ----
-              //
-              // THE OWNER IS NOT A CUSTOMER OF HER OWN HOUSE.
-              //
-              // She has not chosen a paid tier, so this card once
-              // fell into the default-access branch and offered
-              // to sell her a membership on her own page. She owns
-              // all of it; there is nothing here to buy, renew or
-              // count down. This card shows what she holds, not
-              // what she lacks: the back of the house, not a shop.
+              // THE OWNER IS NOT A CUSTOMER OF HER OWN HOUSE: nothing to
+              // buy, renew or count down on her page; this card shows
+              // what she holds, not what she lacks.
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: IvoryTheme.card(),
@@ -314,6 +309,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
+              const ProfileTreasuresCard(),
 
               const SizedBox(height: 12),
               Center(
