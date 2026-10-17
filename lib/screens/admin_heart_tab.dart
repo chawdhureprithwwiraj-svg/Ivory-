@@ -1,3 +1,4 @@
+import '../widgets/admin_stat_grid.dart';
 import 'package:flutter/material.dart';
 
 import '../core/ivory_errors.dart';
@@ -199,7 +200,6 @@ class _AdminHeartTabState extends State<AdminHeartTab> {
 
   Widget _tile(String label, String value) {
     return Container(
-      width: 150,
       padding: const EdgeInsets.all(14),
       decoration: IvoryTheme.card(),
       child: Column(
@@ -341,9 +341,7 @@ class _AdminHeartTabState extends State<AdminHeartTab> {
             ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          AdminStatGrid(
             children: <Widget>[
               _tile('LIT TODAY', '${_n('lit_today')}'),
               _tile('TOUCHED TODAY', '${_n('touched_today')}'),
@@ -464,7 +462,7 @@ class _AdminHeartTabState extends State<AdminHeartTab> {
             height: 176,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: 8,
+              itemCount: _tiers.isEmpty ? 8 : _tiers.length,
               itemBuilder: (BuildContext _, int i) => Container(
                 width: 150,
                 margin: const EdgeInsets.only(right: 10),
@@ -480,7 +478,13 @@ class _AdminHeartTabState extends State<AdminHeartTab> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    HeartPaint(size: 128, fill: 0.7, tier: i + 1),
+                    HeartPaint(
+                      size: 128,
+                      fill: 0.7,
+                      // The list runs from the longest glow down, but a
+                      // heart's look is counted from the shortest up.
+                      tier: (_tiers.isEmpty ? 8 : _tiers.length) - i,
+                    ),
                     Text(
                       i < _tiers.length
                           ? '${_tiers[i]['name']}'.toUpperCase()
@@ -513,7 +517,13 @@ class _AdminHeartTabState extends State<AdminHeartTab> {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    subtitle: Text('${t['min_days']} lit days in a row'),
+                    subtitle: Text(
+                      '${t['min_days']} lit '
+                      '${t['min_days'] == 1 ? 'day' : 'days'} in a row',
+                      style: TextStyle(
+                        color: IvoryColors.plum.withValues(alpha: 0.82),
+                      ),
+                    ),
                     trailing: IconButton(
                       icon: const Icon(Icons.edit_outlined),
                       color: IvoryColors.plum,
@@ -531,7 +541,7 @@ class _AdminHeartTabState extends State<AdminHeartTab> {
             'restarts (the best glow is always kept). The heart is never for '
             'sale. Changes apply from the next action a member takes.',
             style: TextStyle(
-              color: IvoryColors.textFaint,
+              color: IvoryColors.plum.withValues(alpha: 0.82),
               fontSize: 12.5,
               height: 1.5,
             ),
