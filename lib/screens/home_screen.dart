@@ -14,6 +14,7 @@ import '../widgets/story_door.dart';
 import '../widgets/post_actions.dart';
 import '../widgets/firstlist_rail.dart';
 import '../widgets/golden_discount_card.dart';
+import '../widgets/vault_card.dart';
 import '../widgets/post_card.dart';
 
 /// The front page: a banner strip, the Ivory hero, the featured drop
@@ -129,6 +130,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   // into rupees off a membership (CC.123).
                   const SizedBox(height: 18),
                   GoldenDiscountCard(onOpenTab: _go),
+                  // THE TEN-DAY VAULT: one sealed question a day for ten
+                  // days, opened on the last (CC.127).
+                  const SizedBox(height: 18),
+                  VaultCard(onOpenTab: _go),
                   // HER RECENT BROADCASTS BELONG NEAR THE FRONT DOOR,
                   // not after a member has walked the whole feed.
                   // After the hero is high enough to be easy to find,
