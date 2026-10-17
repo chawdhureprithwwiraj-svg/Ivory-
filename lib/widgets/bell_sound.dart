@@ -8,7 +8,7 @@ import 'package:video_player/video_player.dart';
 import 'bell_synth.dart';
 import 'gold_synth.dart';
 
-Bank _makeBellBank(int _) => BellSynth.build();
+Bank _makeBellBank(String setKey) => BellSynth.build(setKey);
 
 /// ============================================================
 /// IVORY - THE DOORBELL'S SOUND DESK
@@ -35,6 +35,18 @@ class BellSound {
   Future<void>? _loading;
   int _gen = 0;
   int _next = 0;
+  String _setKey = 'jewel';
+
+  /// The bell set being worn: its own notes. Changing it rebuilds the
+  /// sounds in the background (only if the sounds were already loading).
+  void useSet(String? key) {
+    final String k = (key == null || key.isEmpty) ? 'jewel' : key;
+    if (k == _setKey) return;
+    _setKey = k;
+    if (_loading != null) {
+      release().then((_) => load());
+    }
+  }
 
   /// Builds and opens the sounds. Safe to call again; runs once.
   Future<void> load() => _loading ??= _load();
@@ -46,12 +58,13 @@ class BellSound {
       on.value = p.getBool(_key) ?? true;
     } catch (_) {}
     try {
-      final Bank bank = await compute(_makeBellBank, 0);
+      final String setKey = _setKey;
+      final Bank bank = await compute(_makeBellBank, setKey);
       if (gen != _gen) return;
       final Directory dir = await Directory(
         '${Directory.systemTemp.path}/bell_sound',
       ).create(recursive: true);
-      final File f = File('${dir.path}/doorbell.wav');
+      final File f = File('${dir.path}/doorbell_$setKey.wav');
       await f.writeAsBytes(bank.bytes, flush: true);
       final List<_BellDeck> made = <_BellDeck>[];
       for (int i = 0; i < _decks; i++) {
