@@ -173,7 +173,7 @@ class HeartMends extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'A mend carries your glow across one missed day. '
-            '${s.mends >= s.mendMax ? 'You are holding the most you can.' : 'You earn one every ${s.mendEvery} lit days, so $more more to the next.'}',
+            '${s.mends >= s.mendMax ? 'You are holding the most you can.' : 'You earn one every ${s.mendEvery == 1 ? 'lit day' : '${s.mendEvery} lit days'}, so $more more to the next.'}',
             style: TextStyle(
               color: IvoryColors.textFaint,
               fontSize: 12.5,
