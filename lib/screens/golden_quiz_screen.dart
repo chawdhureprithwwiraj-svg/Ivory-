@@ -9,6 +9,7 @@ import '../theme/ivory_theme.dart';
 import '../widgets/gold_burst.dart';
 import '../widgets/gold_button.dart';
 import '../widgets/gold_fx.dart';
+import '../widgets/gold_fireworks.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_sound.dart';
 import 'golden_question_view.dart';
@@ -262,7 +263,9 @@ class _GoldenQuizScreenState extends State<GoldenQuizScreen> {
           decoration: const BoxDecoration(gradient: IvoryColors.deepGradient),
           child: Stack(
             children: <Widget>[
-              const Positioned.fill(child: SparkleField(count: 22, seed: 11)),
+              const Positioned.fill(
+                child: GoldFireworks(rate: 0.5, strength: 0.5, seed: 11),
+              ),
               const Positioned(
                 top: -120,
                 left: -90,
