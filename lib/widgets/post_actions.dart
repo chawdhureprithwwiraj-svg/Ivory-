@@ -6,6 +6,7 @@ import '../models/media_ref.dart';
 import '../screens/main_shell.dart';
 import '../services/auth_service.dart';
 import '../services/content_service.dart';
+import '../services/heart_service.dart';
 import 'gift_sheet.dart';
 import 'gift_wall.dart';
 import '../theme/ivory_theme.dart';
@@ -62,6 +63,15 @@ class PostActions {
     }
 
     ContentService.instance.incrementView(post.id);
+    // The Golden Heart: opening a story is one of the small things that
+    // fill it. Reported quietly; it can never stop the story opening.
+    HeartService.instance.readPost(post.id).then((bool lit) {
+      if (lit && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Your Golden Heart is lit for today.')),
+        );
+      }
+    });
 
     if (full.type == PostType.blog) {
       _sheet(context, _ReaderBody(post: full));
