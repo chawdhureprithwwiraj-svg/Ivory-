@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../models/payment.dart';
+import '../models/quiz_models.dart';
 import '../services/content_service.dart';
 import '../services/payment_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/golden_credit_ribbon.dart';
 import 'checkout_screen.dart';
 
 /// Membership tiers, rendered entirely from the database.
@@ -98,6 +100,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             const SizedBox(height: 10),
             _invitation(),
             const SizedBox(height: 22),
+            const GoldenCreditRibbon(),
             if (_membership != null) _membershipCard(_membership!),
             if (_pending != null) _pendingCard(_pending!),
             // A member with a paid tier does not need the open
@@ -141,6 +144,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
     required int price,
     required int days,
   }) async {
+    // Gold in hand lowers the price of a tier priced above it (CC.123).
+    final GoldenCredit? gc = GoldenCreditStore.instance.usableFor(price);
     final bool? changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => CheckoutScreen(
@@ -148,9 +153,12 @@ class _PremiumScreenState extends State<PremiumScreen> {
           tierName: name,
           priceInr: price,
           durationDays: days,
+          creditId: gc?.id,
+          creditInr: gc?.amountInr ?? 0,
         ),
       ),
     );
+    GoldenCreditStore.instance.refresh();
     if (changed == true) await _load();
   }
 
@@ -437,14 +445,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: <Widget>[
-              Text(
-                '₹$price',
-                style: const TextStyle(
-                  color: IvoryColors.plum,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              GoldenPriceRow(price: price),
               const SizedBox(width: 6),
               Text(
                 days == 30 ? '/ month' : '/ $days days',
