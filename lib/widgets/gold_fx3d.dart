@@ -321,6 +321,49 @@ class _GoldPulseDotState extends State<GoldPulseDot>
   }
 }
 
+/// Swells and shrinks again and again, to keep calling for the eye.
+class GoldBeat extends StatefulWidget {
+  const GoldBeat({
+    super.key,
+    required this.child,
+    this.to = 1.16,
+    this.alignment = Alignment.centerLeft,
+  });
+
+  final Widget child;
+  final double to;
+  final Alignment alignment;
+
+  @override
+  State<GoldBeat> createState() => _GoldBeatState();
+}
+
+class _GoldBeatState extends State<GoldBeat>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 950),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      alignment: widget.alignment,
+      scale: Tween<double>(
+        begin: 1,
+        end: widget.to,
+      ).animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
+      child: widget.child,
+    );
+  }
+}
+
 /// Fades and lifts its child into place after [delayMs]. For lists.
 class GoldRise extends StatelessWidget {
   const GoldRise({super.key, required this.child, this.delayMs = 0});
