@@ -24,6 +24,11 @@ class GoldFireworks extends StatefulWidget {
     this.rate = 1,
     this.strength = 1,
     this.seed = 5,
+    this.xMin = 0.12,
+    this.xMax = 0.88,
+    this.yMin = 0.1,
+    this.yMax = 0.48,
+    this.reach = 1,
   });
 
   /// Shells per second, relative (1 = a new shell about every 1.3 s).
@@ -33,6 +38,15 @@ class GoldFireworks extends StatefulWidget {
   final double strength;
 
   final int seed;
+
+  /// Where the shells may burst, as fractions of the width and height.
+  final double xMin;
+  final double xMax;
+  final double yMin;
+  final double yMax;
+
+  /// Size of each burst, relative (1 = full size).
+  final double reach;
 
   @override
   State<GoldFireworks> createState() => _GoldFireworksState();
@@ -64,6 +78,8 @@ class _GoldFireworksState extends State<GoldFireworks>
               widget.rate,
               widget.strength,
               widget.seed,
+              Rect.fromLTRB(widget.xMin, widget.yMin, widget.xMax, widget.yMax),
+              widget.reach,
             ),
           ),
         ),
@@ -83,12 +99,21 @@ const List<Color> _hues = <Color>[
 const Color _white = Color(0xFFFFF8E1);
 
 class _FireworksPainter extends CustomPainter {
-  _FireworksPainter(this.t, this.rate, this.strength, this.seed);
+  _FireworksPainter(
+    this.t,
+    this.rate,
+    this.strength,
+    this.seed,
+    this.area,
+    this.reach,
+  );
 
   final double t;
   final double rate;
   final double strength;
   final int seed;
+  final Rect area;
+  final double reach;
 
   static const double _ascent = 0.6;
   static const double _life = 3.9;
@@ -108,14 +133,14 @@ class _FireworksPainter extends CustomPainter {
       final double start = k * gap + r.nextDouble() * gap * 0.5;
       final double tau = t - start;
       if (tau < 0 || tau > _life) continue;
-      final double x0 = 0.12 + r.nextDouble() * 0.76;
-      final double ty = 0.1 + r.nextDouble() * 0.38;
+      final double x0 = area.left + r.nextDouble() * area.width;
+      final double ty = area.top + r.nextDouble() * area.height;
       final int type = r.nextInt(4);
       final Color base = _hues[r.nextInt(_hues.length)];
       final double rot = r.nextDouble() * math.pi * 2;
       final double tilt = (r.nextDouble() - 0.5) * 1.3;
       final int n = 56 + r.nextInt(30);
-      final double speed = (120 + r.nextDouble() * 70) * sc;
+      final double speed = (120 + r.nextDouble() * 70) * sc * reach;
       final Offset target = Offset(x0 * size.width, ty * size.height);
       if (tau < _ascent) {
         _rocket(canvas, p, size, target, x0, tau, sc);
@@ -130,7 +155,7 @@ class _FireworksPainter extends CustomPainter {
           tilt,
           n,
           speed,
-          sc,
+          sc * reach,
           k,
           tau - _ascent,
         );
