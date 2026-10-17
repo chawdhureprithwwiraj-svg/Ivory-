@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/bell_models.dart';
+import '../widgets/bell_looks.dart';
+import '../widgets/bell_sound.dart';
 import 'heart_service.dart';
 
 /// ============================================================
@@ -62,6 +64,24 @@ class BellsService {
     return _accept(BellsState.fromMap(_map(r)));
   }
 
+  /// The member makes a free pledge of [len] Full Days in a row.
+  Future<BellsState> pledge(int len) async {
+    final dynamic r = await _db.rpc(
+      'bell_pledge_make',
+      params: <String, dynamic>{'n': len},
+    );
+    return _accept(BellsState.fromMap(_map(r)));
+  }
+
+  /// The member chooses which earned set the bells wear.
+  Future<BellsState> wear(String key) async {
+    final dynamic r = await _db.rpc(
+      'bell_set_wear',
+      params: <String, dynamic>{'k': key},
+    );
+    return _accept(BellsState.fromMap(_map(r)));
+  }
+
   /// The ceremony has been watched; do not play it again.
   Future<void> markSeen() async {
     try {
@@ -71,10 +91,13 @@ class BellsService {
 
   Future<BellsState> _accept(BellsState s) async {
     final int before = state.value?.rungN ?? 0;
+    // The bells wear the member's set, in colour and in sound.
+    BellLook.apply(s.wear);
+    BellSound.instance.useSet(s.wear);
     state.value = s;
     // A ring adds to the heart, so the heart is asked again - without
     // asking the bells again in return.
-    if (s.rungN > before || s.hasUnseen) {
+    if (s.rungN > before || s.hasCeremony) {
       _muteHeart = true;
       try {
         await HeartService.instance.refreshQuietly();
@@ -162,6 +185,49 @@ class BellsService {
 
   Future<void> adminDeleteLine(int id) async {
     await _db.from('bell_lines').delete().eq('id', id);
+  }
+
+  Future<List<Map<String, dynamic>>> adminSets() async {
+    final List<dynamic> r = await _db
+        .from('bell_sets')
+        .select()
+        .order('min_full_days');
+    return r.map(_map).toList();
+  }
+
+  Future<void> adminSaveSet(
+    String key, {
+    required String name,
+    required int minFullDays,
+    required bool active,
+  }) async {
+    await _db
+        .from('bell_sets')
+        .update(<String, dynamic>{
+          'name': name,
+          'min_full_days': minFullDays,
+          'is_active': active,
+        })
+        .eq('key', key);
+  }
+
+  Future<List<int>> adminPledgeLens() async {
+    final dynamic r = await _db
+        .from('bell_settings')
+        .select('pledge_lens')
+        .eq('id', 1)
+        .single();
+    final dynamic l = _map(r)['pledge_lens'];
+    return l is List
+        ? l.map((dynamic e) => (e as num).toInt()).toList()
+        : <int>[];
+  }
+
+  Future<void> adminSetPledgeLens(List<int> lens) async {
+    await _db
+        .from('bell_settings')
+        .update(<String, dynamic>{'pledge_lens': lens})
+        .eq('id', 1);
   }
 }
 
