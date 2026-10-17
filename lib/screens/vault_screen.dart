@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/ivory_errors.dart';
 import '../models/vault_models.dart';
-import '../services/vault_service.dart';
+import '../services/ten_day_vault_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/gold_burst.dart';
 import '../widgets/gold_button.dart';
@@ -48,7 +48,7 @@ class VaultScreen extends StatefulWidget {
 }
 
 class _VaultScreenState extends State<VaultScreen> {
-  final VaultService _svc = VaultService.instance;
+  final TenDayVaultService _svc = TenDayVaultService.instance;
   _Stage _stage = _Stage.loading;
   VaultState? _vs;
   VaultQuestion? _q;
