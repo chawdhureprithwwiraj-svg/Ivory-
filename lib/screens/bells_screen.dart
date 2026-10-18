@@ -250,6 +250,53 @@ class _BellsScreenState extends State<BellsScreen> {
     if (mounted) setState(() => _busy = false);
   }
 
+  Future<void> _releasePledge() async {
+    if (_busy) return;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext c) => AlertDialog(
+        backgroundColor: const Color(0xFF2A0E72),
+        title: const Text(
+          'Let go of this pledge?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'It ends quietly, with no message and nothing lost. Pledges you '
+          'have kept stay counted, and you can begin another whenever you '
+          'like.',
+          style: TextStyle(color: Color(0xFFE4DAFF), height: 1.45),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(false),
+            child: const Text(
+              'KEEP IT',
+              style: TextStyle(
+                color: Color(0xFF4DF0A8),
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(true),
+            child: const Text(
+              'LET GO',
+              style: TextStyle(color: Color(0xFFCFC2F5)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await BellsService.instance.releasePledge();
+    } catch (e) {
+      if (mounted) _say(houseMessage(e));
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
   void _goTo(String tab) {
     Navigator.of(context).pop();
     widget.onOpenTab(tab);
@@ -355,7 +402,12 @@ class _BellsScreenState extends State<BellsScreen> {
                     ),
               ),
               if (s != null) ...<Widget>[
-                BellsPledgeCard(state: s, busy: _busy, onPick: _pickPledge),
+                BellsPledgeCard(
+                  state: s,
+                  busy: _busy,
+                  onPick: _pickPledge,
+                  onRelease: _releasePledge,
+                ),
                 BellsSetsRow(state: s, onTap: () => showBellSets(context)),
               ],
               if (s?.line != null) BellsLineCard(line: s!.line!),
