@@ -16,6 +16,8 @@ import '../widgets/firstlist_rail.dart';
 import '../widgets/golden_discount_card.dart';
 import '../widgets/vault_card.dart';
 import '../widgets/early_door_card.dart';
+import '../widgets/line_card.dart';
+import '../widgets/line_daily_card.dart';
 import '../widgets/post_card.dart';
 
 /// The front page: a banner strip, the Ivory hero, the featured drop
@@ -139,6 +141,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   // else (CC.143). It draws nothing when the house switches
                   // it off, and it brings its own space above it.
                   const EarlyDoorCard(),
+                  // THE PRIVATE LINE: a letter to Ivory (CC.145). It draws
+                  // nothing when the house switches it off.
+                  LineCard(onOpenTab: _go),
+                  // THE LETTER OF THE DAY (CC.147): a shared letter, no name.
+                  const LineDailyCard(),
                   // HER RECENT BROADCASTS BELONG NEAR THE FRONT DOOR,
                   // not after a member has walked the whole feed.
                   // After the hero is high enough to be easy to find,
