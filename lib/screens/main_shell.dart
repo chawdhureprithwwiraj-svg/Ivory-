@@ -22,6 +22,7 @@ import 'profile_screen.dart';
 import 'wish_screen.dart';
 import '../widgets/heart_button.dart';
 import '../widgets/bells_button.dart';
+import '../widgets/ladder_button.dart';
 
 /// The signed-in container.
 /// Home · Explore · Wish · Premium · Inbox · Profile,
@@ -183,6 +184,8 @@ class _MainShellState extends State<MainShell> {
           const HeartButton(),
           // The doorbell: four bells a day, beside the heart.
           BellsButton(onOpenTab: _openTab),
+          // The Ivory Ladder: rungs, stars, streaks and Marks.
+          const LadderButton(),
           if (_isAdmin)
             IconButton(
               tooltip: 'Admin console',
