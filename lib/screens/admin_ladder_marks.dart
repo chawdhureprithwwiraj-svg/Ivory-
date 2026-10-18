@@ -220,6 +220,9 @@ const Map<String, String> _metricNames = <String, String>{
   'knockoff_played': 'Knock-offs played',
   'knockoff_perfect': 'Perfect tens',
   'treasures': 'Treasures earned',
+  'early_reads': 'Early reads',
+  'line_sent': 'Private Line letters sent',
+  'line_heard': 'Private Line replies heard',
 };
 
 /// The plain name for a metric code (the code itself if unknown).
