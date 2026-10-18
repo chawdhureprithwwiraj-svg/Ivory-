@@ -24,21 +24,22 @@ class _Ripples extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Offset c = size.center(Offset.zero);
+    // The ripples stay around the picture, above the words.
+    final Offset c = Offset(size.width / 2, size.height * 0.37);
     for (int i = 0; i < 4; i++) {
       final double p = (t + i / 4) % 1.0;
       canvas.drawCircle(
         c,
-        20 + p * size.shortestSide * 0.62,
+        24 + p * 120,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5 * (1 - p) + 0.5
-          ..color = color.withValues(alpha: (1 - p) * 0.7),
+          ..color = color.withValues(alpha: (1 - p) * 0.55),
       );
     }
     for (int k = 0; k < 14; k++) {
       final double a = k * math.pi * 2 / 14 + t * math.pi * 2;
-      final double d = size.shortestSide * (0.3 + 0.08 * math.sin(t * 12 + k));
+      final double d = 84 + 8 * math.sin(t * 12 + k);
       canvas.drawCircle(
         c + Offset(math.cos(a) * d, math.sin(a) * d),
         2,
@@ -384,6 +385,7 @@ Future<void> showNewMarks(BuildContext context, List<MarkItem> marks) {
                   fraction: 1,
                   shine: a,
                   size: 120,
+                  label: m.target > 1 ? '${m.target}' : '',
                 ),
               ),
             ),
