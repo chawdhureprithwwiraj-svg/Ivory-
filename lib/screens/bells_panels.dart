@@ -182,24 +182,24 @@ class BellsHowBox extends StatelessWidget {
                 TextSpan(
                   text:
                       ' (${t('dawn', '6 AM')}) rings when you greet your '
-                      'heart. ',
+                      'heart.\n',
                 ),
                 const TextSpan(text: 'Noon', style: b),
                 TextSpan(
-                  text: ' (${t('noon', '12 PM')}) when you read a story. ',
+                  text: ' (${t('noon', '12 PM')}) when you read a story.\n',
                 ),
                 const TextSpan(text: 'Dusk', style: b),
                 TextSpan(
                   text:
                       ' (${t('dusk', '6 PM')}) when you join in: a vault '
                       'key, a poll vote, a live or a wish, or a second '
-                      'story. ',
+                      'story.\n',
                 ),
                 const TextSpan(text: 'Night', style: b),
                 TextSpan(
                   text:
                       " (${t('night', '9 PM')}) when you open Ivory's "
-                      'closing line. A bell opens at its hour and stays open '
+                      'closing line.\n\nA bell opens at its hour and stays open '
                       'until the day turns, and anything you already did '
                       'today is remembered. Each bell adds '
                       '${s?.ringPoints ?? 20} to your Golden Heart. Ring all '
