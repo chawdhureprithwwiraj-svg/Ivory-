@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../l10n/content_i18n.dart';
 import '../models/ivory_notification.dart';
 
 /// The single source of truth for the Sanctuary Inbox. It keeps
@@ -159,7 +160,7 @@ class NotificationService {
       final DateTime bAt = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
       return bAt.compareTo(aAt);
     });
-    return items;
+    return ContentI18n.instance.notices(items);
   }
 
   /// Close only the transient arrival banner; the Inbox item remains unread.
