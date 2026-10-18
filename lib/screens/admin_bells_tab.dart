@@ -5,6 +5,7 @@ import '../services/bells_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_stat_grid.dart';
 import 'admin_bells_plus.dart';
+import 'admin_bells_push.dart';
 
 /// ============================================================
 /// ADMIN STUDIO - RING MY DOORBELL
@@ -443,6 +444,7 @@ class _AdminBellsTabState extends State<AdminBellsTab> {
           const SizedBox(height: 10),
           for (final Map<String, dynamic> l in _lines) _lineRow(l),
           AdminBellsPlus(onChanged: _load),
+          const AdminBellsPush(),
         ],
       ),
     );
