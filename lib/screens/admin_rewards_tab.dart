@@ -7,6 +7,7 @@ import '../services/reward_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/gold_fx.dart';
 import '../widgets/reward_badge.dart';
+import 'admin_gift_reminder.dart';
 import 'reward_editor.dart';
 
 /// ============================================================
@@ -261,6 +262,7 @@ class _AdminRewardsTabState extends State<AdminRewardsTab> {
             onPressed: () => _edit(),
           ),
           const SizedBox(height: 16),
+          const AdminGiftReminder(),
           for (final Map<String, dynamic> d in _defs) _row(d),
           const SizedBox(height: 8),
           Text(
