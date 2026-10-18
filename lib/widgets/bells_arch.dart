@@ -261,7 +261,7 @@ class ArcTitle extends StatelessWidget {
       opacity: fade,
       child: CustomPaint(
         painter: _ArcTitlePainter(text),
-        size: const Size(double.infinity, 100),
+        size: const Size(double.infinity, 108),
       ),
     );
   }
@@ -310,7 +310,10 @@ class _ArcTitlePainter extends CustomPainter {
       total += tp.width + 3;
     }
     final double rad = size.width * 0.62;
-    final Offset c = Offset(size.width / 2, size.height + rad - 40);
+    // The outer letters sink lower than the middle ones; keep them all
+    // above the bottom edge so the line beneath is never touched.
+    final double drop = rad * (1 - math.cos(math.min(1.2, total / (2 * rad))));
+    final Offset c = Offset(size.width / 2, size.height + rad - 14 - drop);
     double ang = -total / (2 * rad);
     for (final TextPainter tp in gl) {
       final double wA = (tp.width + 3) / rad;
