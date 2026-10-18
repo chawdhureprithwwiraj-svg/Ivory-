@@ -98,6 +98,13 @@ class BellsService {
     return _accept(BellsState.fromMap(_map(r)));
   }
 
+  /// The member quietly lets go of the pledge going. Nothing is lost:
+  /// kept pledges stay counted and a new one can begin at once.
+  Future<BellsState> releasePledge() async {
+    final dynamic r = await _db.rpc('bell_pledge_release');
+    return _accept(BellsState.fromMap(_map(r)));
+  }
+
   /// The member chooses which earned set the bells wear.
   Future<BellsState> wear(String key) async {
     final dynamic r = await _db.rpc(
