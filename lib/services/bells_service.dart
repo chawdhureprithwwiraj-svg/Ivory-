@@ -162,7 +162,10 @@ class BellsService {
   }
 
   Future<List<Map<String, dynamic>>> adminDefs() async {
-    final List<dynamic> r = await _db.from('bell_defs').select().order('sort');
+    final List<dynamic> r = await _db
+        .from('bell_defs')
+        .select()
+        .order('sort', ascending: true);
     return r.map(_map).toList();
   }
 
@@ -216,7 +219,7 @@ class BellsService {
     final List<dynamic> r = await _db
         .from('bell_sets')
         .select()
-        .order('min_full_days');
+        .order('min_full_days', ascending: true);
     return r.map(_map).toList();
   }
 
@@ -284,7 +287,7 @@ class BellsService {
     final List<dynamic> r = await _db
         .from('bell_defs')
         .select('key, label, push_on, push_title, push_bodies')
-        .order('sort');
+        .order('sort', ascending: true);
     return r.map(_map).toList();
   }
 
