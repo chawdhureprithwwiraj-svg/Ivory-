@@ -26,6 +26,12 @@ class BellsService {
   /// The latest bells, or null before the first answer.
   final ValueNotifier<BellsState?> state = ValueNotifier<BellsState?>(null);
 
+  /// Whether the house sends bell reminders at all (null until asked).
+  final ValueNotifier<bool?> pushHouseOn = ValueNotifier<bool?>(null);
+
+  /// Whether this member wants the reminders.
+  final ValueNotifier<bool> pushOn = ValueNotifier<bool>(true);
+
   bool _listening = false;
   bool _muteHeart = false;
   Timer? _debounce;
@@ -62,6 +68,25 @@ class BellsService {
   Future<BellsState> openLine() async {
     final dynamic r = await _db.rpc('bell_open_line');
     return _accept(BellsState.fromMap(_map(r)));
+  }
+
+  /// Asks whether reminders are on for the house and for this member.
+  Future<void> loadPush() async {
+    final dynamic r = await _db.rpc('bell_push_state');
+    final Map<String, dynamic> m = _map(r);
+    pushHouseOn.value = m['house_on'] == true;
+    pushOn.value = m['on'] != false;
+  }
+
+  /// The member switches their own bell reminders on or off.
+  Future<void> setPush(bool on) async {
+    final dynamic r = await _db.rpc(
+      'bell_push_set',
+      params: <String, dynamic>{'v': on},
+    );
+    final Map<String, dynamic> m = _map(r);
+    pushHouseOn.value = m['house_on'] == true;
+    pushOn.value = m['on'] != false;
   }
 
   /// The member makes a free pledge of [len] Full Days in a row.
@@ -228,6 +253,60 @@ class BellsService {
         .from('bell_settings')
         .update(<String, dynamic>{'pledge_lens': lens})
         .eq('id', 1);
+  }
+
+  /// House reminder settings: on/off, window in minutes, quiet days.
+  Future<Map<String, dynamic>> adminPushSettings() async {
+    final dynamic r = await _db
+        .from('bell_settings')
+        .select('push_on, push_window_min, push_quiet_days')
+        .eq('id', 1)
+        .single();
+    return _map(r);
+  }
+
+  Future<void> adminSavePushSettings({
+    required bool on,
+    required int windowMin,
+    required int quietDays,
+  }) async {
+    await _db
+        .from('bell_settings')
+        .update(<String, dynamic>{
+          'push_on': on,
+          'push_window_min': windowMin,
+          'push_quiet_days': quietDays,
+        })
+        .eq('id', 1);
+  }
+
+  Future<List<Map<String, dynamic>>> adminPushBells() async {
+    final List<dynamic> r = await _db
+        .from('bell_defs')
+        .select('key, label, push_on, push_title, push_bodies')
+        .order('sort');
+    return r.map(_map).toList();
+  }
+
+  Future<void> adminSaveBellPush(
+    String key, {
+    required bool on,
+    required String title,
+    required List<String> bodies,
+  }) async {
+    await _db
+        .from('bell_defs')
+        .update(<String, dynamic>{
+          'push_on': on,
+          'push_title': title,
+          'push_bodies': bodies,
+        })
+        .eq('key', key);
+  }
+
+  Future<Map<String, dynamic>> adminPushStats() async {
+    final dynamic r = await _db.rpc('bell_push_admin');
+    return _map(r);
   }
 }
 
