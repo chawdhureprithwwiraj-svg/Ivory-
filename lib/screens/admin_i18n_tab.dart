@@ -4,6 +4,7 @@ import '../core/ivory_errors.dart';
 import '../services/i18n_admin_service.dart';
 import '../theme/ivory_theme.dart';
 import 'admin_i18n_editor.dart';
+import 'admin_translator_box.dart';
 
 /// ============================================================
 /// ADMIN - TRANSLATE
@@ -105,6 +106,8 @@ class _AdminI18nTabState extends State<AdminI18nTab> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: <Widget>[
+          const AdminTranslatorBox(),
+          const SizedBox(height: 18),
           const Text(
             'LANGUAGES',
             style: TextStyle(
