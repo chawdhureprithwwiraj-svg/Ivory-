@@ -388,15 +388,7 @@ class _BellsScreenState extends State<BellsScreen> {
               child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
             ),
           ),
-          const Text(
-            'RING MY DOORBELL',
-            style: TextStyle(
-              color: Color(0xFFD6FBFF),
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 3,
-            ),
-          ),
+          // (The page title is already drawn on the arch below.)
         ],
       ),
     );
