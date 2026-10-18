@@ -350,7 +350,7 @@ class BellsStageState extends State<BellsStage> with TickerProviderStateMixin {
               Text(
                 (it?.label ?? key).toUpperCase(),
                 style: TextStyle(
-                  color: BellTones.mix(c, Colors.white, 0.55),
+                  color: BellTones.mix(c, Colors.white, 0.8),
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 2,
