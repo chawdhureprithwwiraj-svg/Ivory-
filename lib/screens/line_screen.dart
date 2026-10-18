@@ -240,6 +240,7 @@ class _LineScreenState extends State<LineScreen> {
               dense: true,
               controlAffinity: ListTileControlAffinity.leading,
               activeColor: IvoryColors.emerald,
+              side: const BorderSide(color: IvoryColors.emeraldMid, width: 2),
               checkColor: IvoryColors.emeraldWash,
               value: _share,
               onChanged: (bool? v) => setState(() => _share = v == true),
@@ -388,7 +389,10 @@ class _LineScreenState extends State<LineScreen> {
     return Scaffold(
       backgroundColor: IvoryColors.ivory,
       appBar: AppBar(
-        title: const Text('THE PRIVATE LINE'),
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text('THE PRIVATE LINE'),
+        ),
         backgroundColor: IvoryColors.ivory,
         foregroundColor: IvoryColors.emerald,
         elevation: 0,
