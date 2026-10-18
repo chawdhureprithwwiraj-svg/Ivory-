@@ -195,7 +195,14 @@ class _HeartSheetState extends State<HeartSheet> {
         child: Stack(
           alignment: Alignment.center,
           children: <Widget>[
-            const Positioned.fill(child: SparkleField(count: 18, seed: 3)),
+            // Sparkles drift around the heart only, never across the words.
+            const Positioned.fill(
+              child: FractionallySizedBox(
+                alignment: Alignment.topCenter,
+                heightFactor: 0.72,
+                child: SparkleField(count: 14, seed: 3),
+              ),
+            ),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
