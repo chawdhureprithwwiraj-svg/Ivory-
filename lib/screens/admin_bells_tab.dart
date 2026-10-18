@@ -37,6 +37,7 @@ class _AdminBellsTabState extends State<AdminBellsTab> {
   bool _open = true;
   bool _loading = true;
   bool _busy = false;
+  bool _allLines = false;
   String? _error;
 
   @override
@@ -442,7 +443,24 @@ class _AdminBellsTabState extends State<AdminBellsTab> {
             label: const Text('Add a line'),
           ),
           const SizedBox(height: 10),
-          for (final Map<String, dynamic> l in _lines) _lineRow(l),
+          for (final Map<String, dynamic> l
+              in (_allLines ? _lines : _lines.take(12)))
+            _lineRow(l),
+          if (_lines.length > 12)
+            Center(
+              child: TextButton(
+                onPressed: () => setState(() => _allLines = !_allLines),
+                child: Text(
+                  _allLines
+                      ? 'Show fewer lines'
+                      : 'Show all ${_lines.length} lines',
+                  style: const TextStyle(
+                    color: IvoryColors.burgundy,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
           AdminBellsPlus(onChanged: _load),
           const AdminBellsPush(),
         ],
