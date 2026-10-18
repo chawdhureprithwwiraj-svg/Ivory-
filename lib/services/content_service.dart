@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../l10n/content_i18n.dart';
 import '../models/ivory_post.dart';
 import 'b2_media_service.dart';
 import 'vault_service.dart';
@@ -73,7 +74,8 @@ class ContentService {
         .map((dynamic r) => Map<String, dynamic>.from(r as Map))
         .toList();
     await _signB2PreviewRows(previews);
-    return previews.map(IvoryPost.fromPreview).toList();
+    return ContentI18n.instance
+        .posts(previews.map(IvoryPost.fromPreview).toList());
   }
 
   /// Ivory's Firstlist: the posts the house wants every member to see
@@ -94,7 +96,8 @@ class ContentService {
           .map((dynamic r) => Map<String, dynamic>.from(r as Map))
           .toList();
       await _signB2PreviewRows(previews);
-      return previews.map(IvoryPost.fromPreview).toList();
+      return await ContentI18n.instance
+          .posts(previews.map(IvoryPost.fromPreview).toList());
     } catch (_) {
       return <IvoryPost>[];
     }
@@ -189,7 +192,7 @@ class ContentService {
         }
         if (signed != null && signed.isNotEmpty) row['media_ref'] = signed;
       }
-      return IvoryPost.fromFull(row);
+      return ContentI18n.instance.post(IvoryPost.fromFull(row));
     }
     return null;
   }
@@ -200,9 +203,9 @@ class ContentService {
         .select()
         .eq('post_id', postId)
         .order('sort_order', ascending: true);
-    return rows
+    return ContentI18n.instance.options(rows
         .map((dynamic r) => PollOption.fromMap(r as Map<String, dynamic>))
-        .toList();
+        .toList());
   }
 
   /// Admin only: who voted what. optionId -> member names.
