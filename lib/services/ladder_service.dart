@@ -151,7 +151,10 @@ class LadderService {
   }
 
   Future<List<Map<String, dynamic>>> adminRungs() async {
-    final dynamic r = await _db.from('ladder_rungs').select().order('rung');
+    final dynamic r = await _db
+        .from('ladder_rungs')
+        .select()
+        .order('rung', ascending: true);
     return (r as List).map((dynamic e) => _map(e)).toList();
   }
 
@@ -163,7 +166,10 @@ class LadderService {
   }
 
   Future<List<Map<String, dynamic>>> adminMarks() async {
-    final dynamic r = await _db.from('mark_defs').select().order('sort');
+    final dynamic r = await _db
+        .from('mark_defs')
+        .select()
+        .order('sort', ascending: true);
     return (r as List).map((dynamic e) => _map(e)).toList();
   }
 
