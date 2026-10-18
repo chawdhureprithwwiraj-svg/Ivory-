@@ -9,6 +9,7 @@ import '../widgets/bell_sound.dart';
 import '../widgets/ladder_calendar.dart';
 import '../widgets/ladder_ceremony.dart';
 import '../widgets/ladder_marks.dart';
+import '../widgets/ladder_next_gift.dart';
 import '../widgets/ladder_paint.dart';
 import '../widgets/ladder_streaks.dart';
 
@@ -433,6 +434,7 @@ class _LadderScreenState extends State<LadderScreen>
                           _hero(s),
                           _ladder(s),
                           _stars(s),
+                          const LadderNextGift(),
                           _card(child: LadderStreaks(state: s)),
                           _card(
                             child: Column(
