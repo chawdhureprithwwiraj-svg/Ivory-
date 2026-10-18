@@ -156,6 +156,15 @@ class _AdminLadderTabState extends State<AdminLadderTab> {
     }
   }
 
+  /// The rarest Mark is only meaningful when it differs from the most
+  /// earned one (with a single kind of Mark given they are the same).
+  String _rarest() {
+    final dynamic top = _sum['top_mark'];
+    final dynamic rare = _sum['rarest_mark'];
+    if (rare == null || rare == top) return '-';
+    return '$rare';
+  }
+
   Widget _heading(String t) => Padding(
     padding: const EdgeInsets.only(top: 22, bottom: 10),
     child: Text(
@@ -184,7 +193,10 @@ class _AdminLadderTabState extends State<AdminLadderTab> {
           ),
         ),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: IvoryColors.plum),
+        ),
       ],
     ),
   );
@@ -206,12 +218,12 @@ class _AdminLadderTabState extends State<AdminLadderTab> {
           _heading('THE NUMBERS'),
           AdminStatGrid(
             children: <Widget>[
-              _stat('Members on the ladder', '${_sum['members'] ?? 0}'),
+              _stat('Members who opened it', '${_sum['members'] ?? 0}'),
               _stat('Members with a Mark', '${_sum['with_marks'] ?? 0}'),
               _stat('Marks given', '${_sum['marks_given'] ?? 0}'),
               _stat('Milestones reached', '${_sum['milestones_given'] ?? 0}'),
               _stat('Most earned', '${_sum['top_mark'] ?? '-'}'),
-              _stat('Rarest so far', '${_sum['rarest_mark'] ?? '-'}'),
+              _stat('Rarest so far', _rarest()),
             ],
           ),
           _heading('SETTINGS'),
@@ -230,14 +242,26 @@ class _AdminLadderTabState extends State<AdminLadderTab> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  subtitle: const Text('Off hides the ladder icon from members.'),
+                  subtitle: const Text(
+                    'Off hides the ladder icon from members.',
+                    style: TextStyle(color: IvoryColors.plum),
+                  ),
                   value: _open,
                   onChanged: _busy ? null : (bool v) => setState(() => _open = v),
                 ),
                 Row(
                   children: <Widget>[
-                    const Expanded(child: Text('Climb points per Mark')),
+                    const Expanded(
+                      child: Text(
+                        'Climb points per Mark',
+                        style: TextStyle(
+                          color: IvoryColors.burgundy,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                     IconButton(
+                      color: IvoryColors.burgundy,
                       onPressed: _busy || _markPoints <= 0
                           ? null
                           : () => setState(() => _markPoints--),
@@ -245,9 +269,13 @@ class _AdminLadderTabState extends State<AdminLadderTab> {
                     ),
                     Text(
                       '$_markPoints',
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        color: IvoryColors.burgundy,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     IconButton(
+                      color: IvoryColors.burgundy,
                       onPressed: _busy || _markPoints >= 50
                           ? null
                           : () => setState(() => _markPoints++),
@@ -257,6 +285,10 @@ class _AdminLadderTabState extends State<AdminLadderTab> {
                 ),
                 TextField(
                   controller: _ms,
+                  style: const TextStyle(
+                    color: IvoryColors.burgundy,
+                    fontWeight: FontWeight.w700,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Streak milestones (days, separated by commas)',
                   ),
@@ -276,7 +308,7 @@ class _AdminLadderTabState extends State<AdminLadderTab> {
             ),
           ),
           _heading('THE RUNGS (TAP TO EDIT)'),
-          ..._rungs.reversed.map(
+          ..._rungs.map(
             (Map<String, dynamic> r) => Container(
               margin: const EdgeInsets.only(bottom: 8),
               decoration: IvoryTheme.card(),
@@ -289,7 +321,10 @@ class _AdminLadderTabState extends State<AdminLadderTab> {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                subtitle: Text('${r['min_points']} climb points'),
+                subtitle: Text(
+                  '${r['min_points']} climb points',
+                  style: const TextStyle(color: IvoryColors.plum),
+                ),
                 trailing: const Icon(Icons.edit_outlined, color: IvoryColors.plum),
               ),
             ),
