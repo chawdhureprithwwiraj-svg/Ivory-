@@ -184,9 +184,9 @@ class _MarksBookState extends State<MarksBook> {
             itemCount: list.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              mainAxisSpacing: 14,
+              mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              childAspectRatio: 0.7,
+              mainAxisExtent: 122,
             ),
             itemBuilder: (BuildContext c, int i) {
               final MarkItem m = list[i];
@@ -232,7 +232,7 @@ class _MarksBookState extends State<MarksBook> {
                       style: TextStyle(
                         color: m.earned
                             ? Colors.white
-                            : LadderTones.mist.withValues(alpha: 0.9),
+                            : LadderTones.pearl.withValues(alpha: 0.85),
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                         height: 1.2,
