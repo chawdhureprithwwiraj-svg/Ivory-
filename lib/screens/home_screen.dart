@@ -223,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const IvoryLogo(size: 96),
         const SizedBox(height: 20),
         Text(
-          'A private world of\nstorytelling',
+          'A private\nworld of\nstorytelling',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                 fontSize: 31,
@@ -414,7 +414,7 @@ class _BannerStrip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 14),
       decoration: const BoxDecoration(gradient: IvoryColors.goldGradient),
       child: const Text(
-        'IVORY · Golden Edition · Every story leaves a mark',
+        'IVORY · Golden Edition\nEvery story leaves a mark',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: IvoryColors.burgundy,
