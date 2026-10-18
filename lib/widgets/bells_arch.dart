@@ -309,7 +309,7 @@ class _ArcTitlePainter extends CustomPainter {
       gl.add(tp);
       total += tp.width + 3;
     }
-    final double rad = size.width * 0.62;
+    final double rad = size.width * 0.82;
     // The outer letters sink lower than the middle ones; keep them all
     // above the bottom edge so the line beneath is never touched.
     final double drop = rad * (1 - math.cos(math.min(1.2, total / (2 * rad))));
