@@ -152,10 +152,14 @@ class HeartMends extends StatelessWidget {
               for (int i = 0; i < s.mendMax; i++)
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: HeartPaint(
-                    size: 34,
-                    compact: true,
-                    fill: i < s.mends ? 1 : 0,
+                  // A mend you do not hold yet is shown faint.
+                  child: Opacity(
+                    opacity: i < s.mends ? 1 : 0.38,
+                    child: HeartPaint(
+                      size: 34,
+                      compact: true,
+                      fill: i < s.mends ? 1 : 0,
+                    ),
                   ),
                 ),
               const SizedBox(width: 4),
