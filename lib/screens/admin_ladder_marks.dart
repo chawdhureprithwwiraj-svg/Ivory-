@@ -90,7 +90,7 @@ class _AdminLadderMarksState extends State<AdminLadderMarks> {
                   controller: target,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'Target (counts ${m['metric']})',
+                    labelText: 'Target (counts ${markMetricName('${m['metric']}')})',
                   ),
                 ),
                 DropdownButtonFormField<String>(
@@ -190,7 +190,7 @@ class _AdminLadderMarksState extends State<AdminLadderMarks> {
               ),
             ),
             subtitle: Text(
-              '${m['rarity']}  \u00B7  ${m['metric']} \u2265 ${m['target']}',
+              '${_cap('${m['rarity']}')}  \u00B7  ${markMetricName('${m['metric']}')}: ${m['target']}${m['is_active'] == false ? '  \u00B7  hidden' : ''}',
               style: const TextStyle(color: IvoryColors.plum),
             ),
             trailing: const Icon(Icons.edit_outlined, color: IvoryColors.plum),
@@ -200,5 +200,32 @@ class _AdminLadderMarksState extends State<AdminLadderMarks> {
     );
   }
 }
+
+/// What each Mark counts, in plain words (the database keeps the code).
+const Map<String, String> _metricNames = <String, String>{
+  'lit_days': 'Lit days',
+  'best_glow': 'Best glow (days in a row)',
+  'bell_rings': 'Bell rings',
+  'full_days': 'Full Days',
+  'best_peal': 'Best Peal (Full Days in a row)',
+  'pledges_kept': 'Pledges kept',
+  'sets_owned': 'Bell sets owned',
+  'rounds': 'Rounds finished',
+  'reads': 'Stories read',
+  'poll_votes': 'Poll votes',
+  'live_joins': 'Lives joined',
+  'reach_outs': 'Reach-outs',
+  'vault_keys': 'Vault keys turned',
+  'vault_done': 'Vaults opened',
+  'knockoff_played': 'Knock-offs played',
+  'knockoff_perfect': 'Perfect tens',
+  'treasures': 'Treasures earned',
+};
+
+/// The plain name for a metric code (the code itself if unknown).
+String markMetricName(String code) => _metricNames[code] ?? code;
+
+String _cap(String s) =>
+    s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
 // END OF FILE - lib/screens/admin_ladder_marks.dart
