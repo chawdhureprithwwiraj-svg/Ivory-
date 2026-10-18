@@ -10,6 +10,7 @@ import '../services/heart_service.dart';
 import '../widgets/bell_paint.dart';
 import '../widgets/bell_sound.dart';
 import '../widgets/bells_stage.dart';
+import '../widgets/ladder_ceremony.dart';
 import 'bells_panels.dart';
 import 'bells_pledge.dart';
 import 'bells_remind.dart';
@@ -104,6 +105,10 @@ class _BellsScreenState extends State<BellsScreen> {
         _stage.currentState?.playFull();
         setState(() => _fullShown = true);
         await Future<void>.delayed(const Duration(milliseconds: 2500));
+        if (!mounted) return;
+        // The star for this Full Day (its number is the lifetime count).
+        await showFullDayStar(context, s.fullDays);
+        if (!mounted) return;
       }
       // A set earned today, then how a pledge ended.
       final String setsKey = s.newSets.join(',');
