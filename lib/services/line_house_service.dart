@@ -125,9 +125,11 @@ class LineHouseService {
     params: <String, dynamic>{'id_in': id},
   )}';
 
-  Future<String> shareDaily(int id) async => '${await _db.rpc(
-    'line_admin_daily_set',
-    params: <String, dynamic>{'letter_in': id},
+  /// Shares an answered letter. A voice-only reply needs a typed [note]
+  /// (a written reply is used as it is and the note is ignored).
+  Future<String> shareDaily(int id, {String note = ''}) async => '${await _db.rpc(
+    'line_admin_daily_share',
+    params: <String, dynamic>{'letter_in': id, 'note_in': note},
   )}';
 
   Future<String> clearDaily() async =>
