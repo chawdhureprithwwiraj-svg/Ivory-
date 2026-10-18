@@ -84,7 +84,7 @@ class BellsSetsRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Wearing ${w?.name ?? "Jewel"}  \u00b7  Round ${state.round}',
+                    'Wearing ${w?.name ?? "Jewel"}\nRound ${state.round}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -289,7 +289,7 @@ class BellsCountsBox extends StatelessWidget {
             children: <Widget>[
               ring(s.peal, 'FULL DAYS\nIN A ROW'),
               ring(s.bestPeal, 'BEST\nRUN'),
-              ring(s.fullDays, 'FULL DAYS\nALL TOGETHER'),
+              ring(s.fullDays, 'ALL FULL\nDAYS'),
             ],
           ),
         ],
