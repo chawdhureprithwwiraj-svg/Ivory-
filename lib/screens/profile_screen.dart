@@ -17,6 +17,7 @@ import '../widgets/report_sheet.dart';
 import '../widgets/profile_photo_editor.dart';
 import '../widgets/profile_folio_card.dart';
 import '../widgets/profile_treasures_card.dart';
+import '../widgets/language_row.dart';
 import '../widgets/profile_wish_shortcut.dart';
 import 'private_folio_screen.dart';
 
@@ -310,6 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const ProfileTreasuresCard(),
+              const ProfileLanguageRow(),
 
               const SizedBox(height: 12),
               Center(
