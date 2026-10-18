@@ -12,6 +12,14 @@ import 'bell_looks.dart';
 /// Night. Each is a glossy jewel-coloured bell with a crown, a bright
 /// highlight, a rim band, a clapper and a glow. No black anywhere.
 /// ============================================================
+/// A colour matrix keeping about a third of the colour.
+const ColorFilter _drain = ColorFilter.matrix(<double>[
+  0.5, 0.5, 0.15, 0, 0, //
+  0.2, 0.8, 0.15, 0, 0, //
+  0.2, 0.5, 0.45, 0, 0, //
+  0, 0, 0, 1, 0, //
+]);
+
 class BellTones {
   BellTones._();
 
@@ -219,7 +227,12 @@ class BellShape extends StatelessWidget {
       painter: BellPainter(color: color, glow: glow, shine: shine),
     );
     if (dim) {
-      bell = Opacity(opacity: 0.45, child: bell);
+      // A bell that has not opened yet: drained of colour, so every
+      // waiting bell looks the same soft lilac (not a muddy brown).
+      bell = Opacity(
+        opacity: 0.62,
+        child: ColorFiltered(colorFilter: _drain, child: bell),
+      );
     }
     return Transform.rotate(
       angle: swing,
