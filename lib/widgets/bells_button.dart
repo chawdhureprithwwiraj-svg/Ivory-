@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../models/bell_models.dart';
 import '../screens/bells_screen.dart';
+import '../services/bell_push_open.dart';
 import '../services/bells_service.dart';
 import 'bell_paint.dart';
 import 'bell_sound.dart';
@@ -37,6 +38,7 @@ class _BellsButtonState extends State<BellsButton>
   )..repeat();
   Timer? _tick;
   Timer? _preload;
+  bool _opening = false;
 
   @override
   void initState() {
@@ -45,6 +47,10 @@ class _BellsButtonState extends State<BellsButton>
     BellsService.instance.start();
     BellsService.instance.refreshQuietly();
     _preload = Timer(const Duration(seconds: 4), BellSound.instance.load);
+    // Tapping a bell reminder on the phone opens the doorbell.
+    BellPushOpen.listen(() {
+      if (mounted && !_opening) _open();
+    });
     _tick = Timer.periodic(const Duration(seconds: 30), (_) {
       final DateTime? n = BellsService.instance.state.value?.nextOpenAt;
       if (n != null && !n.isAfter(DateTime.now())) {
@@ -63,17 +69,20 @@ class _BellsButtonState extends State<BellsButton>
     WidgetsBinding.instance.removeObserver(this);
     _tick?.cancel();
     _preload?.cancel();
+    BellPushOpen.stop();
     _loop.dispose();
     super.dispose();
   }
 
   Future<void> _open() async {
+    _opening = true;
     BellSound.instance.play('door');
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => BellsScreen(onOpenTab: widget.onOpenTab),
       ),
     );
+    _opening = false;
     BellsService.instance.refreshQuietly();
   }
 
