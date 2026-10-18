@@ -7,6 +7,8 @@ import '../screens/main_shell.dart';
 import '../services/auth_service.dart';
 import '../services/content_service.dart';
 import '../services/heart_service.dart';
+import '../services/early_service.dart';
+import '../screens/early_held_note.dart';
 import 'gift_sheet.dart';
 import 'gift_wall.dart';
 import '../theme/ivory_theme.dart';
@@ -54,6 +56,10 @@ class PostActions {
     if (!context.mounted) return;
 
     if (full == null) {
+      // The Early Door: a story still held for early readers gets a kind,
+      // true explanation instead of a bare refusal.
+      final bool held = await showEarlyHeld(context, post.id);
+      if (held || !context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('This story is not available to you yet.'),
@@ -63,6 +69,8 @@ class PostActions {
     }
 
     ContentService.instance.incrementView(post.id);
+    // Counted only when the story was still early (quiet; never blocks).
+    EarlyService.instance.noteRead(post.id);
     // The Golden Heart: opening a story is one of the small things that
     // fill it. Reported quietly; it can never stop the story opening.
     HeartService.instance.readPost(post.id).then((bool lit) {
