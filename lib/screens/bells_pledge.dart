@@ -23,11 +23,13 @@ class BellsPledgeCard extends StatelessWidget {
     required this.state,
     required this.busy,
     required this.onPick,
+    this.onRelease,
   });
 
   final BellsState state;
   final bool busy;
   final ValueChanged<int> onPick;
+  final VoidCallback? onRelease;
 
   @override
   Widget build(BuildContext context) {
@@ -180,6 +182,28 @@ class BellsPledgeCard extends StatelessWidget {
                     height: 1.45,
                   ),
                 ),
+                if (onRelease != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: busy ? null : onRelease,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.only(top: 6),
+                        minimumSize: const Size(0, 30),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'LET GO OF THIS PLEDGE',
+                        style: TextStyle(
+                          color: Color(0xFFCFC2F5),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
