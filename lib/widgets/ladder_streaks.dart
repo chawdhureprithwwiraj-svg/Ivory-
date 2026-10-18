@@ -88,7 +88,7 @@ class LadderStreaks extends StatelessWidget {
         Text(
           nextMs == null
               ? 'Every milestone reached.'
-              : '${nextMs - now} more ${nextMs - now == 1 ? 'day' : 'days'} to reach $nextMs.',
+              : '${nextMs - now} more ${nextMs - now == 1 ? 'day' : 'days'} to your $nextMs-day mark.',
           style: TextStyle(
             color: LadderTones.mist.withValues(alpha: 0.95),
             fontSize: 12,
