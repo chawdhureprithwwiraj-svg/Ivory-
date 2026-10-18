@@ -60,13 +60,19 @@ class BellsPledgeCard extends StatelessWidget {
         style: soft,
       ),
       const SizedBox(height: 14),
-      Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: <Widget>[
-          for (int i = 0; i < state.pledgeLens.length; i++)
-            _chip(state.pledgeLens[i], BellTones.of(i)),
-        ],
+      LayoutBuilder(
+        builder: (BuildContext _, BoxConstraints box) {
+          // Two equal columns, so the buttons line up.
+          final double w = (box.maxWidth - 10) / 2;
+          return Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: <Widget>[
+              for (int i = 0; i < state.pledgeLens.length; i++)
+                _chip(state.pledgeLens[i], BellTones.of(i), w),
+            ],
+          );
+        },
       ),
       if (state.pledgesKept > 0) ...<Widget>[
         const SizedBox(height: 12),
@@ -85,11 +91,13 @@ class BellsPledgeCard extends StatelessWidget {
     ];
   }
 
-  Widget _chip(int n, Color c) {
+  Widget _chip(int n, Color c, double w) {
     return GestureDetector(
       onTap: busy ? null : () => onPick(n),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        width: w,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(26),
           gradient: LinearGradient(
