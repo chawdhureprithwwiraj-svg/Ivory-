@@ -82,7 +82,29 @@ class _AdminScreenState extends State<AdminScreen>
           ],
         ),
       ),
-      body: Container(
+      body: Theme(
+        // Every switch in Admin: a plain burgundy track when ON and a
+        // soft one when OFF (the default looked greyed-out when ON).
+        data: Theme.of(context).copyWith(
+          switchTheme: SwitchThemeData(
+            thumbColor: WidgetStateProperty.resolveWith<Color>(
+              (Set<WidgetState> st) => st.contains(WidgetState.selected)
+                  ? IvoryColors.cream
+                  : IvoryColors.plum,
+            ),
+            trackColor: WidgetStateProperty.resolveWith<Color>(
+              (Set<WidgetState> st) => st.contains(WidgetState.selected)
+                  ? IvoryColors.burgundy
+                  : const Color(0xFFEBDDD2),
+            ),
+            trackOutlineColor: WidgetStateProperty.resolveWith<Color>(
+              (Set<WidgetState> st) => st.contains(WidgetState.selected)
+                  ? IvoryColors.burgundy
+                  : IvoryColors.plum.withValues(alpha: 0.45),
+            ),
+          ),
+        ),
+        child: Container(
         decoration: const BoxDecoration(gradient: IvoryColors.pageGradient),
         child: SafeArea(
           child: TabBarView(
@@ -107,6 +129,7 @@ class _AdminScreenState extends State<AdminScreen>
               AdminLadderTab(),
             ],
           ),
+        ),
         ),
       ),
     );
