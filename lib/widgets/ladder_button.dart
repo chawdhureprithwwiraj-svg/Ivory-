@@ -84,7 +84,7 @@ class _LadderButtonState extends State<LadderButton>
             radius: 26,
             onTap: _open,
             child: SizedBox(
-              width: 46,
+              width: 42,
               height: 48,
               child: AnimatedBuilder(
                 animation: _loop,
@@ -103,17 +103,9 @@ class _LadderButtonState extends State<LadderButton>
                     alignment: Alignment.center,
                     children: <Widget>[
                       if (s != null)
-                        SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: CircularProgressIndicator(
-                            value: s.climb,
-                            strokeWidth: 2,
-                            backgroundColor: LadderTones.tealMid.withValues(
-                              alpha: 0.16,
-                            ),
-                            valueColor: AlwaysStoppedAnimation<Color>(c),
-                          ),
+                        CustomPaint(
+                          size: const Size(34, 34),
+                          painter: _RingPainter(s.climb, c),
                         ),
                       CustomPaint(
                         size: const Size(22, 26),
@@ -219,6 +211,45 @@ class _MiniLadder extends CustomPainter {
   @override
   bool shouldRepaint(_MiniLadder o) =>
       o.t != t || o.color != color || o.glow != glow;
+}
+
+/// The thin climb ring: a faint full circle and the climbed part on top.
+/// (A plain arc, so there is no pale disc behind the icon.)
+class _RingPainter extends CustomPainter {
+  _RingPainter(this.value, this.color);
+
+  final double value;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect r = Offset.zero & size;
+    final Rect box = r.deflate(1.5);
+    canvas.drawArc(
+      box,
+      0,
+      math.pi * 2,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = LadderTones.tealMid.withValues(alpha: 0.2),
+    );
+    canvas.drawArc(
+      box,
+      -math.pi / 2,
+      math.pi * 2 * value.clamp(0.02, 1.0),
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 2.4
+        ..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter o) => o.value != value || o.color != color;
 }
 
 // END OF FILE - lib/widgets/ladder_button.dart
