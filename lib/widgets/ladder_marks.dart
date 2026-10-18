@@ -67,6 +67,7 @@ class _MarksBookState extends State<MarksBook> {
               fraction: m.fraction,
               shine: widget.shine,
               size: 104,
+              label: m.target > 1 ? '${m.target}' : '',
             ),
             const SizedBox(height: 12),
             Text(
@@ -204,6 +205,7 @@ class _MarksBookState extends State<MarksBook> {
                           fraction: m.fraction,
                           shine: widget.shine,
                           size: 62,
+                          label: m.target > 1 ? '${m.target}' : '',
                         ),
                         if (m.isNew)
                           Positioned(
