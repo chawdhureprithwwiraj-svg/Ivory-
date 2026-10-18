@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../l10n/l10n.dart';
 import '../services/auth_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/ivory_field.dart';
 import '../widgets/ivory_logo.dart';
 import '../widgets/house_consent.dart';
+import '../widgets/language_row.dart';
 import '../widgets/signup_details_fields.dart';
 
 /// Sign in / create account, in the Ivory Golden Edition style.
@@ -94,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_isSignUp && !_adult) {
       setState(() {
         _messageIsError = true;
-        _message = 'Tick the house promise first, then create the account.';
+        _message = 'Tick the house promise first, then create the account.'.tr;
       });
       return;
     }
@@ -133,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
           setState(() {
             _messageIsError = false;
             _message =
-                'Account created. Check your email to confirm, then sign in.';
+                'Account created. Check your email to confirm, then sign in.'.tr;
             _isSignUp = false;
           });
         }
@@ -164,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isEmpty || !email.contains('@')) {
       setState(() {
         _messageIsError = true;
-        _message = 'Enter your email above first, then tap Forgot password.';
+        _message = 'Enter your email above first, then tap Forgot password.'.tr;
       });
       return;
     }
@@ -173,7 +175,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       setState(() {
         _messageIsError = false;
-        _message = 'Password reset link sent to $email.';
+        _message = 'Password reset link sent to {email}.'
+            .trWith(<String, Object?>{'email': email});
       });
     } catch (error) {
       if (!mounted) return;
@@ -196,6 +199,11 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
+                  // ---- language ----
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: LanguageChip(),
+                  ),
                   // ---- the mark ----
                   const IvoryLogo(size: 92),
                   const SizedBox(height: 18),
@@ -203,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: Theme.of(context).textTheme.displayLarge),
                   const SizedBox(height: 6),
                   Text(
-                    'Every story leaves a mark',
+                    'Every story leaves a mark'.tr,
                     style: TextStyle(
                       fontFamily: IvoryTheme.displayFont,
                       fontSize: 14.5,
@@ -226,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: <Widget>[
                             Center(
                               child: IvoryEyebrow(
-                                _isSignUp ? 'Create account' : 'Sign in',
+                                _isSignUp ? 'Create account'.tr : 'Sign in'.tr,
                                 icon: _isSignUp
                                     ? Icons.person_add_alt
                                     : Icons.lock_open,
@@ -238,10 +246,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               // the library and the voice, never a
                               // relationship.
                               _isSignUp
-                                  ? 'Behind this door: real stories, a '
-                                      'real voice, and a quiet place to '
-                                      'keep them.'
-                                  : 'Welcome back to your private world.',
+                                  ? ('Behind this door: real stories, a '
+                                          'real voice, and a quiet place to '
+                                          'keep them.')
+                                      .tr
+                                  : 'Welcome back to your private world.'.tr,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontFamily: IvoryTheme.displayFont,
@@ -256,22 +265,22 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (_isSignUp) ...<Widget>[
                               IvoryField(
                                 controller: _nameCtrl,
-                                label: 'Display name',
-                                hint: 'How others will see you',
+                                label: 'Display name'.tr,
+                                hint: 'How others will see you'.tr,
                                 icon: Icons.person_outline,
                                 autofillHints: const <String>[
                                   AutofillHints.name,
                                 ],
                                 validator: (String? v) =>
                                     (v == null || v.trim().length < 2)
-                                        ? 'Please enter at least 2 characters'
+                                        ? 'Please enter at least 2 characters'.tr
                                         : null,
                               ),
                               const SizedBox(height: 14),
                             ],
                             IvoryField(
                               controller: _emailCtrl,
-                              label: 'Email',
+                              label: 'Email'.tr,
                               hint: 'you@example.com',
                               icon: Icons.mail_outline,
                               keyboardType: TextInputType.emailAddress,
@@ -281,14 +290,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                               validator: (String? v) =>
                                   (v == null || !v.contains('@'))
-                                      ? 'Enter a valid email address'
+                                      ? 'Enter a valid email address'.tr
                                       : null,
                             ),
                             const SizedBox(height: 14),
                             IvoryField(
                               controller: _passwordCtrl,
-                              label: 'Password',
-                              hint: 'At least 6 characters',
+                              label: 'Password'.tr,
+                              hint: 'At least 6 characters'.tr,
                               icon: Icons.lock_outline,
                               obscure: _obscure,
                               autofillHints: <String>[
@@ -309,7 +318,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               validator: (String? v) =>
                                   (v == null || v.length < 6)
-                                      ? 'Password must be at least 6 characters'
+                                      ? 'Password must be at least 6 characters'.tr
                                       : null,
                             ),
 
@@ -352,7 +361,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     onTap: () =>
                                         setState(() => _remember = !_remember),
                                     child: Text(
-                                      'Remember me on this phone',
+                                      'Remember me on this phone'.tr,
                                       style: TextStyle(
                                         color: IvoryColors.textSoft,
                                         fontSize: 13.5,
@@ -396,7 +405,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                             const SizedBox(height: 18),
                             IvoryGradientButton(
-                              label: _isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN',
+                              label: _isSignUp ? 'CREATE ACCOUNT'.tr : 'SIGN IN'.tr,
                               icon: _isSignUp
                                   ? Icons.auto_awesome
                                   : Icons.arrow_forward,
@@ -413,8 +422,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       }),
                               child: Text(
                                 _isSignUp
-                                    ? 'Already have an account? Sign in'
-                                    : 'New to Ivory? Create an account',
+                                    ? 'Already have an account? Sign in'.tr
+                                    : 'New to Ivory? Create an account'.tr,
                                 style: const TextStyle(
                                   color: IvoryColors.plum,
                                   fontSize: 13.5,
@@ -425,7 +434,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextButton(
                                 onPressed: _busy ? null : _forgotPassword,
                                 child: Text(
-                                  'Forgot password?',
+                                  'Forgot password?'.tr,
                                   style: TextStyle(
                                     color: IvoryColors.textFaint,
                                     fontSize: 12.5,
