@@ -89,9 +89,9 @@ class LadderPainter extends CustomPainter {
     ).createShader(lit);
     final Paint glow = Paint()
       ..shader = litShader
-      ..strokeWidth = 12
+      ..strokeWidth = 8
       ..strokeCap = StrokeCap.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
     final Paint rail = Paint()
       ..shader = litShader
       ..strokeWidth = 5
@@ -115,8 +115,8 @@ class LadderPainter extends CustomPainter {
           Offset(xl, y),
           Offset(xr, y),
           Paint()
-            ..color = c.withValues(alpha: isNow ? 0.8 : 0.45)
-            ..strokeWidth = isNow ? 15 : 10
+            ..color = c.withValues(alpha: isNow ? 0.5 : 0.35)
+            ..strokeWidth = isNow ? 10 : 8
             ..strokeCap = StrokeCap.round
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
         );
@@ -125,7 +125,7 @@ class LadderPainter extends CustomPainter {
           Offset(xr, y),
           Paint()
             ..color = c
-            ..strokeWidth = isNow ? 7 : 5
+            ..strokeWidth = isNow ? 6 : 5
             ..strokeCap = StrokeCap.round,
         );
         // A slow shine running along the rung.
