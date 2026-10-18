@@ -317,7 +317,7 @@ class _WishScreenState extends State<WishScreen> {
           ),
           const SizedBox(height: 18),
           const Text(
-            'Just close your eyes\nand make a wish',
+            'Just close\nyour eyes and\nmake a wish',
             style: TextStyle(
               fontFamily: IvoryTheme.displayFont,
               color: IvoryColors.cream,
