@@ -109,6 +109,55 @@ class _AdminLineLetterScreenState extends State<AdminLineLetterScreen> {
     if (mounted) setState(() => _busy = false);
   }
 
+  /// A voice reply has no written words, so Ivory types a short note and
+  /// that is what the Letter of the Day shows beside the member's letter.
+  Future<void> _shareWithNote() async {
+    final TextEditingController c = TextEditingController();
+    final String? note = await showDialog<String>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: IvoryColors.ivory,
+        title: const Text(
+          'A short note from you',
+          style: TextStyle(color: IvoryColors.burgundy),
+        ),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          maxLines: 5,
+          maxLength: 600,
+          textCapitalization: TextCapitalization.sentences,
+          style: const TextStyle(color: IvoryColors.burgundy),
+          decoration: const InputDecoration(
+            hintText: 'The words members will read beside this letter.',
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(color: IvoryColors.plum),
+            ),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: IvoryColors.burgundy,
+            ),
+            onPressed: () => Navigator.pop(ctx, c.text.trim()),
+            child: const Text('SHARE'),
+          ),
+        ],
+      ),
+    );
+    if (note == null || !mounted) return;
+    if (note.isEmpty) {
+      _say('Type a short note first.');
+      return;
+    }
+    await _run(() => _svc.shareDaily(widget.id, note: note));
+  }
+
   Future<void> _pickVoice() async {
     try {
       final PickedMedia? m = await AdminService.instance.pickFile(audioOnly: true);
@@ -355,13 +404,26 @@ class _AdminLineLetterScreenState extends State<AdminLineLetterScreen> {
               onPressed: _busy ? null : () => _run(() => _svc.shareDaily(widget.id)),
               child: const Text('SHARE AS LETTER OF THE DAY'),
             ),
+          ] else if (share) ...<Widget>[
+            const Text(
+              'This member allowed Ivory to share this as the Letter of the '
+              'Day. Your reply was a voice note, so type a short note to show '
+              'beside the letter. The voice itself stays private. Read the '
+              'letter once more for any name or private detail first.',
+              style: TextStyle(color: IvoryColors.plum, fontSize: 12.5),
+            ),
+            const SizedBox(height: 8),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: IvoryColors.burgundy,
+              ),
+              onPressed: _busy ? null : _shareWithNote,
+              child: const Text('SHARE WITH A SHORT NOTE'),
+            ),
           ] else
-            Text(
-              share
-                  ? 'Shared letters need a written reply; a voice note alone '
-                      'cannot be shared.'
-                  : 'The member did not allow this letter to be shared.',
-              style: const TextStyle(color: IvoryColors.plum, fontSize: 12.5),
+            const Text(
+              'The member did not allow this letter to be shared.',
+              style: TextStyle(color: IvoryColors.plum, fontSize: 12.5),
             ),
         ],
       ),
