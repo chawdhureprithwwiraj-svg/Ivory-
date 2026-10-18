@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/early_service.dart';
 import '../services/line_service.dart';
 import '../theme/ivory_theme.dart';
+import 'line_linked_text.dart';
 import 'line_voice_player.dart';
 
 /// One letter on paper, with its honest status and Ivory's reply under it.
@@ -184,7 +185,7 @@ class LineLetterCard extends StatelessWidget {
                     if (hasText) const SizedBox(height: 12),
                   ],
                   if (hasText)
-                    Text(
+                    LineLinkedText(
                     letter.replyText!,
                     style: const TextStyle(
                       color: IvoryColors.emeraldWash,
