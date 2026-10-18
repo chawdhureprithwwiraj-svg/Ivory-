@@ -191,6 +191,7 @@ class _AdminLadderMarksState extends State<AdminLadderMarks> {
             ),
             subtitle: Text(
               '${m['rarity']}  \u00B7  ${m['metric']} \u2265 ${m['target']}',
+              style: const TextStyle(color: IvoryColors.plum),
             ),
             trailing: const Icon(Icons.edit_outlined, color: IvoryColors.plum),
           ),
