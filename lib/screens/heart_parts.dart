@@ -205,15 +205,39 @@ class HeartWeek extends StatelessWidget {
         for (int i = 0; i < days.length; i++)
           Column(
             children: <Widget>[
-              Opacity(
-                opacity: days[i].lit || i == days.length - 1 ? 1 : 0.55,
-                child: HeartPaint(
-                  size: 38,
-                  compact: true,
-                  fill: days[i].lit ? 1 : 0,
+              SizedBox(
+                height: 46,
+                child: Center(
+                  child: i == days.length - 1
+                      // Today: a thin gold ring says "this one is waiting".
+                      ? Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: IvoryColors.gold.withValues(alpha: 0.85),
+                              width: 1.4,
+                            ),
+                          ),
+                          child: Opacity(
+                            opacity: days[i].lit ? 1 : 0.7,
+                            child: HeartPaint(
+                              size: 30,
+                              compact: true,
+                              fill: days[i].lit ? 1 : 0,
+                            ),
+                          ),
+                        )
+                      : Opacity(
+                          opacity: days[i].lit ? 1 : 0.55,
+                          child: HeartPaint(
+                            size: 38,
+                            compact: true,
+                            fill: days[i].lit ? 1 : 0,
+                          ),
+                        ),
                 ),
               ),
-              const SizedBox(height: 2),
               Text(
                 i == days.length - 1
                     ? 'TODAY'
