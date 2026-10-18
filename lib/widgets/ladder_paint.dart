@@ -242,7 +242,7 @@ class MarkMedallionPainter extends CustomPainter {
       canvas.scale(r * 0.46);
       canvas.drawPath(
         ladderGlyph(glyph),
-        Paint()..color = LadderTones.mist.withValues(alpha: 0.45),
+        Paint()..color = LadderTones.mist.withValues(alpha: 0.62),
       );
       canvas.restore();
       _pill(canvas, c, r, false);
