@@ -185,17 +185,25 @@ class _AdminLadderTabState extends State<AdminLadderTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          value,
+          label.toUpperCase(),
           style: const TextStyle(
-            color: IvoryColors.burgundy,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
+            color: IvoryColors.plum,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 6),
         Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: IvoryColors.plum),
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: IvoryColors.burgundy,
+            fontFamily: IvoryTheme.displayFont,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ],
     ),
