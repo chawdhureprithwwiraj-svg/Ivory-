@@ -94,7 +94,7 @@ class HeartService {
     final List<dynamic> r = await _db
         .from('heart_actions')
         .select()
-        .order('sort');
+        .order('sort', ascending: true);
     return r.map(_map).toList();
   }
 
@@ -118,7 +118,7 @@ class HeartService {
     final List<dynamic> r = await _db
         .from('heart_tiers')
         .select()
-        .order('min_days');
+        .order('min_days', ascending: true);
     return r.map(_map).toList();
   }
 
