@@ -392,7 +392,7 @@ class _AdminHeartTabState extends State<AdminHeartTab> {
                   unit: 'days',
                 ),
                 _stepper(
-                  'Most mends a member can hold',
+                  'Most mends held',
                   _max,
                   0,
                   10,
