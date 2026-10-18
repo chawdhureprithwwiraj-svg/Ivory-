@@ -23,6 +23,14 @@ Path _poly(List<double> p) {
   return path..close();
 }
 
+/// A thick arc between radii [r1] and [r2], from angle [a0] to [a1].
+Path _band(double r1, double r2, double a0, double a1) {
+  return Path()
+    ..arcTo(Rect.fromCircle(center: Offset.zero, radius: r2), a0, a1 - a0, true)
+    ..arcTo(Rect.fromCircle(center: Offset.zero, radius: r1), a1, a0 - a1, false)
+    ..close();
+}
+
 Path _starPath(int pts, double outer, double inner) {
   final Path p = Path();
   for (int i = 0; i < pts * 2; i++) {
@@ -47,13 +55,16 @@ Path ladderGlyph(String glyph) {
   switch (glyph) {
     case 'flame':
       return Path()
-        ..moveTo(0, -0.95)
-        ..cubicTo(0.2, -0.5, 0.75, -0.2, 0.62, 0.4)
-        ..cubicTo(0.55, 0.85, 0.15, 0.95, 0, 0.95)
-        ..cubicTo(-0.15, 0.95, -0.55, 0.85, -0.62, 0.4)
-        ..cubicTo(-0.68, 0.0, -0.4, -0.2, -0.3, -0.5)
-        ..cubicTo(-0.15, -0.35, -0.05, -0.5, 0, -0.95)
-        ..close();
+        ..fillType = PathFillType.evenOdd
+        ..moveTo(0, -1)
+        ..cubicTo(0.3, -0.55, 0.9, -0.15, 0.8, 0.35)
+        ..cubicTo(0.72, 0.8, 0.3, 1, 0, 1)
+        ..cubicTo(-0.3, 1, -0.8, 0.8, -0.8, 0.3)
+        ..cubicTo(-0.8, -0.05, -0.55, -0.3, -0.4, -0.55)
+        ..cubicTo(-0.3, -0.3, -0.15, -0.25, -0.12, -0.1)
+        ..cubicTo(0.05, -0.35, -0.05, -0.7, 0, -1)
+        ..close()
+        ..addOval(Rect.fromCircle(center: const Offset(0, 0.5), radius: 0.26));
     case 'crown':
       return _poly(<double>[
         -0.85, 0.6, -0.85, -0.45, -0.4, 0.05, 0, -0.7, 0.4, 0.05, 0.85, -0.45,
@@ -72,13 +83,13 @@ Path ladderGlyph(String glyph) {
     case 'star':
       return ladderStarPath(1.0);
     case 'chain':
-      return _ring(0.5, 0.26, cx: -0.4)..addPath(_ring(0.5, 0.26, cx: 0.4), Offset.zero);
+      return Path()
+        ..addOval(Rect.fromCircle(center: const Offset(-0.68, 0), radius: 0.27))
+        ..addOval(Rect.fromCircle(center: const Offset(0, 0), radius: 0.27))
+        ..addOval(Rect.fromCircle(center: const Offset(0.68, 0), radius: 0.27))
+        ..addRect(const Rect.fromLTRB(-0.68, -0.08, 0.68, 0.08));
     case 'promise':
-      return _ring(0.95, 0.68)
-        ..addPath(
-          _poly(<double>[-0.5, 0.0, -0.3, -0.2, -0.1, 0.1, 0.4, -0.45, 0.6, -0.25, -0.1, 0.5]),
-          Offset.zero,
-        );
+      return _ring(0.95, 0.68)..addPath(_starPath(5, 0.46, 0.2), Offset.zero);
     case 'gem':
       return _poly(<double>[-0.5, -0.8, 0.5, -0.8, 0.95, -0.15, 0, 0.95, -0.95, -0.15]);
     case 'circle':
@@ -90,13 +101,16 @@ Path ladderGlyph(String glyph) {
     case 'vote':
       return Path()
         ..fillType = PathFillType.evenOdd
-        ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(-0.85, -0.1, 0.85, 0.85), const Radius.circular(0.15)))
-        ..addRect(const Rect.fromLTRB(-0.4, 0.15, 0.4, 0.3))
-        ..addPath(_poly(<double>[-0.35, -0.85, 0.35, -0.85, 0.35, -0.2, -0.35, -0.2]), Offset.zero);
+        ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(-0.9, -0.9, 0.9, 0.9), const Radius.circular(0.22)))
+        ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(-0.68, -0.68, 0.68, 0.68), const Radius.circular(0.1)))
+        ..addPath(_poly(<double>[-0.4, 0.0, -0.22, -0.18, -0.05, 0.0, 0.3, -0.4, 0.48, -0.22, -0.05, 0.38]), Offset.zero);
     case 'live':
-      return _ring(0.3, 0.0)
-        ..addPath(_ring(0.62, 0.45), Offset.zero)
-        ..addPath(_ring(0.95, 0.78), Offset.zero);
+      return Path()
+        ..addOval(Rect.fromCircle(center: Offset.zero, radius: 0.27))
+        ..addPath(_band(0.55, 0.7, math.pi * 0.75, math.pi * 1.25), Offset.zero)
+        ..addPath(_band(0.55, 0.7, -math.pi * 0.25, math.pi * 0.25), Offset.zero)
+        ..addPath(_band(0.88, 1.0, math.pi * 0.75, math.pi * 1.25), Offset.zero)
+        ..addPath(_band(0.88, 1.0, -math.pi * 0.25, math.pi * 0.25), Offset.zero);
     case 'wish':
       return Path()
         ..moveTo(0, 0.9)
@@ -109,9 +123,7 @@ Path ladderGlyph(String glyph) {
         ..addRect(const Rect.fromLTRB(0.5, 0.1, 0.7, 0.45))
         ..addRect(const Rect.fromLTRB(0.78, 0.1, 0.95, 0.35));
     case 'quiz':
-      return _ring(0.95, 0.72)
-        ..addPath(_ring(0.52, 0.3), Offset.zero)
-        ..addOval(Rect.fromCircle(center: Offset.zero, radius: 0.12));
+      return _poly(<double>[0.15, -1, -0.65, 0.12, -0.05, 0.12, -0.2, 1, 0.68, -0.22, 0.05, -0.22]);
     case 'chest':
       return Path()
         ..moveTo(-0.9, -0.1)
