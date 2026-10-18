@@ -12,6 +12,7 @@ import '../widgets/bell_sound.dart';
 import '../widgets/bells_stage.dart';
 import 'bells_panels.dart';
 import 'bells_pledge.dart';
+import 'bells_remind.dart';
 import 'bells_sets_sheet.dart';
 
 /// ============================================================
@@ -356,6 +357,7 @@ class _BellsScreenState extends State<BellsScreen> {
               BellsHowBox(state: s),
               if (s != null) BellsCountsBox(state: s),
               const BellsSoundRow(),
+              const BellsRemindRow(),
             ],
           ),
         ),
