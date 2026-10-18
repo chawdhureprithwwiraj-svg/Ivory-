@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/early_service.dart';
@@ -23,8 +25,10 @@ class LineDailyCard extends StatefulWidget {
   State<LineDailyCard> createState() => _LineDailyCardState();
 }
 
-class _LineDailyCardState extends State<LineDailyCard> {
+class _LineDailyCardState extends State<LineDailyCard>
+    with WidgetsBindingObserver {
   LineDaily? _d;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -33,9 +37,31 @@ class _LineDailyCardState extends State<LineDailyCard> {
       _d = widget.preset;
       return;
     }
-    LineService.instance.dailyToday().then((LineDaily? d) {
-      if (mounted && d != null) setState(() => _d = d);
+    // Home stays alive inside the bottom tabs, so this card must look
+    // again by itself: when the app comes back, and every two minutes.
+    WidgetsBinding.instance.addObserver(this);
+    _fetch(false);
+    _timer = Timer.periodic(const Duration(minutes: 2), (Timer _) {
+      _fetch(true);
     });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _fetch(true);
+  }
+
+  Future<void> _fetch(bool force) async {
+    final LineDaily? d = await LineService.instance.dailyToday(force: force);
+    if (!mounted) return;
+    if (d?.id != _d?.id) setState(() => _d = d);
   }
 
   void _open(LineDaily d) {
@@ -230,3 +256,4 @@ class _LineDailyCardState extends State<LineDailyCard> {
 }
 
 // END OF FILE - lib/widgets/line_daily_card.dart
+
