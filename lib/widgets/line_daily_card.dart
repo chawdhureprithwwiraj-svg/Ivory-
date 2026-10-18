@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/early_service.dart';
 import '../services/line_service.dart';
 import '../theme/ivory_theme.dart';
+import 'line_linked_text.dart';
 
 /// ============================================================
 /// IVORY - THE LETTER OF THE DAY, ON THE HOME SCREEN
@@ -121,7 +122,7 @@ class _LineDailyCardState extends State<LineDailyCard>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  LineLinkedText(
                     d.reply,
                     style: const TextStyle(
                       color: IvoryColors.emeraldWash,
@@ -256,4 +257,3 @@ class _LineDailyCardState extends State<LineDailyCard>
 }
 
 // END OF FILE - lib/widgets/line_daily_card.dart
-
