@@ -38,7 +38,7 @@ class _LadderButtonState extends State<LadderButton>
     WidgetsBinding.instance.addObserver(this);
     LadderService.instance.start();
     _later = Timer(
-      const Duration(seconds: 3),
+      const Duration(milliseconds: 1200),
       LadderService.instance.refreshQuietly,
     );
   }
@@ -90,13 +90,15 @@ class _LadderButtonState extends State<LadderButton>
                 animation: _loop,
                 builder: (BuildContext _, Widget? __) {
                   final double t = _loop.value;
+                  // The top bar is light, so the ladder is drawn in deep
+                  // teal, and cycles teal to blue when there is news.
                   final Color c = news > 0
                       ? LadderTones.mix(
-                          LadderTones.mint,
-                          LadderTones.aqua,
+                          const Color(0xFF0FA39A),
+                          const Color(0xFF1B7FD0),
                           0.5 + 0.5 * math.sin(t * math.pi * 2),
                         )
-                      : LadderTones.pearl;
+                      : LadderTones.tealMid;
                   return Stack(
                     alignment: Alignment.center,
                     children: <Widget>[
@@ -107,8 +109,8 @@ class _LadderButtonState extends State<LadderButton>
                           child: CircularProgressIndicator(
                             value: s.climb,
                             strokeWidth: 2,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.18,
+                            backgroundColor: LadderTones.tealMid.withValues(
+                              alpha: 0.16,
                             ),
                             valueColor: AlwaysStoppedAnimation<Color>(c),
                           ),
@@ -210,7 +212,7 @@ class _MiniLadder extends CustomPainter {
     canvas.drawCircle(
       Offset(size.width / 2, y),
       2.4,
-      Paint()..color = Colors.white.withValues(alpha: 0.95),
+      Paint()..color = const Color(0xFFFF7FA8),
     );
   }
 
