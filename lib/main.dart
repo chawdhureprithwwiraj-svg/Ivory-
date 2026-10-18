@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/supabase_config.dart';
+import 'l10n/l10n.dart';
+import 'screens/language_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'services/push_service.dart';
@@ -10,6 +12,9 @@ import 'widgets/ivory_footer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // The language the member chose last time (English if none yet).
+  await L10n.instance.init();
 
   // If the keys have not been pasted in yet, the app still launches and
   // shows a friendly setup screen instead of crashing on a black screen.
@@ -22,6 +27,9 @@ Future<void> main() async {
     // Device push. If Firebase was never configured this returns false and
     // Ivory carries on with the in-app inbox alone.
     await PushService.initFirebase();
+
+    // Quietly fetch any words the house has edited since last time.
+    L10n.instance.refreshQuietly();
   }
 
   runApp(const IvoryApp());
@@ -32,15 +40,27 @@ class IvoryApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Ivory',
-      debugShowCheckedModeBanner: false,
-      theme: IvoryTheme.light(),
-      // The small-print footer, under every screen of the app.
-      builder: IvoryFooter.wrap,
-      home: SupabaseConfig.isConfigured
-          ? const AuthGate()
-          : const SetupNeededScreen(),
+    // Choosing a language repaints the whole app from the top.
+    return ValueListenableBuilder<int>(
+      valueListenable: L10n.instance.epoch,
+      builder: (BuildContext context, int epoch, Widget? _) {
+        return MaterialApp(
+          key: ValueKey<int>(epoch),
+          title: 'Ivory',
+          debugShowCheckedModeBanner: false,
+          theme: IvoryTheme.light(),
+          // Right-to-left languages (Urdu) flip the page; then the
+          // small-print footer, under every screen of the app.
+          builder: (BuildContext c, Widget? child) => Directionality(
+            textDirection:
+                L10n.instance.rtl ? TextDirection.rtl : TextDirection.ltr,
+            child: IvoryFooter.wrap(c, child),
+          ),
+          home: SupabaseConfig.isConfigured
+              ? const AuthGate()
+              : const SetupNeededScreen(),
+        );
+      },
     );
   }
 }
@@ -66,7 +86,8 @@ class AuthGate extends StatelessWidget {
         if (session != null) {
           return const MainShell();
         }
-        return const LoginScreen();
+        // The language screen comes first, before sign-in and sign-up.
+        return const LanguageGate(child: LoginScreen());
       },
     );
   }
