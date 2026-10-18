@@ -58,8 +58,8 @@ class RewardService {
     final List<dynamic> r = await _db
         .from('reward_defs')
         .select()
-        .order('sort')
-        .order('id');
+        .order('sort', ascending: true)
+        .order('id', ascending: true);
     return r.map(_map).toList();
   }
 
