@@ -194,8 +194,11 @@ class MarkMedallionPainter extends CustomPainter {
     required this.earned,
     required this.fraction,
     required this.shine,
+    this.label = '',
   }) : super(repaint: shine);
 
+  /// A small number on the medallion (how many it takes), or empty.
+  final String label;
   final String glyph;
   final int rarity;
   final bool earned;
@@ -239,9 +242,10 @@ class MarkMedallionPainter extends CustomPainter {
       canvas.scale(r * 0.46);
       canvas.drawPath(
         ladderGlyph(glyph),
-        Paint()..color = LadderTones.mist.withValues(alpha: 0.32),
+        Paint()..color = LadderTones.mist.withValues(alpha: 0.45),
       );
       canvas.restore();
+      _pill(canvas, c, r, false);
       return;
     }
     canvas.drawCircle(
@@ -288,6 +292,7 @@ class MarkMedallionPainter extends CustomPainter {
     );
     canvas.drawPath(g, Paint()..color = Colors.white);
     canvas.restore();
+    _pill(canvas, c, r, true);
     // The shine: a soft diagonal band sweeping across the disc.
     final double p = shine.value;
     if (p < 0.5) {
@@ -306,8 +311,43 @@ class MarkMedallionPainter extends CustomPainter {
     }
   }
 
+  void _pill(Canvas canvas, Offset c, double r, bool lit) {
+    if (label.isEmpty) return;
+    final TextPainter tp = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: TextStyle(
+          color: lit ? Colors.white : LadderTones.pearl,
+          fontSize: math.max(8.0, r * 0.4),
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final double w = math.max(tp.width + r * 0.4, r * 0.62);
+    final Rect box = Rect.fromCenter(
+      center: Offset(c.dx, c.dy + r * 0.84),
+      width: w,
+      height: tp.height + 2,
+    );
+    final RRect pill = RRect.fromRectAndRadius(box, Radius.circular(box.height / 2));
+    canvas.drawRRect(
+      pill,
+      Paint()..color = LadderTones.tealDeep.withValues(alpha: 0.95),
+    );
+    canvas.drawRRect(
+      pill,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..color = LadderTones.rarity[rarity.clamp(0, 4)].withValues(alpha: lit ? 0.9 : 0.4),
+    );
+    tp.paint(canvas, box.center - Offset(tp.width / 2, tp.height / 2));
+  }
+
   @override
   bool shouldRepaint(MarkMedallionPainter o) =>
+      o.label != label ||
       o.glyph != glyph ||
       o.rarity != rarity ||
       o.earned != earned ||
@@ -324,8 +364,10 @@ class MarkMedallion extends StatelessWidget {
     required this.fraction,
     required this.shine,
     this.size = 64,
+    this.label = '',
   });
 
+  final String label;
   final String glyph;
   final int rarity;
   final bool earned;
@@ -343,6 +385,7 @@ class MarkMedallion extends StatelessWidget {
         earned: earned,
         fraction: fraction,
         shine: shine,
+        label: label,
       ),
     );
   }
