@@ -193,33 +193,48 @@ class _PremiumScreenState extends State<PremiumScreen> {
             ),
             boxShadow: IvoryTheme.softShadow(blur: 14, y: 5),
           ),
-          child: RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.6,
-                color: IvoryColors.textSoft,
-              ),
-              children: <InlineSpan>[
-                const TextSpan(text: 'Be the '),
-                TextSpan(
-                  text: 'First to read, first to hear \u{1F451}',
-                  style: const TextStyle(
-                    fontFamily: IvoryTheme.displayFont,
-                    fontSize: 17,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
-                    color: IvoryColors.burgundy,
+          // Two lines on purpose: the crown line stays whole (it shrinks a
+          // touch on a narrow phone rather than breaking), and the plain
+          // sentence sits under it.
+          child: Column(
+            children: <Widget>[
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.6,
+                      color: IvoryColors.textSoft,
+                    ),
+                    children: <InlineSpan>[
+                      const TextSpan(text: 'Be the '),
+                      const TextSpan(
+                        text: 'First to read, first to hear\u00A0\u{1F451}',
+                        style: TextStyle(
+                          fontFamily: IvoryTheme.displayFont,
+                          fontSize: 17,
+                          fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                          color: IvoryColors.burgundy,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const TextSpan(
-                  text: ' \u2014 select your plan and upgrade your '
-                      'membership.',
+              ),
+              Text(
+                'Select your plan and upgrade your membership.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.6,
+                  color: IvoryColors.textSoft,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],
