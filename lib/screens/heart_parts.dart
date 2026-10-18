@@ -57,6 +57,8 @@ IconData heartActionIcon(String key) {
       return Icons.sensors;
     case 'reach_out':
       return Icons.card_giftcard;
+    case 'line_letter':
+      return Icons.mail_outline;
     default:
       return Icons.auto_awesome;
   }
