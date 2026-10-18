@@ -103,11 +103,19 @@ class CallRoomService {
           .limit(1);
       if (rows.isEmpty) return null;
       final Map<String, dynamic> m = rows.first as Map<String, dynamic>;
+      // The Early Door: a member whose door is open may book a few days
+      // further ahead. A failed read simply adds nothing.
+      int extra = 0;
+      try {
+        final dynamic e = await _db.rpc('early_call_extra');
+        extra = (e as num?)?.toInt() ?? 0;
+      } catch (_) {}
+      final int? base = (m['max_days_ahead'] as num?)?.toInt();
       return CallHours(
         noticeHours: (m['min_notice_hours'] as num?)?.toInt(),
         opensHour: (m['open_from_hour'] as num?)?.toInt(),
         closesHour: (m['open_to_hour'] as num?)?.toInt(),
-        horizonDays: (m['max_days_ahead'] as num?)?.toInt(),
+        horizonDays: base == null ? null : base + extra,
       );
     } catch (_) {
       return null;
