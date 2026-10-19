@@ -386,7 +386,7 @@ class _LockedBody extends StatelessWidget {
         Center(
           child: Text(
             post.isForSale
-                ? 'Rs.${post.priceInr} to open, or free from '
+                ? '\u20B9${post.priceInr} to open, or free from '
                     '${post.tierName ?? 'the higher tiers'}'
                 : post.tierName != null
                     ? 'Available to ${post.tierName} members'
