@@ -208,7 +208,7 @@ class _LivePassSheetState extends State<LivePassSheet> {
                 const SizedBox(height: 6),
                 Center(
                   child: Text(
-                    'Rs.${widget.priceInr} - one seat, one night.',
+                    '\u20B9${widget.priceInr} - one seat, one night.',
                     style:
                         TextStyle(fontSize: 13, color: IvoryColors.textSoft),
                   ),
