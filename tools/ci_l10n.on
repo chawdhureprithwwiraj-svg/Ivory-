@@ -1,0 +1,3 @@
+# Presence of this file switches ON the translated screens while the app is built.
+# Delete this file to switch them off. Nothing else needs to change.
+# END OF FILE - tools/ci_l10n.on
