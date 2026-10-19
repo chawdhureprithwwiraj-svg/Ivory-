@@ -186,7 +186,8 @@ class _LiveRecordState extends State<LiveRecord> {
                   if (totalMinutes > 0) _span(totalMinutes),
                   // Only claimed where the nights were actually
                   // recorded. Never count nights Ivory cannot describe.
-                  if (counted > 0) 'you were there for $attended',
+                  if (counted > 0)
+                    'you were there for $attended ${attended == 1 ? 'session' : 'sessions'}',
                 ].join('  \u00B7  '),
                 style: TextStyle(
                   fontSize: 12.4,
