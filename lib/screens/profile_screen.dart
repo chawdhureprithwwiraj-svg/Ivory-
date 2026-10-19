@@ -202,9 +202,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     if (p?.isAdmin ?? false) ...<Widget>[
                       const SizedBox(height: 10),
-                      _line(Icons.check_circle, IvoryColors.success,
-                          'Connected to Supabase. Profile loaded.'),
-                      const SizedBox(height: 10),
                       _line(Icons.shield_outlined, IvoryColors.plum,
                           'Phone and birthday details stay separate from public profile data.'),
                     ],
