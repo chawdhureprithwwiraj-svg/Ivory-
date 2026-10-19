@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/ivory_errors.dart';
@@ -37,31 +39,192 @@ class _SetsBody extends StatefulWidget {
 class _SetsBodyState extends State<_SetsBody> {
   bool _busy = false;
 
+  // Messages live INSIDE the sheet (a snackbar hides behind it).
+  String? _title;
+  String? _body;
+  List<Color>? _colors;
+  double? _progress;
+  Timer? _hide;
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    super.dispose();
+  }
+
+  void _show(
+    String title,
+    String body, {
+    List<Color>? colors,
+    double? progress,
+    int seconds = 7,
+  }) {
+    _hide?.cancel();
+    setState(() {
+      _title = title;
+      _body = body;
+      _colors = colors;
+      _progress = progress;
+    });
+    _hide = Timer(Duration(seconds: seconds), () {
+      if (mounted) setState(() => _title = null);
+    });
+  }
+
   Future<void> _tap(BellSet s) async {
     final BellsState? st = BellsService.instance.state.value;
     if (st == null || _busy) return;
+    final BellLook look = BellLook.of(s.key);
     if (!s.owned) {
-      _say(
-        '${s.name} comes at ${s.min} Full Days in a round. '
-        '${s.remaining} to go.',
+      final int have = s.min - s.remaining;
+      _show(
+        '${s.name}  \u00B7  ${s.remaining} to go',
+        '${s.name} is earned at ${s.min} Full Days in a round, and you are '
+        'at $have. A Full Day is a day you ring all the bells. '
+        'These are its colours.',
+        colors: look.colors,
+        progress: s.min <= 0 ? 1 : (have / s.min).clamp(0.0, 1.0).toDouble(),
+        seconds: 9,
       );
       return;
     }
-    if (st.wear == s.key) return;
+    if (st.wear == s.key) {
+      _show(
+        'Already wearing ${s.name}',
+        'Your bells, your Showcase and the tag beside your name in live '
+        'chat already wear it.',
+        colors: look.colors,
+      );
+      return;
+    }
     setState(() => _busy = true);
     try {
       await BellsService.instance.wear(s.key);
       BellSound.instance.play('ring0');
-      if (mounted) _say('The bells now wear ${s.name}.');
+      if (mounted) {
+        _show(
+          'Now wearing ${s.name}',
+          'Your bells ring in its colours and notes. Your Showcase wears '
+          'it too, and so does the tag beside your name in live chat '
+          'while your Showcase is switched on.',
+          colors: look.colors,
+        );
+      }
     } catch (e) {
-      if (mounted) _say(houseMessage(e));
+      if (mounted) _show('Not just now', houseMessage(e));
     }
     if (mounted) setState(() => _busy = false);
   }
 
-  void _say(String m) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  Widget _banner() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          colors: <Color>[Color(0xFF5B2BD6), Color(0xFF7A2AA8)],
+        ),
+        border: Border.all(color: const Color(0x66FFFFFF)),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x662A0E72),
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              if (_colors != null)
+                for (final Color col in _colors!)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: BellShape(color: col, width: 30, glow: 0.7),
+                  ),
+              Expanded(
+                child: Text(
+                  _title ?? '',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14.5,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  _hide?.cancel();
+                  setState(() => _title = null);
+                },
+                child: const Icon(Icons.close, color: Color(0xFFE4DAFF), size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _body ?? '',
+            style: const TextStyle(
+              color: Color(0xFFF3ECFF),
+              height: 1.45,
+              fontSize: 13,
+            ),
+          ),
+          if (_progress != null) ...<Widget>[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: LinearProgressIndicator(
+                value: _progress,
+                minHeight: 8,
+                backgroundColor: const Color(0x33FFFFFF),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  _colors == null ? BellTones.noon : _colors![1],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
+
+  Widget _gives(String head, String line) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Padding(
+          padding: EdgeInsets.only(top: 5, right: 9),
+          child: Icon(Icons.circle, size: 7, color: Color(0xFFBFF4FF)),
+        ),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: <InlineSpan>[
+                TextSpan(
+                  text: '$head  ',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                TextSpan(text: line),
+              ],
+            ),
+            style: const TextStyle(
+              color: Color(0xFFE4DAFF),
+              height: 1.45,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -74,9 +237,12 @@ class _SetsBodyState extends State<_SetsBody> {
           initialChildSize: 0.82,
           maxChildSize: 0.95,
           minChildSize: 0.5,
-          builder: (BuildContext c, ScrollController sc) => ListView(
+          builder: (BuildContext c, ScrollController sc) => Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              ListView(
             controller: sc,
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 30),
+            padding: EdgeInsets.fromLTRB(16, 18, 16, _title == null ? 30 : 190),
             children: <Widget>[
               const Text(
                 'BELL SETS',
@@ -107,6 +273,30 @@ class _SetsBodyState extends State<_SetsBody> {
                   for (final BellSet s in sets) _tile(c, s, st!),
                 ],
               ),
+              const SizedBox(height: 22),
+              const Text(
+                'WHAT A SET GIVES YOU',
+                style: TextStyle(
+                  color: Color(0xFFBFF4FF),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.6,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _gives(
+                'Its look.',
+                'Your bells, the ring on your Showcase and, while your '
+                    'Showcase is on, the tag beside your name in live chat '
+                    'take its four colours.',
+              ),
+              _gives('Its sound.', 'Every set rings its own notes.'),
+              _gives('A star.', 'Each time you reach a set again in a later round.'),
+              _gives('Honour.', 'Sets are earned by Full Days and never sold.'),
+            ],
+          ),
+              if (_title != null)
+                Positioned(left: 16, right: 16, bottom: 16, child: _banner()),
             ],
           ),
         );
