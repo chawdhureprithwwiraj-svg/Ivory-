@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../services/cheer_service.dart';
 import '../services/ticker_service.dart';
 import 'ticker_sound.dart';
 
@@ -86,6 +87,19 @@ class TickerOptionsRows extends StatelessWidget {
           'A tiny, gentle sound as a ribbon arrives.',
           TickerSound.instance.on,
           (bool v) => TickerSound.instance.setOn(v),
+        ),
+        // Only shown while the house has Cheers switched on.
+        ValueListenableBuilder<bool>(
+          valueListenable: TickerService.instance.cheersLive,
+          builder: (BuildContext context, bool live, Widget? _) {
+            if (!live) return const SizedBox.shrink();
+            return _row(
+              'Let members cheer my moments',
+              'Other members can send a small wordless cheer when a ribbon celebrates something you earned.',
+              CheerService.instance.accepts,
+              (bool v) => CheerService.instance.setPref(v),
+            );
+          },
         ),
       ],
     );
