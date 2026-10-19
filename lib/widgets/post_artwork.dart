@@ -236,7 +236,7 @@ class PostArtworkState extends State<PostArtwork> {
                     ),
                     child: Text(
                       post.isForSale
-                          ? 'Open for Rs.${post.priceInr}'
+                          ? 'Open for \u20B9${post.priceInr}'
                           : post.tierName != null
                           ? '${post.tierName} members'
                           : 'Members only',
