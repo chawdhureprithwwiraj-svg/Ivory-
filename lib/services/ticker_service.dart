@@ -34,9 +34,18 @@ import '../widgets/ticker_sound.dart';
 
 /// The app's navigator, so a tap on a ribbon can open a screen from
 /// above the navigator (the ribbon lives outside it).
+///
+/// It is found through a NavigatorObserver, NOT a GlobalKey: the app is
+/// rebuilt whenever the language changes, and a GlobalKey would carry
+/// the OLD navigator (and its old screens) into the new app. A fresh
+/// observer is made for every rebuild.
 class TickerNav {
   TickerNav._();
-  static final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
+  static NavigatorObserver? _obs;
+
+  static NavigatorObserver fresh() => _obs = NavigatorObserver();
+
+  static NavigatorState? get state => _obs?.navigator;
 }
 
 class TickerSettings {
@@ -422,7 +431,7 @@ class TickerService {
 
   /// A tap on a ribbon opens the place it is about.
   void open(TickerShow s) {
-    final NavigatorState? nav = TickerNav.key.currentState;
+    final NavigatorState? nav = TickerNav.state;
     if (nav == null) return;
     TickerSound.instance.play('tap');
     void tab(String t) {
