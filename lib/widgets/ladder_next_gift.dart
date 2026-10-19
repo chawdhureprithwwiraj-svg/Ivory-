@@ -70,7 +70,7 @@ class _LadderNextGiftState extends State<LadderNextGift> {
 
   String _what(Map<String, dynamic> g) {
     final int v = (g['value'] as num?)?.toInt() ?? 0;
-    return g['kind'] == 'percent' ? '$v% off' : 'Rs $v off';
+    return g['kind'] == 'percent' ? '$v% off' : '\u20B9$v off';
   }
 
   @override
