@@ -48,7 +48,7 @@ class IvoryApp extends StatelessWidget {
         return MaterialApp(
           key: ValueKey<int>(epoch),
           title: 'Ivory',
-          navigatorKey: TickerNav.key,
+          navigatorObservers: <NavigatorObserver>[TickerNav.fresh()],
           debugShowCheckedModeBanner: false,
           theme: IvoryTheme.light(),
           // Right-to-left languages (Urdu) flip the page; then the
