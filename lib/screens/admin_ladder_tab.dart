@@ -242,7 +242,7 @@ class _AdminLadderTabState extends State<AdminLadderTab> {
               children: <Widget>[
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  activeThumbColor: IvoryColors.burgundy,
+                  activeThumbColor: IvoryColors.cream,
                   title: const Text(
                     'Ladder is open',
                     style: TextStyle(
