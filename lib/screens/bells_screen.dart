@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/ivory_errors.dart';
 import '../models/bell_models.dart';
@@ -368,7 +369,11 @@ class _BellsScreenState extends State<BellsScreen> {
   @override
   Widget build(BuildContext context) {
     final BellsState? s = BellsService.instance.state.value;
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
+      child: Scaffold(
       backgroundColor: const Color(0xFF1A0A5C),
       body: Container(
         decoration: const BoxDecoration(
@@ -419,6 +424,7 @@ class _BellsScreenState extends State<BellsScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 
