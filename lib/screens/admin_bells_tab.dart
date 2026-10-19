@@ -137,7 +137,7 @@ class _AdminBellsTabState extends State<AdminBellsTab> {
                 if (line != null)
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    activeThumbColor: IvoryColors.burgundy,
+                    activeThumbColor: IvoryColors.cream,
                     title: const Text('In use'),
                     value: active,
                     onChanged: (bool v) => set2(() => active = v),
@@ -293,7 +293,7 @@ class _AdminBellsTabState extends State<AdminBellsTab> {
           ),
           Switch(
             value: b.active,
-            activeThumbColor: IvoryColors.burgundy,
+            activeThumbColor: IvoryColors.cream,
             onChanged: (bool v) => setState(() => b.active = v),
           ),
         ],
@@ -387,7 +387,7 @@ class _AdminBellsTabState extends State<AdminBellsTab> {
           _heading('THE DOORBELL'),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            activeThumbColor: IvoryColors.burgundy,
+            activeThumbColor: IvoryColors.cream,
             title: const Text(
               'Ring My Doorbell is open to members',
               style: TextStyle(
