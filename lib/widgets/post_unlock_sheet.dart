@@ -259,7 +259,7 @@ class _PostUnlockSheetState extends State<PostUnlockSheet> {
           child: Row(
             children: <Widget>[
               Text(
-                'Rs.${p.priceInr}',
+                '\u20B9${p.priceInr}',
                 style: const TextStyle(
                   color: IvoryColors.burgundy,
                   fontSize: 30,
@@ -298,7 +298,7 @@ class _PostUnlockSheetState extends State<PostUnlockSheet> {
           )
         else ...<Widget>[
           IvoryGradientButton(
-            label: 'PAY Rs.${p.priceInr} IN YOUR UPI APP',
+            label: 'PAY \u20B9${p.priceInr} IN YOUR UPI APP',
             icon: Icons.account_balance_wallet_rounded,
             onPressed: _pay,
           ),
