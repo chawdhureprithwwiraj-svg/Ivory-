@@ -115,4 +115,11 @@ class Text extends StatelessWidget {
   }
 }
 
+/// Labels, hints and tooltips are plain strings, not `Text`. The build robot
+/// writes `labelText: 'Your story'.uiTr` for them (tools/ci_l10n.py), which
+/// returns the translation if there is one and the English otherwise.
+extension UiTr on String {
+  String get uiTr => L10n.instance.t(this);
+}
+
 // END OF FILE - lib/l10n/ui_text.dart
