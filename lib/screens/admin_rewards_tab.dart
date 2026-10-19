@@ -197,7 +197,7 @@ class _AdminRewardsTabState extends State<AdminRewardsTab> {
             children: <Widget>[
               Switch(
                 value: on,
-                activeThumbColor: IvoryColors.burgundy,
+                activeThumbColor: IvoryColors.cream,
                 onChanged: (bool v) => _toggle(d, v),
               ),
               IconButton(
