@@ -63,6 +63,9 @@ class _AdminTickerTabState extends State<AdminTickerTab> {
   int _grand = 13;
   int _delay = 20;
   int _lane = 0;
+  bool _cheersKnown = false;
+  bool _cheersOn = true;
+  int _cheersCap = 20;
   Set<int> _off = <int>{};
   List<Map<String, dynamic>> _kinds = <Map<String, dynamic>>[];
 
@@ -98,6 +101,9 @@ class _AdminTickerTabState extends State<AdminTickerTab> {
         _grand = _i(m['grand_seconds'], 13);
         _delay = _i(m['start_delay_seconds'], 20);
         _lane = _i(m['lane_offset'], 0);
+        _cheersKnown = m.containsKey('cheers_on');
+        _cheersOn = m['cheers_on'] != false;
+        _cheersCap = _i(m['cheers_daily_cap'], 20);
         _off = m['colours_off'] is List
             ? (m['colours_off'] as List).map((dynamic e) => _i(e, 0)).toSet()
             : <int>{};
@@ -135,6 +141,8 @@ class _AdminTickerTabState extends State<AdminTickerTab> {
         'start_delay_seconds': _delay,
         'lane_offset': _lane,
         'colours_off': (_off.toList()..sort()),
+        if (_cheersKnown) 'cheers_on': _cheersOn,
+        if (_cheersKnown) 'cheers_daily_cap': _cheersCap,
       }).eq('id', 1);
       _say('Saved. Members see it within about five minutes.');
       await _load();
@@ -355,6 +363,58 @@ class _AdminTickerTabState extends State<AdminTickerTab> {
                     (int v) => setState(() => _lane = v)),
               ],
             ),
+          ),
+          _heading('CHEERS'),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: IvoryTheme.card(),
+            child: !_cheersKnown
+                ? const Text(
+                    'Cheers are not set up in the database yet. Run the '
+                    'Cheers database sheet and this section comes alive.',
+                    style: TextStyle(color: IvoryColors.plum, height: 1.4),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeThumbColor: IvoryColors.cream,
+                        title: const Text(
+                          'Let members send cheers',
+                          style: TextStyle(
+                            color: IvoryColors.burgundy,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          'Touching a ribbon opens a small sheet: four '
+                          'wordless cheers (applause, sparkle, heart, crown) '
+                          'and OPEN IT. The member is told in one note per '
+                          'moment. Switch off and ribbons simply open as before.',
+                          style: TextStyle(color: IvoryColors.plum),
+                        ),
+                        value: _cheersOn,
+                        onChanged: _busy
+                            ? null
+                            : (bool v) => setState(() => _cheersOn = v),
+                      ),
+                      _stepper('Cheers a member can send each day', _cheersCap,
+                          1, 1, 100, (int v) => setState(() => _cheersCap = v)),
+                      const Text(
+                        'Cheers are only for moments of members, never for '
+                        'private sessions, new posts, live calls or your own '
+                        'announcements. Being cheered 10, 50 and 200 times '
+                        'earns the three keepsake treasures (change them in '
+                        'REWARDS).',
+                        style: TextStyle(
+                          color: IvoryColors.plum,
+                          fontSize: 12.5,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
           _heading('COLOURS'),
           Container(
