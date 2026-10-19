@@ -258,7 +258,7 @@ class _AdminEarlyTabState extends State<AdminEarlyTab> {
   Widget _switch(String title, String sub, bool v, ValueChanged<bool> on) =>
       SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        activeThumbColor: IvoryColors.burgundy,
+        activeThumbColor: IvoryColors.cream,
         title: Text(
           title,
           style: const TextStyle(
