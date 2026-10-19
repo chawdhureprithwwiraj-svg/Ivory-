@@ -13,6 +13,7 @@ import 'bell_paint.dart';
 import 'crest_pin_sheet.dart';
 import 'crest_ring.dart';
 import 'ladder_paint.dart';
+import 'ticker_options.dart';
 
 /// ============================================================
 /// IVORY - YOUR SHOWCASE (on the Profile screen)
@@ -420,7 +421,7 @@ class _ProfileCrestCardState extends State<ProfileCrestCard>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            'Show beside my name in live chat',
+                            'Show my name to other members',
                             style: TextStyle(
                               color: _white,
                               fontWeight: FontWeight.w800,
@@ -430,7 +431,9 @@ class _ProfileCrestCardState extends State<ProfileCrestCard>
                           SizedBox(height: 2),
                           Text(
                             'Other members see a small tag with your rung and '
-                            'bell colours. Switch it off any time.',
+                            'bell colours beside your name in live chat, and '
+                            'your name may glide by in the ribbons across the '
+                            'screen. Switch it off any time.',
                             style: TextStyle(
                               color: _lilac,
                               fontSize: 11.5,
@@ -449,6 +452,11 @@ class _ProfileCrestCardState extends State<ProfileCrestCard>
                       inactiveTrackColor: const Color(0x33FFFFFF),
                     ),
                   ],
+                ),
+                TickerOptionsRows(
+                  white: _white,
+                  soft: _lilac,
+                  track: LadderTones.mint,
                 ),
               ],
             ),
