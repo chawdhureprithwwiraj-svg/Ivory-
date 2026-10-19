@@ -11,6 +11,8 @@ import '../screens/bells_screen.dart';
 import '../screens/ladder_screen.dart';
 import '../screens/main_shell.dart';
 import '../widgets/ticker_sound.dart';
+import '../widgets/ticker_tap_sheet.dart';
+import 'cheer_service.dart';
 
 /// ============================================================
 /// IVORY - THE IVORY TICKER (the service behind the ribbons)
@@ -59,6 +61,8 @@ class TickerSettings {
     this.startDelay = 20,
     this.laneOffset = 0,
     this.coloursOff = const <int>[],
+    this.cheersOn = false,
+    this.cheersCap = 20,
   });
 
   final bool on;
@@ -70,6 +74,8 @@ class TickerSettings {
   final int startDelay;
   final int laneOffset;
   final List<int> coloursOff;
+  final bool cheersOn;
+  final int cheersCap;
 
   static int _i(dynamic v, int d) => v is num ? v.toInt() : d;
 
@@ -84,6 +90,8 @@ class TickerSettings {
       grand: _i(m['grand_seconds'], 13),
       startDelay: _i(m['start_delay_seconds'], 20),
       laneOffset: _i(m['lane_offset'], 0),
+      cheersOn: m['cheers_on'] == true,
+      cheersCap: _i(m['cheers_daily_cap'], 20),
       coloursOff: c is List
           ? c.map((dynamic e) => _i(e, 0)).toList()
           : const <int>[],
@@ -173,6 +181,13 @@ class TickerService {
   /// full-screen films, the keyboard). Nothing new starts meanwhile.
   final ValueNotifier<bool> blocked = ValueNotifier<bool>(false);
 
+  /// True only while the member's own touch holds a ribbon (the cheer
+  /// sheet is open). The ribbon never stops by itself.
+  final ValueNotifier<bool> paused = ValueNotifier<bool>(false);
+
+  /// Whether the house has Cheers switched on (read at each pull).
+  final ValueNotifier<bool> cheersLive = ValueNotifier<bool>(false);
+
   TickerSettings _settings = const TickerSettings();
   TickerSettings get settings => _settings;
   Map<String, Map<String, String>> _kinds = <String, Map<String, String>>{};
@@ -243,6 +258,7 @@ class TickerService {
     _pullTimer?.cancel();
     _tickTimer?.cancel();
     unawaited(pull());
+    unawaited(CheerService.instance.loadPref());
     _pullTimer = Timer.periodic(
       const Duration(minutes: 5),
       (Timer _) => unawaited(pull()),
@@ -272,11 +288,13 @@ class TickerService {
       if (m['on'] != true) {
         _settings = const TickerSettings();
         _events = <TickerEvent>[];
+        cheersLive.value = false;
         return;
       }
       _settings = TickerSettings.fromMap(
         Map<String, dynamic>.from(m['settings'] as Map),
       );
+      cheersLive.value = _settings.cheersOn;
       final Map<String, Map<String, String>> kinds =
           <String, Map<String, String>>{};
       if (m['kinds'] is Map) {
@@ -429,8 +447,20 @@ class TickerService {
     _lastEnd = DateTime.now();
   }
 
-  /// A tap on a ribbon opens the place it is about.
+  /// A tap on a ribbon. Cheerable moments open the cheer sheet (which
+  /// freezes the ribbon); everything else goes straight to its place.
   void open(TickerShow s) {
+    if (_settings.cheersOn &&
+        s.event.actor != null &&
+        kTickerCheerKinds.contains(s.event.kind) &&
+        TickerTapSheet.show(s)) {
+      return;
+    }
+    openPlace(s);
+  }
+
+  /// Opens the place a ribbon is about.
+  void openPlace(TickerShow s) {
     final NavigatorState? nav = TickerNav.state;
     if (nav == null) return;
     TickerSound.instance.play('tap');
