@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../models/gift_surface.dart';
 import '../models/live_models.dart';
 import '../models/payment.dart';
 import '../services/gift_service.dart';
@@ -11,6 +12,8 @@ import '../theme/ivory_insets.dart';
 import '../theme/ivory_theme.dart';
 import 'gift_moment.dart';
 import 'gift_scene.dart';
+import 'gift_wall.dart';
+import 'gift_mark.dart';
 
 /// ============================================================
 /// IVORY - SENDING A GIFT
@@ -48,7 +51,11 @@ class _GiftSheetState extends State<GiftSheet> {
   /// 'post' when the sheet was opened from a post, 'live' in
   /// the room. There is no third case - the sheet is only ever
   /// opened with one of the two ids.
-  String get _surface => widget.postId != null ? 'post' : 'live';
+  /// Which of the two sets this sheet is showing. The rule
+  /// itself lives in `gift_surface.dart` and is never
+  /// re-derived here - see that file before changing anything
+  /// about gifts.
+  GiftSurface get _set => GiftSurface.of(postId: widget.postId);
 
   List<Gift> _gifts = <Gift>[];
   PaymentSettings? _settings;
@@ -79,7 +86,7 @@ class _GiftSheetState extends State<GiftSheet> {
       // A gift sent under a post asks for the post nine; a gift
       // sent in the live room asks for the live nine.
       final List<Gift> g =
-          await LiveService.instance.gifts(surface: _surface);
+          await LiveService.instance.gifts(surface: _set.db);
       final PaymentSettings s = await PaymentService.instance.fetchSettings();
       final String m = await RazorpayService.instance.fetchMode();
       if (!mounted) return;
@@ -159,6 +166,11 @@ class _GiftSheetState extends State<GiftSheet> {
     });
     try {
       await LiveService.instance.attachGiftUtr(id, utr);
+      // Every wall on screen looks again. It will only show
+      // this name once Ivory has confirmed the payment, which
+      // is correct - but the ask costs nothing and means a
+      // confirmed gift never needs the app restarted to show.
+      giftWallRevision.value++;
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -224,11 +236,17 @@ class _GiftSheetState extends State<GiftSheet> {
 
   List<Widget> _payStep() => <Widget>[
         Center(
-          child: _surface == 'post' && _chosen != null
+          child: _set.isPost && _chosen != null
               ? GiftScene(
                   name: _chosen!.name, emoji: _chosen!.emoji, size: 96)
-              : Text(_chosen?.emoji ?? '\u{1F48C}',
-                  style: const TextStyle(fontSize: 54)),
+              : _chosen == null
+                  // Nothing chosen yet: show the house's own mark
+                  // for THIS surface, never a handset emoji.
+                  ? (_set.isPost
+                      ? const GiftMarkLetter(size: 54)
+                      : const GiftMarkBell(size: 54))
+                  : Text(_chosen!.emoji,
+                      style: const TextStyle(fontSize: 54)),
         ),
         const SizedBox(height: 10),
         Center(
@@ -246,58 +264,49 @@ class _GiftSheetState extends State<GiftSheet> {
   List<Widget> _chooseStep(BuildContext context) => <Widget>[
         // WHICH SET THIS IS, SAID BEFORE ANYTHING ELSE.
         //
-        // There are two catalogues and they are not
-        // interchangeable: one is something I DO, the other is
-        // what a post DID. A member who has sent gifts in the
-        // room will open this on a post and expect the nine
-        // they already know. This line is how they learn,
-        // without being taught, that these are different.
-        //
-        // It is a line, not a card - it states a fact and asks
-        // for nothing.
-        Row(
-          children: <Widget>[
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: _surface == 'post'
-                    ? IvoryColors.plum.withValues(alpha: 0.10)
-                    : IvoryColors.gold.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _surface == 'post'
-                      ? IvoryColors.plum.withValues(alpha: 0.45)
-                      : IvoryColors.gold,
-                ),
-              ),
-              child: Text(
-                _surface == 'post' ? 'FOR THIS POST' : 'FOR THE ROOM',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.8,
-                  color: _surface == 'post'
-                      ? IvoryColors.plum
-                      : IvoryColors.burgundy,
-                ),
-              ),
-            ),
-          ],
-        ),
+        // The tag, its words and its colours all come from
+        // `gift_surface.dart`, so this sheet and Ivory's own
+        // received list can never drift apart.
+        Row(children: <Widget>[GiftSurfaceTag(surface: _set)]),
         const SizedBox(height: 9),
-        Text(_surface == 'post' ? 'Tell me what it did' : 'Send me something',
+        Text(_set.heading,
             style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 6),
         Text(
-          _surface == 'post'
-              ? 'These nine are different to the ones in the room. '
-                  'Each is something this post did to you. Pick the '
-                  'one that is true and I will know what you meant.'
-              : 'These nine are things I do, here, while I am '
-                  'on air. It appears on my screen straight away.',
+          _set.blurb,
           style: TextStyle(fontSize: 13, color: IvoryColors.textSoft),
         ),
+        if (_set.isPost) ...<Widget>[
+          const SizedBox(height: 9),
+          // SAID BEFORE THEY PAY, NEVER AFTER.
+          //
+          // Their name goes on the post where everyone can
+          // see it. That is the appeal AND it is personal
+          // information, so it is stated plainly, up front,
+          // while they can still change their mind - not
+          // discovered afterwards.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text('\u2726',
+                  style: TextStyle(
+                      fontSize: 13, color: IvoryColors.gold)),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  'Your name goes on this post for everyone to see, '
+                  'and the largest gift stands at the top.',
+                  style: TextStyle(
+                    fontSize: 12.2,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
+                    color: IvoryColors.plum,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
         if (_loading)
           const Center(
@@ -323,7 +332,7 @@ class _GiftSheetState extends State<GiftSheet> {
               ? 'CHOOSE ONE'
               : (_busy
                   ? 'SENDING...'
-                  : 'SEND ${_chosen!.emoji}  Rs.${_chosen!.priceInr}'),
+                  : 'SEND ${_chosen!.emoji}  \u20B9${_chosen!.priceInr}'),
           icon: Icons.favorite_rounded,
           onPressed: (_chosen == null || _busy) ? null : _send,
         ),
@@ -398,7 +407,7 @@ class _GiftSheetState extends State<GiftSheet> {
               // its emblem - the live set was never designed to
               // be animated and should not be made to look like
               // something it is not.
-              if (_surface == 'post')
+              if (_set.isPost)
                 GiftScene(name: g.name, emoji: g.emoji, size: 46)
               else
                 Text(g.emoji, style: const TextStyle(fontSize: 26)),
@@ -428,7 +437,7 @@ class _GiftSheetState extends State<GiftSheet> {
                 ),
               ),
               Text(
-                'Rs.${g.priceInr}',
+                '\u20B9${g.priceInr}',
                 style: const TextStyle(
                   color: IvoryColors.plum,
                   fontSize: 14,
