@@ -82,6 +82,17 @@ class TickerSynth {
     return _fin(b, 0.55);
   }
 
+  /// G6, B6, D7, G7: a bright little sparkle for a cheer sent.
+  static List<double> cheer() {
+    final List<double> b = _blank(1.1);
+    _box(b, 0.00, 1568.0, 0.8, amp: 0.5);
+    _box(b, 0.08, 1975.5, 0.8, amp: 0.46);
+    _box(b, 0.16, 2349.3, 0.8, amp: 0.42);
+    _box(b, 0.24, 3136.0, 0.9, amp: 0.38);
+    _box(b, 0.34, 3951.1, 0.7, amp: 0.14, decay: 5);
+    return _fin(b, 0.5);
+  }
+
   static List<double> tap() {
     final List<double> b = _blank(0.3);
     _box(b, 0.0, 2093.0, 0.25, amp: 0.4, decay: 12);
@@ -93,6 +104,7 @@ class TickerSynth {
     'soft': soft(),
     'grand': grand(),
     'tap': tap(),
+    'cheer': cheer(),
   });
 }
 
