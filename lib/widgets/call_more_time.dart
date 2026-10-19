@@ -18,7 +18,7 @@ import 'call_extension_prompt.dart';
 /// often as she likes.
 ///
 /// THE MEMBER: a card that slides over the call and holds for
-/// THIRTY SECONDS. This matters most on an audio call, where
+/// ONE MINUTE. This matters most on an audio call, where
 /// the phone may be at an ear or the app in the background, so
 /// a handset notification is sent at the very same moment from
 /// the database. Two paths, one offer - and the notification
@@ -112,7 +112,7 @@ class _OfferDialogState extends State<_OfferDialog> {
             'This appears on their screen straight away and their '
             'phone is notified at the same moment. You can send it '
             'again as often as you like. It stays on their screen '
-            'for thirty seconds.',
+            'for one minute.',
             style: TextStyle(fontSize: 13, height: 1.5),
           ),
           const SizedBox(height: 16),
@@ -124,7 +124,7 @@ class _OfferDialogState extends State<_OfferDialog> {
             ],
             decoration: const InputDecoration(
               labelText: 'Price in rupees',
-              prefixText: 'Rs. ',
+              prefixText: '\u20B9 ',
             ),
           ),
           const SizedBox(height: 12),
@@ -183,15 +183,14 @@ class MoreTimeCard extends StatefulWidget {
 class _MoreTimeCardState extends State<MoreTimeCard> {
   Timer? _hold;
 
-  /// Thirty seconds, as the owner specified. Long enough to be
-  /// read and acted on while the phone is at an ear, short
-  /// enough never to sit in the way of the conversation.
-  int _left = 30;
+  /// One full minute, as the owner asked, so an audio-call offer
+  /// is readable even when the phone is at an ear or backgrounded.
+  int _left = 60;
 
   @override
   void initState() {
     super.initState();
-    // It holds for thirty seconds, then steps aside quietly.
+    // It holds for one minute, then steps aside quietly.
     // Nothing is lost if it does: the handset notification sent
     // at the same moment stays in her notification tray.
     _hold = Timer.periodic(const Duration(seconds: 1), (Timer t) {
@@ -263,7 +262,7 @@ class _MoreTimeCardState extends State<MoreTimeCard> {
                     ? 'Ivory has offered you ${o.minutes} more minutes. '
                         'Nothing to pay.'
                     : 'Ivory has offered you ${o.minutes} more minutes '
-                        'for Rs.${o.priceInr}. The conversation simply '
+                        'for \u20B9${o.priceInr}. The conversation simply '
                         'carries on.',
                 style: const TextStyle(fontSize: 13.5, height: 1.5),
               ),
