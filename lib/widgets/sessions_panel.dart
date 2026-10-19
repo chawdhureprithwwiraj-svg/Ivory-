@@ -321,7 +321,7 @@ class SessionGuideSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 22),
-            const IvoryEyebrow('Getting one', icon: Icons.flag_rounded),
+            const IvoryEyebrow('Getting a session', icon: Icons.flag_rounded),
             const SizedBox(height: 13),
             const WishStepList(steps: <WishStep>[
               WishStep('Tap Wish at the bottom of the screen. '
