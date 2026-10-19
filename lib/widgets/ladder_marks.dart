@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../models/ladder_models.dart';
+import '../models/reward_models.dart';
+import '../services/crest_service.dart';
+import '../services/ladder_service.dart';
+import '../services/reward_service.dart';
 import 'bell_sound.dart';
 import 'ladder_paint.dart';
+import 'mark_sheet.dart';
 
 /// ============================================================
 /// IVORY - THE MARKS BOOK
@@ -24,6 +29,24 @@ class MarksBook extends StatefulWidget {
 
 class _MarksBookState extends State<MarksBook> {
   int _filter = 0; // 0 all, 1 earned, 2 still to earn
+
+  @override
+  void initState() {
+    super.initState();
+    CrestService.instance.refreshQuietly();
+    RewardService.instance.refreshQuietly();
+    CrestService.instance.mine.addListener(_pinsMoved);
+  }
+
+  void _pinsMoved() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    CrestService.instance.mine.removeListener(_pinsMoved);
+    super.dispose();
+  }
 
   List<MarkItem> get _shown {
     final List<MarkItem> l = widget.marks.where((MarkItem m) {
@@ -48,83 +71,118 @@ class _MarksBookState extends State<MarksBook> {
 
   void _detail(MarkItem m) {
     BellSound.instance.play('tap');
-    final Color tone = LadderTones.rarity[m.rarityIndex];
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: LadderTones.teal,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (BuildContext c) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 22, 24, 30),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            MarkMedallion(
-              glyph: m.glyph,
-              rarity: m.rarityIndex,
-              earned: m.earned,
-              fraction: m.fraction,
-              shine: widget.shine,
-              size: 104,
-              label: m.target > 1 ? '${m.target}' : '',
-            ),
-            const SizedBox(height: 12),
-            Text(
-              LadderTones.rarityName[m.rarityIndex],
-              style: TextStyle(
-                color: tone,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2.6,
-                fontSize: 11.5,
+      builder: (BuildContext c) => MarkSheet(mark: m, shine: widget.shine),
+    );
+  }
+
+  /// The nearest treasure still ahead that is earned by collecting Marks.
+  Widget _nextTreasure() {
+    return ValueListenableBuilder<RewardState?>(
+      valueListenable: RewardService.instance.state,
+      builder: (BuildContext _, RewardState? r, Widget? __) {
+        if (r == null) return const SizedBox.shrink();
+        final List<RewardItem> ahead = r.locked
+            .where((RewardItem e) => e.trigger == 'marks_earned')
+            .toList()
+          ..sort((RewardItem a, RewardItem b) => a.target.compareTo(b.target));
+        if (ahead.isEmpty) return const SizedBox.shrink();
+        final RewardItem n = ahead.first;
+        final String off = n.prize == null ? '' : n.prize!.offText;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: LadderTones.tealDeep.withValues(alpha: 0.7),
+            border: Border.all(color: LadderTones.mint.withValues(alpha: 0.35)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Text(
+                'NEXT MARKS TREASURE',
+                style: TextStyle(
+                  color: LadderTones.mint,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  fontSize: 10.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              m.name,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              m.blurb,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: LadderTones.pearl, height: 1.45),
-            ),
-            const SizedBox(height: 14),
-            if (m.earned)
+              const SizedBox(height: 6),
               Text(
-                m.at == null
-                    ? 'Earned'
-                    : 'Earned on ${m.at!.day}/${m.at!.month}/${m.at!.year}',
-                style: TextStyle(color: tone, fontWeight: FontWeight.w700),
-              )
-            else ...<Widget>[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: LinearProgressIndicator(
-                  value: m.fraction,
-                  minHeight: 8,
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
-                  valueColor: AlwaysStoppedAnimation<Color>(tone),
+                off.isEmpty
+                    ? 'Collect ${n.target} Marks to earn "${n.name}".'
+                    : 'Collect ${n.target} Marks to earn "${n.name}" and a '
+                        'one-time $off on a membership.',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  height: 1.4,
+                  fontSize: 13,
                 ),
               ),
               const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: LinearProgressIndicator(
+                  value: n.ratio,
+                  minHeight: 7,
+                  backgroundColor: Colors.white.withValues(alpha: 0.15),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    LadderTones.mint,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 5),
               Text(
-                '${m.have} of ${m.target}',
+                '${n.progress} of ${n.target} Marks',
+                style: const TextStyle(color: LadderTones.pearl, fontSize: 11.5),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// What the five colours mean.
+  Widget _legend() {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 4,
+      children: <Widget>[
+        for (int i = 0; i < 5; i++)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: LadderTones.rarity[i],
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                LadderTones.rarityName[i],
                 style: const TextStyle(
-                  color: LadderTones.pearl,
-                  fontWeight: FontWeight.w700,
+                  color: LadderTones.mist,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
                 ),
               ),
             ],
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 
@@ -161,13 +219,27 @@ class _MarksBookState extends State<MarksBook> {
   @override
   Widget build(BuildContext context) {
     final List<MarkItem> list = _shown;
+    final int mp = LadderService.instance.state.value?.markPoints ?? 3;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
+        Text(
+          'Every Mark you earn adds +$mp climb points and can be pinned to '
+          'your Showcase on your Profile. Marks are earned, never sold.',
+          style: const TextStyle(
+            color: LadderTones.pearl,
+            height: 1.45,
+            fontSize: 12.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _nextTreasure(),
         Wrap(
           runSpacing: 8,
           children: <Widget>[_chip(0, 'All'), _chip(1, 'Earned'), _chip(2, 'To earn')],
         ),
+        const SizedBox(height: 10),
+        _legend(),
         const SizedBox(height: 14),
         if (list.isEmpty)
           const Padding(
@@ -207,6 +279,19 @@ class _MarksBookState extends State<MarksBook> {
                           size: 62,
                           label: m.target > 1 ? '${m.target}' : '',
                         ),
+                        if (m.earned &&
+                            (CrestService.instance.mine.value?.pins
+                                    .contains(m.key) ??
+                                false))
+                          const Positioned(
+                            left: -2,
+                            top: -2,
+                            child: Icon(
+                              Icons.push_pin,
+                              size: 16,
+                              color: LadderTones.mint,
+                            ),
+                          ),
                         if (m.isNew)
                           Positioned(
                             right: -2,
