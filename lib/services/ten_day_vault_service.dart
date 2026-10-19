@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/vault_models.dart';
+import 'quiz_rpc.dart';
 
 /// ============================================================
 /// IVORY - THE TEN-DAY VAULT, THE ONLY DOOR TO THE DATABASE
@@ -24,13 +25,13 @@ class TenDayVaultService {
 
   /// Begins a new vault (or returns today's key if one is running).
   Future<VaultQuestion> start() async {
-    final dynamic r = await _db.rpc('vault_start');
+    final dynamic r = await quizRpc('vault_start');
     return VaultQuestion.fromMap(_map(r));
   }
 
   /// Opens today's key: the question and its clock.
   Future<VaultQuestion> openKey() async {
-    final dynamic r = await _db.rpc('vault_open_key');
+    final dynamic r = await quizRpc('vault_open_key');
     return VaultQuestion.fromMap(_map(r));
   }
 
@@ -53,7 +54,7 @@ class TenDayVaultService {
 
   /// Only works once the last key has turned.
   Future<VaultResult> result([int? runId]) async {
-    final dynamic r = await _db.rpc(
+    final dynamic r = await quizRpc(
       'vault_result',
       params: <String, dynamic>{'run_id_in': runId},
     );
