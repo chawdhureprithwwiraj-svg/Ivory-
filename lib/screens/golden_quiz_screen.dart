@@ -159,7 +159,7 @@ class _GoldenQuizScreenState extends State<GoldenQuizScreen> {
           rehearsal
               ? 'This is an admin rehearsal. Leaving costs nothing.'
               : 'This quiz will be used up, and the next one opens in '
-                    '${_gs?.cooldownDays ?? 20} days. Gold you have already won '
+                    '${_gs?.cooldownDays ?? 20} days. Gold you have already earned '
                     'is kept, but its ${_gs?.creditHours ?? 6} hours keep '
                     'running.',
         ),
