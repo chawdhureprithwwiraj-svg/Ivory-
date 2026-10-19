@@ -189,7 +189,7 @@ class _AdminBellsPushState extends State<AdminBellsPush> {
         children: <Widget>[
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            activeThumbColor: IvoryColors.burgundy,
+            activeThumbColor: IvoryColors.cream,
             title: Text(
               '${b.label} bell reminder',
               style: const TextStyle(
@@ -282,7 +282,7 @@ class _AdminBellsPushState extends State<AdminBellsPush> {
         const SizedBox(height: 6),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          activeThumbColor: IvoryColors.burgundy,
+          activeThumbColor: IvoryColors.cream,
           title: const Text(
             'Send bell reminders',
             style: TextStyle(
