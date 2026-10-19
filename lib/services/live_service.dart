@@ -258,6 +258,21 @@ class LiveService {
     return (res as num).toInt();
   }
 
+  /// A session whose time came and went more than six hours ago is
+  /// over, whatever the database still says: a call that was left
+  /// open is never closed by the app, and "in progress" ten days
+  /// later would simply be untrue. It is shown as lapsed instead.
+  static Map<String, dynamic> _lapse(Map<String, dynamic> r) {
+    final String st = (r['status'] as String?) ?? '';
+    if (st != 'accepted' && st != 'active') return r;
+    final DateTime? at =
+        DateTime.tryParse((r['window_end'] as String?) ?? '') ??
+            DateTime.tryParse((r['requested_for'] as String?) ?? '');
+    if (at == null) return r;
+    if (DateTime.now().isBefore(at.add(const Duration(hours: 6)))) return r;
+    return <String, dynamic>{...r, 'status': 'expired'};
+  }
+
   Future<List<CallRequest>> myCalls() async {
     final List<dynamic> rows = await _db
         .from('call_requests')
@@ -265,7 +280,8 @@ class LiveService {
         .order('created_at', ascending: false)
         .limit(30);
     return rows
-        .map((dynamic r) => CallRequest.fromDb(r as Map<String, dynamic>))
+        .map((dynamic r) =>
+            CallRequest.fromDb(_lapse(r as Map<String, dynamic>)))
         .toList();
   }
 
