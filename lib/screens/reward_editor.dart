@@ -309,7 +309,7 @@ class _RewardEditorState extends State<_RewardEditor> {
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                activeThumbColor: IvoryColors.burgundy,
+                activeThumbColor: IvoryColors.cream,
                 title: const Text('Access has no end date'),
                 value: _forever,
                 onChanged: (bool v) => setState(() => _forever = v),
@@ -326,7 +326,7 @@ class _RewardEditorState extends State<_RewardEditor> {
             _label('A DISCOUNT CODE AS A PRIZE'),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              activeThumbColor: IvoryColors.burgundy,
+              activeThumbColor: IvoryColors.cream,
               title: const Text('Also give a one-time discount code'),
               subtitle: const Text(
                 'Made for each member the moment they earn this. Only for members who earn it from now on.',
@@ -377,7 +377,7 @@ class _RewardEditorState extends State<_RewardEditor> {
             ],
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              activeThumbColor: IvoryColors.burgundy,
+              activeThumbColor: IvoryColors.cream,
               title: const Text('Switched on (members can earn it)'),
               value: _active,
               onChanged: (bool v) => setState(() => _active = v),
