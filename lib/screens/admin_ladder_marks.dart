@@ -106,7 +106,7 @@ class _AdminLadderMarksState extends State<AdminLadderMarks> {
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  activeThumbColor: IvoryColors.burgundy,
+                  activeThumbColor: IvoryColors.cream,
                   title: const Text('Shown to members'),
                   value: active,
                   onChanged: (bool v) => set(() => active = v),
