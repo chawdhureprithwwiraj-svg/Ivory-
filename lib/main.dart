@@ -8,7 +8,8 @@ import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'services/push_service.dart';
 import 'theme/ivory_theme.dart';
-import 'widgets/ivory_footer.dart';
+import 'services/ticker_service.dart';
+import 'widgets/ticker_host.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,6 +48,7 @@ class IvoryApp extends StatelessWidget {
         return MaterialApp(
           key: ValueKey<int>(epoch),
           title: 'Ivory',
+          navigatorKey: TickerNav.key,
           debugShowCheckedModeBanner: false,
           theme: IvoryTheme.light(),
           // Right-to-left languages (Urdu) flip the page; then the
@@ -54,7 +56,7 @@ class IvoryApp extends StatelessWidget {
           builder: (BuildContext c, Widget? child) => Directionality(
             textDirection:
                 L10n.instance.rtl ? TextDirection.rtl : TextDirection.ltr,
-            child: IvoryFooter.wrap(c, child),
+            child: IvoryTicker.wrap(c, child),
           ),
           home: SupabaseConfig.isConfigured
               ? const AuthGate()
