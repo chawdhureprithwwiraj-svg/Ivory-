@@ -144,9 +144,16 @@ extension IvoryGifts on LiveService {
   /// The SQL returns confirmed sends only and checks that this
   /// viewer can open the post before returning photo paths.
   Future<List<PostGifter>> postGifters(int postId) async {
-    final dynamic res = await _gdb.rpc<dynamic>(
-        'post_gifters_with_profile_photos',
-        params: <String, dynamic>{'post_id_in': postId});
+    // The copy that also names the member comes first; if the database
+    // does not have it yet, the original list is used and nothing breaks.
+    dynamic res;
+    try {
+      res = await _gdb.rpc<dynamic>('post_gifters_with_ids',
+          params: <String, dynamic>{'post_id_in': postId});
+    } catch (_) {
+      res = await _gdb.rpc<dynamic>('post_gifters_with_profile_photos',
+          params: <String, dynamic>{'post_id_in': postId});
+    }
     if (res is! List) return <PostGifter>[];
     return res
         .map((dynamic r) => PostGifter.fromDb(r as Map<String, dynamic>))
