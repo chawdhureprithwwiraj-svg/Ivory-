@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/ivory_errors.dart';
 import '../models/ladder_models.dart';
@@ -339,7 +340,11 @@ class _LadderScreenState extends State<LadderScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
+      child: Scaffold(
       backgroundColor: LadderTones.teal,
       body: Container(
         decoration: const BoxDecoration(
@@ -468,6 +473,7 @@ class _LadderScreenState extends State<LadderScreen>
           ),
         ),
       ),
+    ),
     );
   }
 }
