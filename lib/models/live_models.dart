@@ -56,7 +56,7 @@ class LiveSession {
 
   String get gateLabel {
     if (isEntitled) return 'Join now';
-    if (isPayPerView) return 'Unlock for Rs.$priceInr';
+    if (isPayPerView) return 'Unlock for \u20B9$priceInr';
     return tierName == null ? 'Members only' : '$tierName and above';
   }
 
@@ -204,6 +204,8 @@ class CallRequest {
         return 'In progress';
       case 'completed':
         return 'Finished';
+      case 'expired':
+        return 'Lapsed';
       case 'declined':
         return 'Not accepted';
       default:
