@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/ivory_errors.dart';
 import '../models/quiz_models.dart';
 import 'payment_service.dart';
+import 'quiz_rpc.dart';
 
 /// ============================================================
 /// IVORY - THE GOLDEN KNOCK-OFF, THE ONLY DOOR TO THE DATABASE
@@ -26,13 +27,13 @@ class QuizService {
 
   /// Opens a quiz (or resumes the open one).
   Future<GoldenStart> start() async {
-    final dynamic r = await _db.rpc('quiz_start');
+    final dynamic r = await quizRpc('quiz_start');
     return GoldenStart.fromMap(_map(r));
   }
 
   /// Null when there is no open quiz to resume.
   Future<GoldenStart?> resume() async {
-    final dynamic r = await _db.rpc('quiz_resume');
+    final dynamic r = await quizRpc('quiz_resume');
     return r == null ? null : GoldenStart.fromMap(_map(r));
   }
 
@@ -42,7 +43,7 @@ class QuizService {
     required int questionId,
     required int choice,
   }) async {
-    final dynamic r = await _db.rpc(
+    final dynamic r = await quizRpc(
       'quiz_answer',
       params: <String, dynamic>{
         'attempt_id_in': attemptId,
