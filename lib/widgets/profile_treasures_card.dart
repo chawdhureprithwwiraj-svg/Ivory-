@@ -4,6 +4,7 @@ import '../models/reward_models.dart';
 import '../screens/treasures_sheet.dart';
 import '../services/reward_service.dart';
 import '../theme/ivory_theme.dart';
+import 'profile_crest_card.dart';
 import 'reward_badge.dart';
 
 /// The member's treasures on the Profile screen: a shelf of the
@@ -25,6 +26,15 @@ class _ProfileTreasuresCardState extends State<ProfileTreasuresCard> {
 
   @override
   Widget build(BuildContext context) {
+    // The Showcase sits above the treasures; it hides itself if the
+    // Ladder is closed.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[const ProfileCrestCard(), _shelf()],
+    );
+  }
+
+  Widget _shelf() {
     return ValueListenableBuilder<RewardState?>(
       valueListenable: RewardService.instance.state,
       builder: (BuildContext _, RewardState? r, Widget? __) {
