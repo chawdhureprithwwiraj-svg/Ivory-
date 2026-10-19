@@ -357,7 +357,7 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
         ),
         const SizedBox(height: 10),
         Text(
-          'Your gold, if you won any, is yours to spend for ${s.creditHours} '
+          'Your gold, if you earned any, is yours to spend for ${s.creditHours} '
           'hours after the vault opened. We will tell you the moment the '
           'next vault is ready.',
           style: _fine(),
