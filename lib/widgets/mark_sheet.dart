@@ -71,7 +71,7 @@ class _MarkSheetState extends State<MarkSheet> {
   void _share() {
     final MarkItem m = widget.mark;
     Share.share(
-      'I earned the "${m.name}" Mark on Ivory. ${m.blurb} '
+      'I earned the "${m.name}" Mark on Ivory. '
       'Every story leaves a mark.',
     );
   }
