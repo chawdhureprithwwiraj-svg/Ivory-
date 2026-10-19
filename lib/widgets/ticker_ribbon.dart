@@ -404,7 +404,7 @@ class TickerPill extends StatelessWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(8, 5, grand ? 18 : 15, 5),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: MainAxisSize.max,
               children: <Widget>[
                 SizedBox(
                   width: medal,
@@ -432,15 +432,16 @@ class TickerPill extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 9),
-                Flexible(
+                Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: <Widget>[
                       if (show.label.isNotEmpty)
                         Text(
                           show.label,
                           maxLines: 1,
+                          textAlign: TextAlign.center,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: p.trim,
@@ -454,6 +455,7 @@ class TickerPill extends StatelessWidget {
                       Text(
                         show.text,
                         maxLines: 2,
+                        textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: kTickerCream,
