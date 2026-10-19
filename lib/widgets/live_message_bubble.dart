@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/live_models.dart';
 import '../theme/ivory_theme.dart';
 import 'member_avatar.dart';
+import 'crest_tag.dart';
 import 'premium_badge.dart';
 import 'report_sheet.dart';
 
@@ -124,8 +125,7 @@ class LiveMessageBubble extends StatelessWidget {
           children: <Widget>[
             MemberAvatar(
               displayName: m.senderName ?? 'A member',
-              // CC.120: only an active paid member's photo is shown.
-              imageUrl: premium ? m.senderAvatarUrl : null,
+              imageUrl: m.senderAvatarUrl,
               size: 36,
               premiumFrame: premium && (m.senderAvatarUrl?.isNotEmpty ?? false),
             ),
@@ -169,6 +169,14 @@ class LiveMessageBubble extends StatelessWidget {
                           shadows: readableShadow,
                         ),
                       ),
+                      if (m.memberId != null && m.memberId!.isNotEmpty)
+                        WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 5),
+                            child: CrestTag(memberId: m.memberId!),
+                          ),
+                        ),
                       if (premium)
                         WidgetSpan(
                           alignment: PlaceholderAlignment.middle,
