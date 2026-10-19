@@ -302,17 +302,23 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
             const SizedBox(height: 8),
             Row(
               children: <Widget>[
-                Text('ack ${_clock(r['due_at'] as String)}',
-                    style: TextStyle(
-                        color: status == 'closed'
-                            ? IvoryColors.textFaint
-                            : _clockColor(r['due_at'] as String),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(width: 10),
-                Text('outer ${_clock(r['outer_due_at'] as String)}',
-                    style: TextStyle(
-                        color: IvoryColors.textFaint, fontSize: 11.5)),
+                if (status == 'closed')
+                  Text('Closed',
+                      style: TextStyle(
+                          color: IvoryColors.textFaint,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700))
+                else ...<Widget>[
+                  Text('Reply due: ${_clock(r['due_at'] as String)}',
+                      style: TextStyle(
+                          color: _clockColor(r['due_at'] as String),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 10),
+                  Text('Final: ${_clock(r['outer_due_at'] as String)}',
+                      style: TextStyle(
+                          color: IvoryColors.textFaint, fontSize: 11.5)),
+                ],
                 const Spacer(),
                 if (status == 'open')
                   TextButton(
