@@ -5,6 +5,7 @@ import '../services/gift_service.dart';
 import '../services/live_service.dart';
 import '../services/profile_photo_service.dart';
 import '../theme/ivory_theme.dart';
+import 'crest_tag.dart';
 import 'member_avatar.dart';
 import 'premium_badge.dart';
 import 'rotating_gift_crown.dart';
@@ -296,6 +297,10 @@ class _GiftWallState extends State<GiftWall> {
                         ),
                       ],
                     ),
+                    if (top.senderId != null) ...<Widget>[
+                      const SizedBox(height: 4),
+                      CrestTag(memberId: top.senderId!, onLight: true),
+                    ],
                     if (top.hasActivePaidTier && top.tierLevel > 0) ...<Widget>[
                       const SizedBox(height: 3),
                       PremiumBadge.compact(
@@ -409,6 +414,10 @@ class _GiftWallState extends State<GiftWall> {
               ),
             ),
           ),
+          if (g.senderId != null) ...<Widget>[
+            const SizedBox(width: 4),
+            CrestTag(memberId: g.senderId!, onLight: true, compact: true),
+          ],
           if (g.hasActivePaidTier && g.tierLevel > 0) ...<Widget>[
             const SizedBox(width: 4),
             PremiumBadge.emblem(
