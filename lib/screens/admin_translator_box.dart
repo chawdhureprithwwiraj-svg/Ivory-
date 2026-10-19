@@ -152,7 +152,7 @@ class _AdminTranslatorBoxState extends State<AdminTranslatorBox> {
         children: <Widget>[
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            activeColor: IvoryColors.plum,
+            activeColor: IvoryColors.cream,
             title: const Text('Translate what I write'),
             subtitle: const Text(
                 'Posts, poll options and broadcast notices are translated '
@@ -200,7 +200,7 @@ class _AdminTranslatorBoxState extends State<AdminTranslatorBox> {
           const SizedBox(height: 6),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            activeColor: IvoryColors.plum,
+            activeColor: IvoryColors.cream,
             title: const Text('Send the full text of paid posts too'),
             subtitle: const Text(
                 'Off (recommended on the free plan): only the title and '
