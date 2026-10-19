@@ -340,7 +340,7 @@ class _TreasuresSheetState extends State<TreasuresSheet> {
                             _grid(s.earned.map(_earned).toList()),
                           ],
                           if (s.locked.isNotEmpty) ...<Widget>[
-                            _title('STILL TO WIN'),
+                            _title('STILL TO EARN'),
                             _grid(s.locked.map(_locked).toList()),
                           ],
                         ],
