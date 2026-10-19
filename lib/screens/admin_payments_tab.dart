@@ -352,7 +352,7 @@ class AdminPaymentsTabState extends State<AdminPaymentsTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            'UTR ${p.utr}',
+            p.utr.trim().isEmpty ? 'No reference number given' : 'UTR ${p.utr}',
             style: const TextStyle(
               color: IvoryColors.plum,
               fontSize: 14,
@@ -363,7 +363,7 @@ class AdminPaymentsTabState extends State<AdminPaymentsTab> {
           const SizedBox(height: 4),
           Text(
             '${p.payerName ?? 'A member'}'
-            '${p.createdAt == null ? '' : ' · ${p.createdAt!.toLocal()}'.split('.').first}',
+            '${p.createdAt == null ? '' : ' · ${_when(p.createdAt!.toLocal())}'}',
             style: TextStyle(color: IvoryColors.textFaint, fontSize: 12),
           ),
           if (p.adminNote != null && p.adminNote!.isNotEmpty) ...<Widget>[
@@ -405,6 +405,17 @@ class AdminPaymentsTabState extends State<AdminPaymentsTab> {
       ),
     );
   }
+}
+
+/// 18 Oct, 1:20 AM
+String _when(DateTime d) {
+  const List<String> m = <String>[
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  final int h12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  final String mm = d.minute.toString().padLeft(2, '0');
+  return '${d.day} ${m[d.month - 1]}, $h12:$mm ${d.hour < 12 ? 'AM' : 'PM'}';
 }
 
 // END OF FILE - lib/screens/admin_payments_tab.dart
