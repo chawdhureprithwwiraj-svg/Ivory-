@@ -27,6 +27,28 @@ class AdminTickerTab extends StatefulWidget {
 }
 
 class _AdminTickerTabState extends State<AdminTickerTab> {
+  /// Plain words for each kind, so two rows with the same heading can be
+  /// told apart.
+  static const Map<String, String> _what = <String, String>{
+    'mark': 'a Mark is earned',
+    'treasure': 'a treasure is earned',
+    'treasure_gift': 'a treasure with a discount',
+    'rung': 'a rung is climbed',
+    'fullday': 'a Full Day',
+    'bellset': 'new bells are worn',
+    'pledge': 'a pledge is kept',
+    'glow': 'a Golden Heart streak',
+    'peal': 'a Full Peal streak',
+    'knockoff10': 'a perfect Knock-off',
+    'gift': 'a gift on a post',
+    'gift_live': 'a gift in a live session',
+    'welcome': 'a new member',
+    'post': 'a new post',
+    'live': 'Admin goes live',
+    'private': 'a private session',
+    'note': 'your own announcement',
+  };
+
   SupabaseClient get _db => Supabase.instance.client;
 
   bool _loading = true;
@@ -376,7 +398,7 @@ class _AdminTickerTabState extends State<AdminTickerTab> {
               child: ListTile(
                 onTap: () => _editKind(k),
                 title: Text(
-                  '${k['label']}',
+                  '${k['label']}  \u00B7  ${_what[k['kind']] ?? k['kind']}',
                   style: const TextStyle(
                     color: IvoryColors.burgundy,
                     fontWeight: FontWeight.w800,
