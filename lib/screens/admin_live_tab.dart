@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import '../models/live_models.dart';
 import '../models/gift_surface.dart';
 import '../services/gift_service.dart';
+import '../services/admin_service.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_bits.dart';
 import '../widgets/admin_post_chips.dart';
 import '../widgets/admin_live_guest_fee.dart';
 import 'admin_live_beauty_preview.dart';
-import '../widgets/ivory_footer.dart';
 import 'live_screen.dart';
 
 part 'admin_live_tab_beauty_part.dart';
@@ -40,11 +40,26 @@ class _AdminLiveTabState extends State<AdminLiveTab> with _AdminLiveBeautyMixin 
   Map<int, GiftNoteFlag> _noteFlags = <int, GiftNoteFlag>{};
   Map<String, String> _giftSets = <String, String>{};
   Timer? _clock;
+  List<Map<String, dynamic>> _tiers = <Map<String, dynamic>>[];
+
+  Future<void> _loadTiers() async {
+    try {
+      final List<Map<String, dynamic>> t =
+          await AdminService.instance.fetchAllTiers();
+      if (!mounted) return;
+      setState(() => _tiers = t
+          .where((Map<String, dynamic> e) => e['is_active'] == true)
+          .toList());
+    } catch (_) {
+      // The chips simply show Forever Members only.
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadTiers();
     _clock = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && _onAir != null) setState(() {});
     });
@@ -155,16 +170,14 @@ class _AdminLiveTabState extends State<AdminLiveTab> with _AdminLiveBeautyMixin 
   }) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => IvoryFooterHide(
-          child: LiveScreen(
-            sessionId: id,
-            title: title,
-            mode: LiveMode.host,
-            startedAt: startedAt,
-            guestPriceInr: guestPriceInr,
-            guestRequestsOpen: guestRequestsOpen,
-            hostVideoEnabled: hostVideoEnabled,
-          ),
+        builder: (_) => LiveScreen(
+          sessionId: id,
+          title: title,
+          mode: LiveMode.host,
+          startedAt: startedAt,
+          guestPriceInr: guestPriceInr,
+          guestRequestsOpen: guestRequestsOpen,
+          hostVideoEnabled: hostVideoEnabled,
         ),
       ),
     );
@@ -335,10 +348,7 @@ class _AdminLiveTabState extends State<AdminLiveTab> with _AdminLiveBeautyMixin 
             children: <Widget>[
               ...audienceMixChips(
                 who: _who,
-                tiers: <Map<String, dynamic>>[
-                  for (int i = 1; i <= 4; i++)
-                    <String, dynamic>{'level': i, 'name': 'Tier $i'},
-                ],
+                tiers: _tiers,
                 onChange: (Set<int> v) => setState(() => _who = v),
               ),
               AdminSelectChip(
@@ -421,8 +431,8 @@ class _AdminLiveTabState extends State<AdminLiveTab> with _AdminLiveBeautyMixin 
                   children: <Widget>[
                     Flexible(
                       child: Text(
-                        '${g.name} - Rs.${g.amountInr}',
-                        maxLines: 1,
+                        '${g.name} - \u20B9${g.amountInr}',
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: IvoryColors.burgundy,
