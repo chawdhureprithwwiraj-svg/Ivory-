@@ -130,7 +130,7 @@ class _ExtensionSheetState extends State<_ExtensionSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Ivory has offered you more time for Rs.${widget.price}. '
+            'Ivory has offered you more time for \u20B9${widget.price}. '
             'Pay now and the conversation simply continues.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
