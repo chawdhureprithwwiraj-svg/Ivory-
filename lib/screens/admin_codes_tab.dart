@@ -223,7 +223,7 @@ class _AdminCodesTabState extends State<AdminCodesTab> {
             children: <Widget>[
               Switch(
                 value: on,
-                activeThumbColor: IvoryColors.burgundy,
+                activeThumbColor: IvoryColors.cream,
                 onChanged: (bool v) => _toggle(c, v),
               ),
               Row(
