@@ -7,7 +7,6 @@ import '../theme/ivory_theme.dart';
 import '../widgets/admin_call_pill.dart';
 import '../widgets/call_sheet_bits.dart';
 import '../widgets/admin_bits.dart';
-import '../widgets/ivory_footer.dart';
 import 'live_screen.dart';
 
 /// ============================================================
@@ -150,16 +149,14 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
     if (!mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => IvoryFooterHide(
-          child: LiveScreen(
-            sessionId: c.id,
-            title: c.displayName,
-            subtitle: '${c.minutes} minutes - ${c.kind}',
-            mode: LiveMode.call,
-            videoEnabled: c.kind == 'video',
-            memberTierName: badge?.tierName,
-            memberTierLevel: badge?.tierLevel ?? 0,
-          ),
+        builder: (_) => LiveScreen(
+          sessionId: c.id,
+          title: c.displayName,
+          subtitle: '${c.minutes} minutes - ${c.kind}',
+          mode: LiveMode.call,
+          videoEnabled: c.kind == 'video',
+          memberTierName: badge?.tierName,
+          memberTierLevel: badge?.tierLevel ?? 0,
         ),
       ),
     );
@@ -339,7 +336,7 @@ class _AdminCallsTabState extends State<AdminCallsTab> {
           const SizedBox(height: 12),
           Text(
             '${c.kind == 'video' ? 'Video' : 'Audio'} - ${c.minutes} minutes'
-            '${c.priceInr > 0 ? ' - Rs.${c.priceInr} wish' : ' - included'}',
+            '${c.priceInr > 0 ? ' - \u20B9${c.priceInr} wish' : ' - included'}',
             style: TextStyle(fontSize: 13, color: IvoryColors.textSoft),
           ),
           if (c.note != null && c.note!.trim().isNotEmpty) ...<Widget>[
