@@ -12,9 +12,20 @@ import 'bell_looks.dart';
 /// on its way, or if anything fails, there is simply nothing here.
 /// ============================================================
 class CrestTag extends StatefulWidget {
-  const CrestTag({super.key, required this.memberId});
+  const CrestTag({
+    super.key,
+    required this.memberId,
+    this.onLight = false,
+    this.compact = false,
+  });
 
   final String memberId;
+
+  /// True on a pale background (the gift wall): dark text and a soft violet wash.
+  final bool onLight;
+
+  /// Only the four dots, for tight places.
+  final bool compact;
 
   @override
   State<CrestTag> createState() => _CrestTagState();
@@ -54,7 +65,9 @@ class _CrestTagState extends State<CrestTag> {
     return Container(
       padding: const EdgeInsets.fromLTRB(6, 2, 7, 2),
       decoration: BoxDecoration(
-        color: const Color(0x33FFFFFF),
+        color: widget.onLight
+            ? const Color(0x1F3B1CA4)
+            : const Color(0x33FFFFFF),
         borderRadius: BorderRadius.circular(9),
       ),
       child: Row(
@@ -67,17 +80,20 @@ class _CrestTagState extends State<CrestTag> {
               margin: const EdgeInsets.only(right: 2),
               decoration: BoxDecoration(color: col, shape: BoxShape.circle),
             ),
-          const SizedBox(width: 2),
-          Text(
-            c.rungName.toUpperCase(),
-            style: const TextStyle(
-              color: Color(0xFFF3ECFF),
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
-              height: 1.1,
+          if (!widget.compact) const SizedBox(width: 2),
+          if (!widget.compact)
+            Text(
+              c.rungName.toUpperCase(),
+              style: TextStyle(
+                color: widget.onLight
+                    ? const Color(0xFF3B1CA4)
+                    : const Color(0xFFF3ECFF),
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+                height: 1.1,
+              ),
             ),
-          ),
         ],
       ),
     );
