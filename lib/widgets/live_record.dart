@@ -182,7 +182,7 @@ class _LiveRecordState extends State<LiveRecord> {
               const SizedBox(height: 5),
               Text(
                 <String>[
-                  '${_nights.length} ${_nights.length == 1 ? 'night' : 'nights'}',
+                  '${_nights.length} ${_nights.length == 1 ? 'session' : 'sessions'}',
                   if (totalMinutes > 0) _span(totalMinutes),
                   // Only claimed where the nights were actually
                   // recorded. Never count nights Ivory cannot describe.
