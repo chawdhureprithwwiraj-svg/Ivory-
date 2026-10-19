@@ -107,6 +107,35 @@ jobs:
             echo "::warning::Building with the default Flutter icon."
           fi
 
+      # ---- THE APP'S WORDS IN EVERY LANGUAGE (CC.152) --------------
+      # Switches the screens' text to the translating text, on the
+      # build's own copy only. If the Dart analyzer finds ANY error the
+      # switch is undone and the app builds in plain English as before.
+      # Delete the file tools/ci_l10n.on to turn this step off.
+      - name: Translate the screens (safe, with automatic fallback)
+        if: hashFiles('tools/ci_l10n.on') != ''
+        continue-on-error: true
+        run: |
+          if ! python3 tools/ci_l10n.py apply; then
+            python3 tools/ci_l10n.py revert
+            echo "## Screen translation was SKIPPED (the switch script failed)" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          flutter analyze --no-pub lib > analyze_l10n.log 2>&1 || true
+          ERRS=$(grep -cE '^[[:space:]]*error[[:space:]]' analyze_l10n.log || true)
+          if [ "${ERRS:-0}" -gt 0 ]; then
+            python3 tools/ci_l10n.py revert
+            {
+              echo "## Screen translation was SKIPPED"
+              echo "The text switch caused ${ERRS} error(s), so this build is plain English."
+              echo '```text'
+              grep -E '^[[:space:]]*error[[:space:]]' analyze_l10n.log | head -15
+              echo '```'
+            } >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Screen translation was applied" >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Build release APK
         id: build
         continue-on-error: true
