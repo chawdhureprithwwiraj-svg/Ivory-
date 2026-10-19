@@ -49,6 +49,46 @@ class _AdminBroadcastTabState extends State<AdminBroadcastTab> {
     'payment',
   ];
 
+  List<Map<String, dynamic>> _tiers = <Map<String, dynamic>>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTiers();
+  }
+
+  /// The real, current tiers (names and levels come from the database).
+  Future<void> _loadTiers() async {
+    try {
+      final List<Map<String, dynamic>> t =
+          await AdminService.instance.fetchAllTiers();
+      if (!mounted) return;
+      setState(() => _tiers = t
+          .where((Map<String, dynamic> e) => e['is_active'] == true)
+          .toList());
+    } catch (_) {
+      // The chips simply show Forever Members only.
+    }
+  }
+
+  List<int> _tierLevels() {
+    final List<int> l = <int>[0];
+    for (final Map<String, dynamic> t in _tiers) {
+      final int? v = (t['level'] as num?)?.toInt();
+      if (v != null && v > 0) l.add(v);
+    }
+    return l;
+  }
+
+  String _tierName(int level) {
+    for (final Map<String, dynamic> t in _tiers) {
+      if ((t['level'] as num?)?.toInt() == level) {
+        return (t['name'] as String?) ?? 'Tier $level';
+      }
+    }
+    return 'Tier $level';
+  }
+
   @override
   void dispose() {
     _title.dispose();
@@ -284,9 +324,9 @@ class _AdminBroadcastTabState extends State<AdminBroadcastTab> {
             spacing: 8,
             runSpacing: 8,
             children: <Widget>[
-              for (int level = 0; level <= 4; level++)
+              for (final int level in _tierLevels())
                 AdminSelectChip(
-                  label: level == 0 ? 'Forever Members' : 'Tier $level',
+                  label: level == 0 ? 'Forever Members' : _tierName(level),
                   icon: level == 0
                       ? Icons.public_rounded
                       : Icons.workspace_premium_rounded,
