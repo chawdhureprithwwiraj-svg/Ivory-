@@ -93,12 +93,13 @@ class _AdminTranslatorBoxState extends State<AdminTranslatorBox> {
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext c) => AlertDialog(
-        title: const Text('Translate what you already posted?'),
+        title: const Text('Translate everything now?'),
         content: const Text(
-            'Every published post, poll option and recent broadcast notice '
-            'joins the queue for each language that is switched on. It is '
-            'done a little at a time within your daily limit, so a big '
-            'library can take a few days on the free plan.'),
+            'Every published post, poll option and recent broadcast notice, '
+            'plus all the words on the app screens, join the queue for each '
+            'language that is switched on. Use this after switching a new '
+            'language ON. It is done a little at a time within your daily '
+            'limit, so it can take a day or two on the free plan.'),
         actions: <Widget>[
           TextButton(
               onPressed: () => Navigator.pop(c, false),
@@ -216,7 +217,7 @@ class _AdminTranslatorBoxState extends State<AdminTranslatorBox> {
             children: <Widget>[
               OutlinedButton(
                 onPressed: _busy ? null : _backfill,
-                child: const Text('TRANSLATE WHAT I ALREADY POSTED'),
+                child: const Text('TRANSLATE EVERYTHING NOW'),
               ),
               OutlinedButton(
                 onPressed: _busy || _n('failed') == 0 ? null : _retry,
