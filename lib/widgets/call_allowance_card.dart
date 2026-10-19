@@ -137,7 +137,7 @@ class CallAllowanceCard extends StatelessWidget {
             Text(
               'Your tier does not carry ${kind == 'video' ? 'video' : 'audio'} '
               'minutes yet. You can still have this session by making it a '
-              'wish - Rs.${priceInr} for $minutes minutes.',
+              'wish - \u20B9${priceInr} for $minutes minutes.',
               style: TextStyle(
                 fontSize: 13.5,
                 height: 1.55,
