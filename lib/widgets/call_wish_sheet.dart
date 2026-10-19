@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/wish.dart';
 import '../screens/live_screen.dart';
-import 'ivory_footer.dart';
 import '../models/live_models.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
@@ -124,16 +123,14 @@ class _CallWishSheetState extends State<CallWishSheet> {
   Future<void> _join(CallRequest c) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => IvoryFooterHide(
-          child: LiveScreen(
-            sessionId: c.id,
-            // The member is not calling a product, they are calling a
-            // person. The house sees their name; they see hers.
-            title: 'Ivory',
-            subtitle: 'Together, here',
-            mode: LiveMode.call,
-            videoEnabled: c.isVideo,
-          ),
+        builder: (_) => LiveScreen(
+          sessionId: c.id,
+          // The member is not calling a product, they are calling a
+          // person. The house sees their name; they see hers.
+          title: 'Ivory',
+          subtitle: 'Together, here',
+          mode: LiveMode.call,
+          videoEnabled: c.isVideo,
         ),
       ),
     );
@@ -405,7 +402,7 @@ class _CallWishSheetState extends State<CallWishSheet> {
 
   /// See the note above the line that uses this.
   String _cost(CallRequest c) {
-    if (c.priceInr > 0) return 'Rs.${c.priceInr}';
+    if (c.priceInr > 0) return '\u20B9${c.priceInr}';
     return _balance.isIncluded ? 'included in your tier' : 'no charge';
   }
 
