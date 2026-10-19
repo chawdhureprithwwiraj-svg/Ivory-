@@ -327,14 +327,14 @@ class _CodeEditorState extends State<_CodeEditor> {
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              activeThumbColor: IvoryColors.burgundy,
+              activeThumbColor: IvoryColors.cream,
               title: const Text('Each member can use it only once'),
               value: _once,
               onChanged: (bool v) => setState(() => _once = v),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              activeThumbColor: IvoryColors.burgundy,
+              activeThumbColor: IvoryColors.cream,
               title: const Text('Works for every membership'),
               value: _allTiers,
               onChanged: (bool v) => setState(() => _allTiers = v),
@@ -362,7 +362,7 @@ class _CodeEditorState extends State<_CodeEditor> {
               ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              activeThumbColor: IvoryColors.burgundy,
+              activeThumbColor: IvoryColors.cream,
               title: const Text('Switched on (members can use it)'),
               value: _active,
               onChanged: (bool v) => setState(() => _active = v),
