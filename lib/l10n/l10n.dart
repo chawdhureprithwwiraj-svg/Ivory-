@@ -101,7 +101,7 @@ class L10n {
     if (_memo.containsKey(src)) return _memo[src];
     String? found;
     for (final _Phrase ph in _phrases) {
-      found = ph.fill(src);
+      found = ph.fill(src, _pack);
       if (found != null) break;
     }
     if (_memo.length > 3000) _memo.clear();
@@ -246,12 +246,14 @@ class _Phrase {
     }
   }
 
-  String? fill(String s) {
+  /// A blank that holds known words (a day name, 'audio') is translated too.
+  String? fill(String s, Map<String, String> pack) {
     final RegExpMatch? m = _re.firstMatch(s);
     if (m == null) return null;
     String out = _txt;
     for (int i = 1; i <= _count; i++) {
-      out = out.replaceAll('{$i}', m.group(i) ?? '');
+      final String g = m.group(i) ?? '';
+      out = out.replaceAll('{$i}', pack[g] ?? g);
     }
     return out;
   }
