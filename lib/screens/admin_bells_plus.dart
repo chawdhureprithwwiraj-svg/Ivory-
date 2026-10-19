@@ -186,7 +186,7 @@ class _AdminBellsPlusState extends State<AdminBellsPlus> {
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  activeThumbColor: IvoryColors.burgundy,
+                  activeThumbColor: IvoryColors.cream,
                   title: const Text('In use'),
                   value: active,
                   onChanged: (bool v) => set2(() => active = v),
