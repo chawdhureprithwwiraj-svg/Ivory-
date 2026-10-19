@@ -59,7 +59,7 @@ class L10n {
         _chosen = true;
         final String? raw = p.getString(_kPack);
         if (c != 'en' && raw != null) {
-          _pack = _decode(raw);
+          _setPack(_decode(raw));
         }
       }
     } catch (_) {
@@ -80,9 +80,45 @@ class L10n {
     return <String, String>{};
   }
 
+  // Phrases with a blank, such as 'Pledges kept: {1}'. They are matched
+  // against text that was built at run time ('Pledges kept: 3').
+  final List<_Phrase> _phrases = <_Phrase>[];
+  final Map<String, String?> _memo = <String, String?>{};
+
+  void _setPack(Map<String, String> p) {
+    _pack = p;
+    _memo.clear();
+    _phrases.clear();
+    p.forEach((String k, String v) {
+      if (!k.contains('{')) return;
+      final _Phrase? ph = _Phrase.parse(k, v);
+      if (ph != null) _phrases.add(ph);
+    });
+    _phrases.sort((_Phrase a, _Phrase b) => b.weight.compareTo(a.weight));
+  }
+
+  String? _viaPhrase(String src) {
+    if (_memo.containsKey(src)) return _memo[src];
+    String? found;
+    for (final _Phrase ph in _phrases) {
+      found = ph.fill(src);
+      if (found != null) break;
+    }
+    if (_memo.length > 3000) _memo.clear();
+    _memo[src] = found;
+    return found;
+  }
+
   /// The words, in the chosen language. English text in, language text out.
   String t(String src, [Map<String, Object?>? params]) {
-    String out = _pack[src] ?? src;
+    String? hit = _pack[src];
+    if (hit == null &&
+        params == null &&
+        _phrases.isNotEmpty &&
+        src.length <= 400) {
+      hit = _viaPhrase(src);
+    }
+    String out = hit ?? src;
     if (params != null) {
       params.forEach((String k, Object? v) {
         out = out.replaceAll('{$k}', '${v ?? ''}');
@@ -136,7 +172,7 @@ class L10n {
     } catch (_) {
       // Remembering the choice is a convenience, never a failure.
     }
-    _pack = pack;
+    _setPack(pack);
     _code = code;
     _chosen = true;
     _saveToAccount();
@@ -173,12 +209,51 @@ class L10n {
       final Map<String, String>? got =
           await _download(_code, (String x) => ver = x);
       if (got == null) return;
-      _pack = got;
+      _setPack(got);
       await p.setString(_kVer, ver);
       await p.setString(_kPack, jsonEncode(got));
     } catch (_) {
       // Try again next time the app opens.
     }
+  }
+}
+
+/// One phrase with numbered blanks ({1}, {2}) and its translation.
+class _Phrase {
+  _Phrase(this._re, this._count, this._txt, this.weight);
+
+  final RegExp _re;
+  final int _count;
+  final String _txt;
+
+  /// Letters that must match exactly. Longer phrases are tried first.
+  final int weight;
+
+  static final RegExp _blank = RegExp(r'\{(\d+)\}');
+
+  static _Phrase? parse(String key, String txt) {
+    final List<String> parts = key.split(_blank);
+    final int count = _blank.allMatches(key).length;
+    if (count == 0) return null;
+    final int weight = parts.join().replaceAll(' ', '').length;
+    if (weight < 6) return null;
+    final String pattern =
+        '^${parts.map(RegExp.escape).join('(.{1,40}?)')}\$';
+    try {
+      return _Phrase(RegExp(pattern, dotAll: true), count, txt, weight);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? fill(String s) {
+    final RegExpMatch? m = _re.firstMatch(s);
+    if (m == null) return null;
+    String out = _txt;
+    for (int i = 1; i <= _count; i++) {
+      out = out.replaceAll('{$i}', m.group(i) ?? '');
+    }
+    return out;
   }
 }
 
