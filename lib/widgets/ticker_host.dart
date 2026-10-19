@@ -65,6 +65,7 @@ class _TickerLaneState extends State<_TickerLane>
       s.current,
     ]);
     s.current.addListener(_onShow);
+    s.paused.addListener(_onPause);
     _c.addStatusListener(_onStatus);
     s.start();
   }
@@ -72,6 +73,7 @@ class _TickerLaneState extends State<_TickerLane>
   @override
   void dispose() {
     TickerService.instance.current.removeListener(_onShow);
+    TickerService.instance.paused.removeListener(_onPause);
     TickerService.instance.blocked.value = false;
     _c.dispose();
     super.dispose();
@@ -89,6 +91,15 @@ class _TickerLaneState extends State<_TickerLane>
     _c.value = 0;
     if (mounted) setState(() => _show = s);
     _c.forward();
+  }
+
+  /// Only the member's own touch (the cheer sheet) ever holds the ribbon.
+  void _onPause() {
+    if (TickerService.instance.paused.value) {
+      _c.stop();
+    } else if (_show != null && _c.value < 1) {
+      _c.forward();
+    }
   }
 
   void _onStatus(AnimationStatus st) {
