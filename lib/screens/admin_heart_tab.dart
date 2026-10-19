@@ -297,7 +297,7 @@ class _AdminHeartTabState extends State<AdminHeartTab> {
 
   Widget _switch(String t, bool v, void Function(bool) f) => SwitchListTile(
     contentPadding: EdgeInsets.zero,
-    activeThumbColor: IvoryColors.burgundy,
+    activeThumbColor: IvoryColors.cream,
     title: Text(
       t,
       style: const TextStyle(
