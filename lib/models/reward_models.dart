@@ -40,6 +40,7 @@ const Map<String, String> kRewardTriggers = <String, String>{
   'bell_pledges': 'Keeps N bell pledges',
   'bell_rounds': 'Completes N rounds of the bell sets',
   'ladder_rung': 'Reaches rung N of the Ivory Ladder (a discount gift)',
+  'marks_earned': 'Collects N Marks of the Ivory Ladder',
 };
 
 /// What a member reads as the goal.
@@ -71,6 +72,8 @@ String rewardGoalText(String trigger, int n) {
           : 'Complete $n rounds of the bell sets';
     case 'ladder_rung':
       return 'Climb to rung $n of the Ivory Ladder';
+    case 'marks_earned':
+      return n == 1 ? 'Earn a Mark on the Ivory Ladder' : 'Collect $n Marks on the Ivory Ladder';
     default:
       return '';
   }
