@@ -92,9 +92,13 @@ class PostGifter {
     this.hasActivePaidTier = false,
     this.tierName,
     this.tierLevel = 0,
+    this.senderId,
   });
 
   final String sender;
+
+  /// Which member this is (null if the database did not say).
+  final String? senderId;
   final String giftName;
   final String emoji;
   final int amountInr;
@@ -116,6 +120,7 @@ class PostGifter {
         hasActivePaidTier: hasActivePaidTier,
         tierName: tierName,
         tierLevel: tierLevel,
+        senderId: senderId,
       );
 
   factory PostGifter.fromDb(Map<String, dynamic> m) => PostGifter(
@@ -129,6 +134,7 @@ class PostGifter {
             (m['sender_has_active_paid_tier'] as bool?) ?? false,
         tierName: m['sender_tier_name'] as String?,
         tierLevel: ((m['sender_tier_level'] as num?) ?? 0).toInt(),
+        senderId: m['sender_id']?.toString(),
       );
 }
 
