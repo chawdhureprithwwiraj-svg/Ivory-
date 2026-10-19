@@ -11,6 +11,7 @@ import 'admin_bells_tab.dart';
 import 'admin_ladder_tab.dart';
 import 'admin_early_tab.dart';
 import 'admin_i18n_tab.dart';
+import 'admin_ticker_tab.dart';
 import 'admin_line_tab.dart';
 import 'admin_rewards_tab.dart';
 import 'admin_live_tab.dart';
@@ -36,7 +37,7 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs = TabController(
-    length: 20,
+    length: 21,
     initialIndex: widget.initialTab,
     vsync: this,
   );
@@ -85,6 +86,7 @@ class _AdminScreenState extends State<AdminScreen>
             Tab(text: 'DOOR'),
             Tab(text: 'LINE'),
             Tab(text: 'TRANSLATE'),
+            Tab(text: 'TICKER'),
           ],
         ),
       ),
@@ -136,6 +138,7 @@ class _AdminScreenState extends State<AdminScreen>
               AdminEarlyTab(),
               AdminLineTab(),
               AdminI18nTab(),
+              AdminTickerTab(),
             ],
           ),
         ),
