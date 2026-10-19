@@ -90,8 +90,7 @@ class _GiftWallState extends State<GiftWall> {
       final List<PostGifter> r = await Future.wait<PostGifter>(
         raw.map((PostGifter g) async {
           final String? path = g.avatarPath;
-          // CC.120: a photo belongs to an ACTIVE paid membership only.
-          if (!g.hasActivePaidTier || path == null || path.isEmpty) return g;
+          if (path == null || path.isEmpty) return g;
           final String? url =
               await ProfilePhotoService.instance.signedAvatarUrl(path);
           return g.withAvatarUrl(url);
@@ -305,7 +304,7 @@ class _GiftWallState extends State<GiftWall> {
                       ),
                     ],
                     Text(
-                      '${top.giftName}  \u00B7  Rs.${top.amountInr}',
+                      '${top.giftName}  \u00B7  \u20B9${top.amountInr}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -400,7 +399,7 @@ class _GiftWallState extends State<GiftWall> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 172),
             child: Text(
-              '${g.sender}  \u00B7  Rs.${g.amountInr}',
+              '${g.sender}  \u00B7  \u20B9${g.amountInr}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
