@@ -50,7 +50,7 @@ OTHERS = re.compile(r"import\s+'package:flutter/(widgets|cupertino)\.dart'")
 USES_TEXT = re.compile(r'\bText(\.rich)?\(')
 
 # Step 2: the named arguments whose plain-string values are shown to members.
-LABEL_KEYS = ('labelText', 'hintText', 'helperText', 'helpText', 'tooltip')
+LABEL_KEYS = ('labelText', 'hintText', 'helperText', 'helpText', 'tooltip', 'message')
 KEY_BEFORE = re.compile(r'\b(?:%s)\s*:\s*$' % '|'.join(LABEL_KEYS))
 AFTER_OK = re.compile(r'\s*[,)]')
 CONST_CALL = re.compile(
