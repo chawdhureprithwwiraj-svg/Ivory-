@@ -293,7 +293,7 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
           children: <Widget>[
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              activeThumbColor: IvoryColors.burgundy,
+              activeThumbColor: IvoryColors.cream,
               title: const Text(
                 'Vault is open to members',
                 style: TextStyle(
@@ -468,7 +468,7 @@ class _AdminGoldTabState extends State<AdminGoldTab> {
               children: <Widget>[
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  activeThumbColor: IvoryColors.burgundy,
+                  activeThumbColor: IvoryColors.cream,
                   title: const Text(
                     'Quiz is open to members',
                     style: TextStyle(
