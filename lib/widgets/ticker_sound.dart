@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import 'gold_synth.dart';
+import 'sound_bank.dart';
 import 'ticker_synth.dart';
 
 Bank _makeTickerBank(int _) => TickerSynth.build();
@@ -80,7 +81,25 @@ class TickerSound {
 
   /// 'soft', 'grand' or 'tap'.
   void play(String name) {
-    if (!on.value || _players.isEmpty) return;
+    if (!on.value) return;
+    // The owner's own recordings first; the old chimes are the fallback.
+    if (name == 'soft' || name == 'grand') {
+      SoundBank.instance.play('ticker', volume: 0.85).then((bool ok) {
+        if (!ok) _chime(name);
+      });
+      return;
+    }
+    if (name == 'tap') {
+      SoundBank.instance.play('click', volume: 0.8).then((bool ok) {
+        if (!ok) _chime(name);
+      });
+      return;
+    }
+    _chime(name);
+  }
+
+  void _chime(String name) {
+    if (_players.isEmpty) return;
     final List<int>? span = _spans[name];
     if (span == null) return;
     final _TickerDeck d = _players[_next % _players.length];
