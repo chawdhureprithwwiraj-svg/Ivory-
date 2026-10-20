@@ -10,6 +10,7 @@ import '../widgets/gold_fx.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_light.dart';
 import '../widgets/gold_sound.dart';
+import '../widgets/key_spin.dart';
 import '../widgets/vault_keys.dart';
 import '../widgets/vault_sky.dart';
 import 'golden_quiz_parts.dart';
@@ -109,7 +110,7 @@ class VaultIntro extends StatelessWidget {
                 child: const VaultWell(
                   circle: true,
                   padding: EdgeInsets.all(9),
-                  child: VaultEmblem(size: 96),
+                  child: VaultKeySpin(size: 104),
                 ),
               ),
             ],
