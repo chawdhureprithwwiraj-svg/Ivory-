@@ -13,6 +13,7 @@ import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_sound.dart';
 import '../widgets/golden_option_key.dart';
 import '../widgets/vault_keys.dart';
+import '../widgets/vault_sky.dart';
 
 /// ============================================================
 /// IVORY - THE TEN-DAY VAULT: ONE SEALED QUESTION
@@ -147,7 +148,7 @@ class _VaultQuestionViewState extends State<VaultQuestionView> {
                   Text(
                     'DAY ${q.dayNo} OF ${q.days}',
                     style: const TextStyle(
-                      color: GoldTones.light,
+                      color: vaultInk,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2.2,
@@ -164,7 +165,10 @@ class _VaultQuestionViewState extends State<VaultQuestionView> {
               ),
             ),
             const SizedBox(width: 12),
-            GoldRing(
+            VaultWell(
+              circle: true,
+              padding: const EdgeInsets.all(5),
+              child: GoldRing(
               progress: _busy ? 0 : _left / total,
               size: 62,
               warn: _left <= 8,
@@ -181,6 +185,7 @@ class _VaultQuestionViewState extends State<VaultQuestionView> {
                   ),
                 ),
               ),
+            ),
             ),
           ],
         ),
@@ -217,7 +222,7 @@ class _VaultQuestionViewState extends State<VaultQuestionView> {
                 : 'Your choice is final, and sealed until Day ${q.days}.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: IvoryColors.cream.withValues(alpha: 0.7),
+              color: vaultInk,
               fontSize: 12.5,
             ),
           ),
@@ -227,11 +232,18 @@ class _VaultQuestionViewState extends State<VaultQuestionView> {
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
               _problem,
-              style: const TextStyle(color: IvoryColors.peach, fontSize: 13),
+              style: const TextStyle(
+                color: vaultInk,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
             ),
           ),
         if (_timedOut && !_busy && !_done)
-          GoldButton(label: 'TRY AGAIN', onTap: () => _choose(-1)),
+          VaultWell(
+            radius: 34,
+            child: GoldButton(label: 'TRY AGAIN', onTap: () => _choose(-1)),
+          ),
       ],
     );
   }
