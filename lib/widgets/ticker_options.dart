@@ -92,7 +92,7 @@ class TickerOptionsRows extends StatelessWidget {
         ),
         _row(
           'Golden Heart sounds',
-          'A soft, cinematic sound when your heart glows and golden dust falls.',
+          'A soft, cinematic sound when you open your Golden Heart and when today\'s heart is lit.',
           HeartSound.instance.on,
           (bool v) => HeartSound.instance.setOn(v),
         ),
