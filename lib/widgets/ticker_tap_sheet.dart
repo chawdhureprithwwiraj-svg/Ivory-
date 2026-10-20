@@ -304,6 +304,9 @@ class _CheerSheetState extends State<_CheerSheet>
                 },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: kTickerCream,
+                  backgroundColor: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
                   side: BorderSide(color: kTickerCream.withValues(alpha: 0.85)),
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   shape: RoundedRectangleBorder(
@@ -313,6 +316,7 @@ class _CheerSheetState extends State<_CheerSheet>
                 child: Text(
                   'OPEN IT'.tr,
                   style: const TextStyle(
+                    color: kTickerCream,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.6,
                     fontSize: 13,
