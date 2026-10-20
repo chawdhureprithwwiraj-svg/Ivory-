@@ -326,7 +326,9 @@ class _TreasuresSheetState extends State<TreasuresSheet> {
                             child: Text(
                               s.total == 0
                                   ? 'No treasures are waiting yet. Come back soon.'
-                                  : '${s.earned.length} of ${s.total} earned',
+                                  : (s.earned.length >= s.total
+                                      ? 'Every treasure is yours: ${s.total} of ${s.total}. New ones appear here when the house adds them.'
+                                      : '${s.earned.length} of ${s.total} earned'),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: IvoryColors.burgundy,
