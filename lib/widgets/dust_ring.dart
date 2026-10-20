@@ -38,6 +38,7 @@ class DustRing {
     double thick = 0.2,
     int haze = 1,
     int seed = 31,
+    bool onLight = false,
   }) {
     if (alpha <= 0.01) return;
     c.save();
@@ -53,7 +54,9 @@ class DustRing {
       final Paint hz = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = ry * (0.7 + 2.2 * thick)
-        ..color = _gold.withValues(alpha: 0.13 * alpha);
+        ..color = (onLight ? _amber : _gold).withValues(
+          alpha: (onLight ? 0.1 : 0.13) * alpha,
+        );
       if (haze > 1) {
         hz.maskFilter = MaskFilter.blur(BlurStyle.normal, ry * 0.45);
       }
@@ -91,7 +94,14 @@ class DustRing {
       b[col * 2 + size].add(Offset(x, y));
     }
     final double depth = front ? 1.0 : 0.55;
+    // On a light background the grains are deeper golds and are drawn
+    // normally; on a dark one they glow (added light).
     const List<Color> cols = <Color>[_amber, _gold, _pale];
+    const List<Color> deep = <Color>[
+      Color(0xFFB87A08),
+      Color(0xFFE09A0C),
+      Color(0xFFFFC21A),
+    ];
     for (int j = 0; j < 6; j++) {
       if (b[j].isEmpty) continue;
       final int col = j ~/ 2;
@@ -101,9 +111,14 @@ class DustRing {
       final Paint p = Paint()
         ..strokeCap = StrokeCap.round
         ..strokeWidth = (big ? 1.9 : 1.0) * grain
-        ..blendMode = BlendMode.plus
-        ..color = cols[col].withValues(
-          alpha: Cine.clamp01((0.34 + 0.2 * col) * depth * alpha * tw),
+        ..blendMode = onLight ? BlendMode.srcOver : BlendMode.plus
+        ..color = (onLight ? deep : cols)[col].withValues(
+          alpha: Cine.clamp01(
+            (onLight ? 0.55 + 0.15 * col : 0.34 + 0.2 * col) *
+                depth *
+                alpha *
+                tw,
+          ),
         );
       c.drawPoints(ui.PointMode.points, b[j], p);
     }
