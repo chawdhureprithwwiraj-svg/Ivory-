@@ -9,6 +9,7 @@ import '../services/ladder_service.dart';
 import '../widgets/bell_sound.dart';
 import '../widgets/ladder_calendar.dart';
 import '../widgets/ladder_ceremony.dart';
+import '../widgets/ladder_film.dart';
 import '../widgets/ladder_marks.dart';
 import '../widgets/ladder_next_gift.dart';
 import '../widgets/ladder_perks.dart';
@@ -437,6 +438,7 @@ class _LadderScreenState extends State<LadderScreen>
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(16, 10, 16, 40),
                         children: <Widget>[
+                          const LadderFilm(),
                           _hero(s),
                           _ladder(s),
                           _stars(s),
