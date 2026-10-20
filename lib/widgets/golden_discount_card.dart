@@ -11,9 +11,12 @@ import 'gold_burst.dart';
 import 'gold_button.dart';
 import 'gold_fx.dart';
 import 'gold_fx3d.dart';
+import 'color_crackers.dart';
 import 'gold_plate.dart';
 import 'gold_seals.dart';
 import 'gold_teaser.dart';
+import 'rupee_coin.dart';
+import 'sound_bank.dart';
 
 /// ============================================================
 /// IVORY - THE GOLDEN KNOCK-OFF, ON THE HOME SCREEN
@@ -92,12 +95,15 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
   }
 
   Future<void> _open() async {
+    // Your own Golden Knock-off recording (silent if it is missing).
+    SoundBank.instance.play('kickoff');
     final String? r = await Navigator.of(context).push<String>(
       MaterialPageRoute<String>(
         builder: (BuildContext _) =>
             GoldenQuizScreen(resume: _s?.phase == GoldenPhase.playing),
       ),
     );
+    SoundBank.instance.stop('kickoff');
     await _load();
     if (r == 'spend') widget.onOpenTab?.call('premium');
   }
@@ -167,12 +173,12 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
             calm
                 ? const Opacity(
                     opacity: 0.7,
-                    child: GoldWell(circle: true, child: GoldCoin(size: 44)),
+                    child: GoldWell(circle: true, child: RupeeCoin(size: 44)),
                   )
                 : const GoldWell(
                     circle: true,
-                    padding: EdgeInsets.all(6),
-                    child: GoldCoin(size: 58),
+                    padding: EdgeInsets.all(5),
+                    child: RupeeCoin(size: 64),
                   ),
           ],
         ),
@@ -492,16 +498,23 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
         sway: calm ? 0.3 : 1,
         child: GoldPlate(
           calm: calm,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: <Widget>[
-              _head(calm),
-              const SizedBox(height: 14),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.topCenter,
-                child: SizedBox(width: double.infinity, child: body),
+              // The old firecrackers, back again: in colour, so they show
+              // on the gold.
+              if (!calm) const Positioned.fill(child: ColorCrackers()),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _head(calm),
+                  const SizedBox(height: 14),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(width: double.infinity, child: body),
+                  ),
+                ],
               ),
             ],
           ),
