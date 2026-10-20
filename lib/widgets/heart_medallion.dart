@@ -1,9 +1,11 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
 import 'dust_ring.dart';
 import 'heart_cine.dart';
+import 'premium_assets.dart';
 
 /// ============================================================
 /// IVORY - THE GOLDEN HEART MEDALLION (top bar)
@@ -46,6 +48,19 @@ class _HeartMedallionState extends State<HeartMedallion>
     duration: const Duration(seconds: 8),
   )..repeat();
 
+  // The owner's golden heart picture, once it has loaded (shared).
+  ui.Image? _img;
+
+  @override
+  void initState() {
+    super.initState();
+    PremiumAssets.image('heart', const <String>['golden_heart']).then((
+      ui.Image? i,
+    ) {
+      if (mounted && i != null) setState(() => _img = i);
+    });
+  }
+
   @override
   void dispose() {
     _c.dispose();
@@ -66,7 +81,7 @@ class _HeartMedallionState extends State<HeartMedallion>
         child: AnimatedBuilder(
           animation: _c,
           builder: (BuildContext _, Widget? __) => CustomPaint(
-            painter: _MedallionPainter(t: _c.value, heat: heat),
+            painter: _MedallionPainter(t: _c.value, heat: heat, img: _img),
           ),
         ),
       ),
@@ -75,10 +90,77 @@ class _HeartMedallionState extends State<HeartMedallion>
 }
 
 class _MedallionPainter extends CustomPainter {
-  _MedallionPainter({required this.t, required this.heat});
+  _MedallionPainter({required this.t, required this.heat, this.img});
 
   final double t;
   final double heat;
+  final ui.Image? img;
+
+  // The heart in the owner's picture (1244 x 700): its box, and its
+  // outline (the picture's own dust ring is cut away, so only the
+  // painted, turning dust circles it). x,y pairs as a share of the
+  // picture.
+  static const double _px0 = 334;
+  static const double _py0 = 28;
+  static const double _pw = 564;
+  static const double _ph = 594;
+  static const List<double> _outline = <double>[
+  0.3424, 0.0429,
+  0.3320, 0.0671,
+  0.3352, 0.1343,
+  0.3304, 0.1386,
+  0.3135, 0.1286,
+  0.3047, 0.1371,
+  0.2894, 0.1871,
+  0.2966, 0.2343,
+  0.2789, 0.2400,
+  0.2709, 0.2614,
+  0.2781, 0.2929,
+  0.2685, 0.3243,
+  0.2757, 0.3543,
+  0.2733, 0.3871,
+  0.2846, 0.4329,
+  0.2910, 0.5114,
+  0.3079, 0.5700,
+  0.2934, 0.5943,
+  0.2918, 0.6186,
+  0.3023, 0.6386,
+  0.3223, 0.6400,
+  0.3400, 0.6571,
+  0.3875, 0.7500,
+  0.4413, 0.8300,
+  0.5000, 0.8843,
+  0.5161, 0.8857,
+  0.5611, 0.8329,
+  0.6190, 0.7500,
+  0.6302, 0.7257,
+  0.6479, 0.7257,
+  0.6696, 0.7129,
+  0.6785, 0.7000,
+  0.6801, 0.6771,
+  0.6656, 0.6471,
+  0.6945, 0.5571,
+  0.7066, 0.4843,
+  0.7178, 0.4700,
+  0.7219, 0.4543,
+  0.7130, 0.4214,
+  0.7002, 0.3371,
+  0.6680, 0.2471,
+  0.6045, 0.1971,
+  0.5498, 0.2214,
+  0.5305, 0.2414,
+  0.5080, 0.2786,
+  0.5024, 0.2757,
+  0.4727, 0.2200,
+  0.4068, 0.1900,
+  0.3794, 0.1986,
+  0.3786, 0.1929,
+  0.4084, 0.1471,
+  0.4092, 0.1029,
+  0.3979, 0.0843,
+  0.3698, 0.0900,
+  0.3601, 0.0471,
+  ];
 
   static const List<Color> _ramp = <Color>[
     Color(0xFF8A5008),
@@ -150,6 +232,30 @@ class _MedallionPainter extends CustomPainter {
       onLight: true,
     );
 
+    if (img != null) {
+      _photo(canvas, c, rad, beat);
+    } else {
+      _crystal(canvas, c, rad, beat);
+    }
+
+    DustRing.paint(
+      canvas,
+      center: c,
+      rx: rx,
+      ry: ry,
+      tilt: tilt,
+      t: t,
+      n: n,
+      front: true,
+      alpha: 1,
+      grain: 1.05,
+      thick: 0.26,
+      haze: 1,
+      onLight: true,
+    );
+  }
+
+  void _crystal(Canvas canvas, Offset c, double rad, double beat) {
     // The crystal heart.
     final double hw = rad * (0.6 + 0.03 * beat);
     final Offset hc = Offset(c.dx, c.dy - rad * 0.02);
@@ -241,26 +347,85 @@ class _MedallionPainter extends CustomPainter {
       canvas.drawLine(gp.translate(-len, 0), gp.translate(len, 0), sp);
       canvas.drawLine(gp.translate(0, -len), gp.translate(0, len), sp);
     }
+  }
 
-    DustRing.paint(
-      canvas,
-      center: c,
-      rx: rx,
-      ry: ry,
-      tilt: tilt,
-      t: t,
-      n: n,
-      front: true,
-      alpha: 1,
-      grain: 1.05,
-      thick: 0.26,
-      haze: 1,
-      onLight: true,
+  /// The owner's own golden heart: the picture, cut to the heart's
+  /// outline, with a slow sheen that glides across it and a glint.
+  void _photo(Canvas canvas, Offset c, double rad, double beat) {
+    final ui.Image im = img!;
+    final double k = im.width / 1244.0;
+    final Rect src = Rect.fromLTWH(_px0 * k, _py0 * k, _pw * k, _ph * k);
+    final double w = rad * (1.3 + 0.05 * beat);
+    final double h = w * _ph / _pw;
+    final Rect dst = Rect.fromCenter(
+      center: Offset(c.dx, c.dy - rad * 0.02),
+      width: w,
+      height: h,
     );
+    final Path clip = Path();
+    for (int i = 0; i < _outline.length; i += 2) {
+      final double x = dst.left + (_outline[i] * 1244 - _px0) / _pw * dst.width;
+      final double y = dst.top + (_outline[i + 1] * 700 - _py0) / _ph * dst.height;
+      if (i == 0) {
+        clip.moveTo(x, y);
+      } else {
+        clip.lineTo(x, y);
+      }
+    }
+    clip.close();
+    canvas.save();
+    canvas.clipPath(clip, doAntiAlias: true);
+    canvas.saveLayer(dst.inflate(2), Paint());
+    canvas.drawImageRect(
+      im,
+      src,
+      dst,
+      Paint()
+        ..filterQuality = FilterQuality.high
+        ..isAntiAlias = true,
+    );
+    // A band of light that glides over the gold, then rests.
+    final double ph = Cine.fract(t * 2);
+    final double p = -0.25 + 1.5 * ph;
+    double st(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
+    canvas.drawRect(
+      dst,
+      Paint()
+        ..blendMode = BlendMode.srcATop
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            const Color(0x00FFF3C4),
+            Color(0xFFFFF3C4).withValues(alpha: 0.38 + 0.2 * heat),
+            const Color(0x00FFF3C4),
+          ],
+          stops: <double>[st(p - 0.14), st(p), st(p + 0.14)],
+        ).createShader(dst),
+    );
+    canvas.restore();
+    canvas.restore();
+
+    // A glint that wakes and sleeps on the heart's shoulder.
+    final double gl = math.pow(
+      math.max(0.0, math.sin(Cine.tau * (t * 2 + 0.25))),
+      6,
+    ).toDouble();
+    if (gl > 0.05) {
+      final Offset gp = Offset(dst.left + dst.width * 0.3, dst.top + dst.height * 0.3);
+      final Paint sp = Paint()
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.9 * gl)
+        ..strokeWidth = 1.1
+        ..strokeCap = StrokeCap.round;
+      final double len = w * (0.12 + 0.12 * gl);
+      canvas.drawLine(gp.translate(-len, 0), gp.translate(len, 0), sp);
+      canvas.drawLine(gp.translate(0, -len), gp.translate(0, len), sp);
+    }
   }
 
   @override
-  bool shouldRepaint(_MedallionPainter o) => o.t != t || o.heat != heat;
+  bool shouldRepaint(_MedallionPainter o) =>
+      o.t != t || o.heat != heat || o.img != img;
 }
 
 // END OF FILE - lib/widgets/heart_medallion.dart
