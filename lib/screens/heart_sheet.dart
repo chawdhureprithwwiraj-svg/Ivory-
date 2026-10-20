@@ -10,7 +10,8 @@ import '../widgets/gold_fx.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_light.dart';
 import '../widgets/gold_sound.dart';
-import '../widgets/heart_paint.dart';
+import '../widgets/flame_heart.dart';
+import '../widgets/heart_sound.dart';
 import 'heart_parts.dart';
 import 'treasures_sheet.dart';
 
@@ -52,6 +53,10 @@ class _HeartSheetState extends State<HeartSheet> {
   void initState() {
     super.initState();
     GoldSound.instance.load();
+    // A gentle heartbeat as the heart opens (only if the member has sound on).
+    HeartSound.instance.load().then((_) {
+      if (mounted) HeartSound.instance.play('open', volume: 0.7);
+    });
     _load();
   }
 
@@ -74,7 +79,13 @@ class _HeartSheetState extends State<HeartSheet> {
     try {
       final HeartState s = await HeartService.instance.greet();
       if (!mounted) return;
-      GoldSound.instance.big(s.justLit ? 'golden' : 'correct');
+      if (s.justLit) {
+        if (!HeartSound.instance.play('kindle', volume: 0.95)) {
+          GoldSound.instance.big('golden');
+        }
+      } else {
+        GoldSound.instance.big('correct');
+      }
       setState(() {
         _s = s;
         _busy = false;
@@ -206,7 +217,13 @@ class _HeartSheetState extends State<HeartSheet> {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                HeartPaint(size: 270, fill: s.fill, tier: s.tierIdx),
+                FlameHeart(
+                  fill: s.fill,
+                  tier: s.tierIdx,
+                  lit: s.lit,
+                  celebrate: _celebrate,
+                  height: 320,
+                ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,
