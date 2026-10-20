@@ -239,7 +239,7 @@ class _GildedPainter extends CustomPainter {
       );
       // The bright edge of the silk.
       canvas.drawPath(
-        p.shift(const Offset(0, -wd * 0.22)),
+        p.shift(Offset(0, -wd * 0.22)),
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = wd * 0.26
