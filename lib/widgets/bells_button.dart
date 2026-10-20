@@ -9,6 +9,7 @@ import '../services/bell_push_open.dart';
 import '../services/bells_service.dart';
 import 'bell_paint.dart';
 import 'bell_sound.dart';
+import 'sound_bank.dart';
 
 /// ============================================================
 /// IVORY - THE DOORBELL IN THE TOP BAR
@@ -76,13 +77,16 @@ class _BellsButtonState extends State<BellsButton>
 
   Future<void> _open() async {
     _opening = true;
-    BellSound.instance.play('door');
+    SoundBank.instance.play('bells').then((bool ok) {
+      if (!ok) BellSound.instance.play('door');
+    });
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => BellsScreen(onOpenTab: widget.onOpenTab),
       ),
     );
     _opening = false;
+    SoundBank.instance.stop('bells');
     BellsService.instance.refreshQuietly();
   }
 
