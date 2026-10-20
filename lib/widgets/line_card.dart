@@ -1,14 +1,19 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../screens/line_screen.dart';
 import '../services/line_service.dart';
 import '../theme/ivory_theme.dart';
+import 'jewel_plate.dart';
 import 'line_seal.dart';
+import 'sound_bank.dart';
 
 /// ============================================================
 /// IVORY - THE PRIVATE LINE, ON THE HOME SCREEN
 ///
-/// One paper card with a sealed envelope. It says, truthfully, what
+/// One holographic-foil jewel card (rose, apricot, orchid and mint pearl,
+/// slowly shifting) with a sealed envelope that floats and glints. It says, truthfully, what
 /// the member can do right now: write, wait, read a reply, or send
 /// the letter that was kept for them. It disappears when the house
 /// has switched the Private Line off or the database cannot be
@@ -47,11 +52,14 @@ class _LineCardState extends State<LineCard> {
   }
 
   Future<void> _open() async {
+    // Your own Private Line recording (silent if it is missing).
+    SoundBank.instance.play('private_line');
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => LineScreen(onOpenTab: widget.onOpenTab),
       ),
     );
+    SoundBank.instance.stop('private_line');
     if (mounted) _svc.refresh(force: true);
   }
 
@@ -97,29 +105,21 @@ class _LineCardState extends State<LineCard> {
       padding: const EdgeInsets.only(top: 18),
       child: GestureDetector(
         onTap: _open,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[IvoryColors.surface, IvoryColors.surfaceWarm],
-            ),
-            border: Border.all(
-              color: IvoryColors.emeraldLight.withValues(alpha: 0.5),
-            ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: IvoryColors.burgundy.withValues(alpha: 0.12),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+        child: JewelPlate(
+          foil: true,
+          colors: const <Color>[
+            Color(0xFFFF9CCB),
+            Color(0xFFFFC777),
+            Color(0xFFE7A6FF),
+            Color(0xFF9FE6C0),
+            Color(0xFFFF9CCB),
+          ],
+          rim: const Color(0xFFFFFFFF),
+          spark: const Color(0xFFFFFFFF),
+          shade: const Color(0xFFB0366E),
           child: Row(
             children: <Widget>[
-              const LineEnvelopeView(width: 84, height: 70),
+              const _FloatingLetter(),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -133,7 +133,7 @@ class _LineCardState extends State<LineCard> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: IvoryColors.emerald.withValues(alpha: 0.65),
+                            color: IvoryColors.burgundy.withValues(alpha: 0.8),
                             fontSize: 10.5,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 2.4,
@@ -148,13 +148,13 @@ class _LineCardState extends State<LineCard> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: IvoryColors.emerald,
+                              color: IvoryColors.burgundy,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               s.unseen == 1 ? 'NEW' : '${s.unseen} NEW',
                               style: const TextStyle(
-                                color: IvoryColors.emeraldWash,
+                                color: Color(0xFFFFF3F7),
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 1,
@@ -168,7 +168,10 @@ class _LineCardState extends State<LineCard> {
                     Text(
                       head,
                       style: const TextStyle(
-                        color: IvoryColors.emerald,
+                        color: IvoryColors.burgundy,
+                        shadows: <Shadow>[
+                          Shadow(color: Color(0xAAFFFFFF), offset: Offset(0, 1)),
+                        ],
                         fontFamily: IvoryTheme.displayFont,
                         fontStyle: FontStyle.italic,
                         fontSize: 20,
@@ -180,7 +183,7 @@ class _LineCardState extends State<LineCard> {
                     Text(
                       line,
                       style: TextStyle(
-                        color: IvoryColors.emerald.withValues(alpha: 0.85),
+                        color: IvoryColors.burgundy.withValues(alpha: 0.9),
                         fontSize: 12.5,
                         height: 1.35,
                       ),
@@ -192,7 +195,7 @@ class _LineCardState extends State<LineCard> {
                             ? 'Ivory answered 1 letter today.'
                             : 'Ivory answered ${s.answeredToday} letters today.',
                         style: const TextStyle(
-                          color: IvoryColors.emeraldMid,
+                          color: IvoryColors.burgundy,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w800,
                         ),
@@ -207,6 +210,118 @@ class _LineCardState extends State<LineCard> {
       ),
     );
   }
+}
+
+/// The sealed envelope, floating gently on a soft white glow, with a
+/// small shadow that breathes under it and a glint that crosses the
+/// seal now and then. Slow and quiet.
+class _FloatingLetter extends StatefulWidget {
+  const _FloatingLetter();
+
+  @override
+  State<_FloatingLetter> createState() => _FloatingLetterState();
+}
+
+class _FloatingLetterState extends State<_FloatingLetter>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 5000),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: SizedBox(
+        width: 90,
+        height: 82,
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (BuildContext context, Widget? _) {
+            final double t = _c.value;
+            final double bob = math.sin(t * math.pi * 2);
+            return Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                Container(
+                  width: 86,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: <Color>[
+                        const Color(0xFFFFFFFF).withValues(alpha: 0.6),
+                        const Color(0x00FFFFFF),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 2,
+                  child: Container(
+                    width: 52 - 6 * bob,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      color: const Color(0xFFB0366E).withValues(
+                        alpha: 0.22 - 0.05 * bob,
+                      ),
+                    ),
+                  ),
+                ),
+                Transform.translate(
+                  offset: Offset(0, -4 - 3 * bob),
+                  child: Transform.rotate(
+                    angle: math.sin(t * math.pi * 2 + 1) * 0.03,
+                    child: const LineEnvelopeView(width: 84, height: 70),
+                  ),
+                ),
+                IgnorePointer(
+                  child: CustomPaint(
+                    size: const Size(90, 82),
+                    painter: _GlintPainter(t, -4 - 3 * bob),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _GlintPainter extends CustomPainter {
+  _GlintPainter(this.t, this.dy);
+
+  final double t;
+  final double dy;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double g = math.pow(
+      math.max(0.0, math.sin(math.pi * 2 * (t * 2 + 0.15))),
+      8,
+    ).toDouble();
+    if (g < 0.05) return;
+    final Offset c = Offset(size.width / 2 - 6, size.height / 2 + dy - 2);
+    final Paint p = Paint()
+      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.95 * g)
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    final double len = 4 + 8 * g;
+    canvas.drawLine(c.translate(-len, 0), c.translate(len, 0), p);
+    canvas.drawLine(c.translate(0, -len), c.translate(0, len), p);
+  }
+
+  @override
+  bool shouldRepaint(_GlintPainter o) => o.t != t || o.dy != dy;
 }
 
 // END OF FILE - lib/widgets/line_card.dart
