@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/cheer_service.dart';
 import '../services/ticker_service.dart';
 import 'heart_sound.dart';
+import 'sound_bank.dart';
 import 'ticker_sound.dart';
 
 /// ============================================================
@@ -89,6 +90,12 @@ class TickerOptionsRows extends StatelessWidget {
           'A tiny, gentle sound as a ribbon arrives.',
           TickerSound.instance.on,
           (bool v) => TickerSound.instance.setOn(v),
+        ),
+        _row(
+          'Tap and card sounds',
+          'A soft click on taps, and a sound for the doorbell, the Early Door, the Private Line, the Golden Knock-off and new notices.',
+          SoundBank.instance.on,
+          (bool v) => SoundBank.instance.setOn(v),
         ),
         _row(
           'Golden Heart sounds',
