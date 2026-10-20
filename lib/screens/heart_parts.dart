@@ -270,7 +270,10 @@ class HeartNext extends StatelessWidget {
     final int? n = s.nextTierDays;
     if (s.nextTierName == null || n == null) {
       return Text(
-        'You wear the highest glow there is.',
+        s.streak > 0
+            ? 'You wear the highest glow there is: ${s.streak} '
+                '${s.streak == 1 ? 'day' : 'days'} in a row. Keep it lit.'
+            : 'You wear the highest glow there is.',
         style: TextStyle(color: IvoryColors.textFaint, fontSize: 13),
       );
     }
