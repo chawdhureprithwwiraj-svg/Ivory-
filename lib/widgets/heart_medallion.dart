@@ -8,9 +8,9 @@ import 'heart_cine.dart';
 /// ============================================================
 /// IVORY - THE GOLDEN HEART MEDALLION (top bar)
 ///
-/// A small round medallion of deep burgundy holding a crystal heart of
-/// gold, with a thick cloud of golden dust circling it clockwise like
-/// the rings of Saturn. The higher the member's glow, the richer and
+/// A crystal heart of gold, with no background at all, and a thick
+/// cloud of golden dust circling it clockwise like the rings of
+/// Saturn, as large as the top bar allows. The higher the member's glow, the richer and
 /// denser it becomes. No sound. All painted. No black anywhere.
 /// ============================================================
 class HeartMedallion extends StatefulWidget {
@@ -19,7 +19,7 @@ class HeartMedallion extends StatefulWidget {
     required this.fill,
     required this.tier,
     this.lit = false,
-    this.size = 44,
+    this.size = 56,
   });
 
   final double fill;
@@ -111,46 +111,27 @@ class _MedallionPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double s = size.width;
-    final Offset c = Offset(s / 2, s / 2);
-    final double rad = s / 2 - 1.5;
+    final Offset c = Offset(s / 2, s * 0.49);
+    final double rad = s / 2;
     final Rect disc = Rect.fromCircle(center: c, radius: rad);
 
-    // The burgundy medallion.
+    // Only a faint warm glow behind the heart: no background.
     canvas.drawCircle(
       c,
-      rad,
-      Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-0.3, -0.4),
-          radius: 1.0,
-          colors: <Color>[
-            Color(0xFF8E2C44),
-            Color(0xFF5C1222),
-            Color(0xFF4A0E17),
-          ],
-          stops: <double>[0, 0.62, 1],
-        ).createShader(disc),
-    );
-    canvas.save();
-    canvas.clipPath(Path()..addOval(disc));
-
-    // A warm glow behind the heart.
-    canvas.drawCircle(
-      c,
-      rad * 0.95,
+      rad * 0.85,
       Paint()
         ..shader = RadialGradient(
           colors: <Color>[
-            const Color(0xFFFFC21A).withValues(alpha: 0.18 + 0.3 * heat),
+            const Color(0xFFFFC21A).withValues(alpha: 0.16 + 0.22 * heat),
             const Color(0xFFFFC21A).withValues(alpha: 0),
           ],
         ).createShader(disc),
     );
 
     final double beat = Cine.beat(Cine.fract(t * 6));
-    final int n = (170 + 150 * heat).round();
-    final double rx = rad * 0.97;
-    final double ry = rad * 0.34;
+    final int n = (230 + 170 * heat).round();
+    final double rx = rad * 0.98;
+    final double ry = rad * 0.33;
     const double tilt = 0.2;
 
     DustRing.paint(
@@ -162,14 +143,15 @@ class _MedallionPainter extends CustomPainter {
       t: t,
       n: n,
       front: false,
-      alpha: 0.8,
-      grain: 0.9,
+      alpha: 0.85,
+      grain: 1.0,
       thick: 0.26,
       haze: 1,
+      onLight: true,
     );
 
     // The crystal heart.
-    final double hw = rad * (0.5 + 0.03 * beat);
+    final double hw = rad * (0.6 + 0.03 * beat);
     final Offset hc = Offset(c.dx, c.dy - rad * 0.02);
     Offset at(Offset u) => Offset(hc.dx + u.dx * hw, hc.dy + u.dy * hw);
     const int k = 16;
@@ -231,9 +213,17 @@ class _MedallionPainter extends CustomPainter {
       body,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = math.max(0.8, hw * 0.07)
+        ..strokeWidth = math.max(1.2, hw * 0.1)
         ..strokeJoin = StrokeJoin.round
-        ..color = const Color(0xFFFFEDB0).withValues(alpha: 0.9),
+        ..color = const Color(0xFFB8740A),
+    );
+    canvas.drawPath(
+      body,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(0.7, hw * 0.04)
+        ..strokeJoin = StrokeJoin.round
+        ..color = const Color(0xFFFFE9A0).withValues(alpha: 0.95),
     );
 
     // A glint that wakes and sleeps on the heart's shoulder.
@@ -262,29 +252,10 @@ class _MedallionPainter extends CustomPainter {
       n: n,
       front: true,
       alpha: 1,
-      grain: 0.95,
+      grain: 1.05,
       thick: 0.26,
       haze: 1,
-    );
-    canvas.restore();
-
-    // The gold rim.
-    canvas.drawCircle(
-      c,
-      rad,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6
-        ..shader = SweepGradient(
-          transform: GradientRotation(Cine.tau * t),
-          colors: const <Color>[
-            Color(0xFFFFF3C4),
-            Color(0xFFE59A10),
-            Color(0xFFFFC21A),
-            Color(0xFF8A5008),
-            Color(0xFFFFF3C4),
-          ],
-        ).createShader(disc),
+      onLight: true,
     );
   }
 
