@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/cheer_service.dart';
 import '../services/ticker_service.dart';
+import 'heart_sound.dart';
 import 'ticker_sound.dart';
 
 /// ============================================================
@@ -88,6 +89,12 @@ class TickerOptionsRows extends StatelessWidget {
           'A tiny, gentle sound as a ribbon arrives.',
           TickerSound.instance.on,
           (bool v) => TickerSound.instance.setOn(v),
+        ),
+        _row(
+          'Golden Heart sounds',
+          'A soft, cinematic sound when your heart glows and golden dust falls.',
+          HeartSound.instance.on,
+          (bool v) => HeartSound.instance.setOn(v),
         ),
         // Only shown while the house has Cheers switched on.
         ValueListenableBuilder<bool>(
