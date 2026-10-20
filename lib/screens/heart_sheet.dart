@@ -10,7 +10,7 @@ import '../widgets/gold_fx.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_light.dart';
 import '../widgets/gold_sound.dart';
-import '../widgets/flame_heart.dart';
+import '../widgets/gif_flame_heart.dart';
 import '../widgets/heart_sound.dart';
 import 'heart_parts.dart';
 import 'treasures_sheet.dart';
@@ -217,12 +217,12 @@ class _HeartSheetState extends State<HeartSheet> {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                FlameHeart(
+                GifFlameHeart(
                   fill: s.fill,
                   tier: s.tierIdx,
                   lit: s.lit,
                   celebrate: _celebrate,
-                  height: 320,
+                  height: 420,
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
