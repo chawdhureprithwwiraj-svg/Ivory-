@@ -186,7 +186,7 @@ class _LadderScreenState extends State<LadderScreen>
           const SizedBox(height: 8),
           Text(
             s.next == null
-                ? 'You stand on the highest rung.'
+                ? 'You stand on the highest rung. Your climb keeps counting: ${s.points} points so far.'
                 : '${s.need} more to reach ${s.next!.name}',
             style: const TextStyle(color: LadderTones.pearl, fontSize: 13.5),
           ),
