@@ -11,8 +11,9 @@ import 'gold_button.dart';
 import 'gold_fx.dart';
 import 'gold_fx3d.dart';
 import 'gold_teaser.dart';
+import 'key_spin.dart';
 import 'vault_keys.dart';
-import 'rising_lights.dart';
+import 'vault_sky.dart';
 
 /// ============================================================
 /// IVORY - THE TEN-DAY VAULT, ON THE HOME SCREEN
@@ -105,14 +106,14 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
   }
 
   static const TextStyle _kicker = TextStyle(
-    color: GoldTones.light,
+    color: vaultInk,
     fontSize: 10.5,
     fontWeight: FontWeight.w800,
     letterSpacing: 2.2,
   );
 
   static TextStyle _lead() => const TextStyle(
-    color: IvoryColors.cream,
+    color: vaultInk,
     fontFamily: IvoryTheme.displayFont,
     fontSize: 17,
     height: 1.32,
@@ -120,7 +121,7 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
   );
 
   static TextStyle _fine() => TextStyle(
-    color: IvoryColors.cream.withValues(alpha: 0.78),
+    color: vaultInk.withValues(alpha: 0.88),
     fontSize: 12.5,
     height: 1.4,
   );
@@ -142,36 +143,29 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: GoldShimmerText(
+                child: VaultInkTitle(
                   'THE ${vaultWord(days)}-DAY\nVAULT',
-                  extrude: calm ? 0 : 3,
-                  style: const TextStyle(
-                    fontFamily: IvoryTheme.displayFont,
-                    fontSize: 31,
-                    height: 1.04,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
-                  ),
+                  size: 31,
+                  depth: calm ? 0 : 3,
+                  textAlign: TextAlign.left,
+                  fontFamily: IvoryTheme.displayFont,
                 ),
               ),
             ),
             const SizedBox(width: 10),
             calm
-                ? const Opacity(opacity: 0.55, child: VaultEmblem(size: 50))
-                : const SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: <Widget>[
-                        OverflowBox(
-                          maxWidth: 170,
-                          maxHeight: 170,
-                          child: GoldRays(size: 170, opacity: 0.4),
-                        ),
-                        VaultEmblem(size: 62),
-                      ],
+                ? const Opacity(
+                    opacity: 0.7,
+                    child: VaultWell(
+                      circle: true,
+                      padding: EdgeInsets.all(4),
+                      child: VaultKeySpin(size: 40),
                     ),
+                  )
+                : const VaultWell(
+                    circle: true,
+                    padding: EdgeInsets.all(5),
+                    child: VaultKeySpin(size: 64),
                   ),
           ],
         ),
@@ -181,26 +175,48 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
 
   Widget _pulse(String text) => Row(
     children: <Widget>[
-      const GoldPulseDot(size: 7),
-      const SizedBox(width: 2),
+      Container(
+        width: 8,
+        height: 8,
+        decoration: const BoxDecoration(
+          color: vaultInk,
+          shape: BoxShape.circle,
+        ),
+      ),
+      const SizedBox(width: 6),
       GoldBeat(
         child: Text(
           text,
           style: _kicker.copyWith(
             fontSize: 12.5,
             letterSpacing: 2.2,
-            color: GoldTones.shine,
-            shadows: <Shadow>[
-              Shadow(
-                color: GoldTones.mid.withValues(alpha: 0.9),
-                blurRadius: 10,
-              ),
+            color: vaultInk,
+            shadows: const <Shadow>[
+              Shadow(color: Color(0xCCFFFFFF), offset: Offset(0, 1)),
             ],
           ),
         ),
       ),
     ],
   );
+
+  Widget _keys({required int total, required int turned, bool today = false}) {
+    return SizedBox(
+      width: double.infinity,
+      child: VaultWell(
+        padding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
+        radius: 18,
+        child: VaultKeyRow(total: total, turned: turned, today: today),
+      ),
+    );
+  }
+
+  Widget _btn(String label, IconData icon) {
+    return VaultWell(
+      radius: 34,
+      child: GoldButton(label: label, icon: icon, onTap: _open),
+    );
+  }
 
   String _gold(VaultState s) =>
       'Same gold as the Golden Knock-off: up to \u20B9${s.maxPerAnswer} off '
@@ -235,7 +251,7 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
           ),
         ),
         const SizedBox(height: 14),
-        VaultKeyRow(total: s.days, turned: 0, today: true),
+        _keys(total: s.days, turned: 0, today: true),
         const SizedBox(height: 10),
         Text(
           'Nothing is revealed until the last key turns: not your score, '
@@ -249,10 +265,9 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
           Text(note, style: _fine().copyWith(fontStyle: FontStyle.italic)),
         ],
         const SizedBox(height: 16),
-        GoldButton(
-          label: s.rehearsal ? 'REHEARSE THE VAULT' : 'BEGIN DAY 1',
-          icon: Icons.vpn_key_rounded,
-          onTap: _open,
+        _btn(
+          s.rehearsal ? 'REHEARSE THE VAULT' : 'BEGIN DAY 1',
+          Icons.vpn_key_rounded,
         ),
         if (s.rehearsal)
           Padding(
@@ -272,7 +287,7 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
       children: <Widget>[
         _pulse('DAY ${s.dayNo} OF ${s.days}: YOUR KEY IS WAITING'),
         const SizedBox(height: 10),
-        VaultKeyRow(total: s.days, turned: s.answered, today: true),
+        _keys(total: s.days, turned: s.answered, today: true),
         const SizedBox(height: 10),
         Text(
           s.inProgress
@@ -282,10 +297,9 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
           style: s.inProgress ? _lead() : _fine().copyWith(fontSize: 14),
         ),
         const SizedBox(height: 14),
-        GoldButton(
-          label: s.inProgress ? 'BACK TO MY QUESTION' : "TURN TODAY'S KEY",
-          icon: Icons.vpn_key_rounded,
-          onTap: _open,
+        _btn(
+          s.inProgress ? 'BACK TO MY QUESTION' : "TURN TODAY'S KEY",
+          Icons.vpn_key_rounded,
         ),
       ],
     );
@@ -297,17 +311,20 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
       children: <Widget>[
         Text('Day ${s.answered} is sealed. Well turned.', style: _lead()),
         const SizedBox(height: 10),
-        VaultKeyRow(total: s.days, turned: s.answered),
+        _keys(total: s.days, turned: s.answered),
         const SizedBox(height: 12),
         Text('DAY ${s.answered + 1} OPENS IN', style: _kicker),
         const SizedBox(height: 4),
         Text(
           goldCountdown(s.untilNextDay),
           style: const TextStyle(
-            color: GoldTones.light,
+            color: vaultInk,
             fontFamily: IvoryTheme.displayFont,
             fontSize: 28,
             fontWeight: FontWeight.w900,
+            shadows: <Shadow>[
+              Shadow(color: Color(0xCCFFFFFF), offset: Offset(0, 1.5)),
+            ],
           ),
         ),
         const SizedBox(height: 10),
@@ -326,15 +343,11 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
       children: <Widget>[
         _pulse('EVERY KEY IS TURNED'),
         const SizedBox(height: 8),
-        VaultKeyRow(total: s.days, turned: s.days),
+        _keys(total: s.days, turned: s.days),
         const SizedBox(height: 10),
         Text('Your vault is ready to open.', style: _lead()),
         const SizedBox(height: 14),
-        GoldButton(
-          label: 'OPEN THE VAULT',
-          icon: Icons.auto_awesome,
-          onTap: _open,
-        ),
+        _btn('OPEN THE VAULT', Icons.auto_awesome),
       ],
     );
   }
@@ -350,10 +363,13 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
         Text(
           goldCountdown(s.untilNextRun),
           style: const TextStyle(
-            color: GoldTones.light,
+            color: vaultInk,
             fontFamily: IvoryTheme.displayFont,
             fontSize: 28,
             fontWeight: FontWeight.w900,
+            shadows: <Shadow>[
+              Shadow(color: Color(0xCCFFFFFF), offset: Offset(0, 1.5)),
+            ],
           ),
         ),
         const SizedBox(height: 10),
@@ -409,7 +425,7 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
                 width: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.2,
-                  color: GoldTones.mid,
+                  color: vaultInk,
                 ),
               ),
             );
@@ -432,23 +448,10 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
       child: GoldTilt(
         lean: calm ? 0.05 : 0.1,
         sway: calm ? 0.3 : 1,
-        child: GoldenFrame(
+        child: VaultPlate(
           calm: calm,
-          sparkles: false,
           child: Stack(
             children: <Widget>[
-              if (!calm)
-                const Positioned.fill(
-                  child: RisingLights(
-                    scale: 0.55,
-                    lanterns: 4,
-                    gems: 6,
-                    embers: 14,
-                    surge: false,
-                    onDark: true,
-                    seed: 3,
-                  ),
-                ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
