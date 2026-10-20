@@ -6,12 +6,16 @@ import '../screens/early_door_sheet.dart';
 import '../services/early_service.dart';
 import '../services/heart_service.dart';
 import '../theme/ivory_theme.dart';
+import 'amethyst_door.dart';
 import 'early_door_view.dart';
+import 'jewel_plate.dart';
+import 'sound_bank.dart';
 
 /// ============================================================
 /// IVORY - THE EARLY DOOR, ON THE HOME SCREEN
 ///
-/// One emerald card with the door on the left. It says, in plain
+/// One royal-amethyst jewel card (gold-trimmed, softly shimmering) with
+/// the door on the left. It says, in plain
 /// words, whether the member's door is open, how far ahead it lets
 /// them read, and what is waiting. It disappears completely when the
 /// house has switched the Early Door off, and it is quiet when the
@@ -58,6 +62,13 @@ class _EarlyDoorCardState extends State<EarlyDoorCard> {
     _later = Timer(const Duration(milliseconds: 2500), () {
       EarlyService.instance.refresh(force: true);
     });
+  }
+
+  Future<void> _open() async {
+    // Your own Early Door recording (silent if it is missing).
+    SoundBank.instance.play('early_door');
+    await showEarlyDoorSheet(context);
+    SoundBank.instance.stop('early_door');
   }
 
   String _headline(EarlyState s) {
@@ -109,33 +120,22 @@ class _EarlyDoorCardState extends State<EarlyDoorCard> {
     return Padding(
       padding: const EdgeInsets.only(top: 18),
       child: GestureDetector(
-        onTap: () => showEarlyDoorSheet(context),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                IvoryColors.emeraldMid,
-                IvoryColors.emerald,
-              ],
-            ),
-            border: Border.all(
-              color: IvoryColors.emeraldLight.withValues(alpha: 0.7),
-            ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: IvoryColors.emerald.withValues(alpha: 0.28),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+        onTap: _open,
+        child: JewelPlate(
+          colors: const <Color>[
+            Color(0xFF8A3FD1),
+            Color(0xFF6A25B0),
+            Color(0xFF52198F),
+            Color(0xFF6D28B5),
+            Color(0xFF591C98),
+          ],
+          stops: const <double>[0, 0.3, 0.55, 0.8, 1],
+          rim: const Color(0xFFFFE9A8),
+          spark: const Color(0xFFFFF3C4),
+          shade: const Color(0xFF3E1570),
           child: Row(
             children: <Widget>[
-              EarlyDoorView(openness: earlyOpenness(s.hours)),
+              AmethystDoor(openness: earlyOpenness(s.hours)),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -144,7 +144,7 @@ class _EarlyDoorCardState extends State<EarlyDoorCard> {
                     Text(
                       'THE EARLY DOOR',
                       style: TextStyle(
-                        color: IvoryColors.emeraldWash.withValues(alpha: 0.78),
+                        color: const Color(0xFFEBD6FF),
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 2.4,
@@ -154,7 +154,14 @@ class _EarlyDoorCardState extends State<EarlyDoorCard> {
                     Text(
                       _headline(s),
                       style: const TextStyle(
-                        color: IvoryColors.emeraldWash,
+                        color: Color(0xFFFFF6FF),
+                        shadows: <Shadow>[
+                          Shadow(
+                            color: Color(0x663E1570),
+                            offset: Offset(0, 1.5),
+                            blurRadius: 3,
+                          ),
+                        ],
                         fontFamily: IvoryTheme.displayFont,
                         fontSize: 20,
                         fontStyle: FontStyle.italic,
@@ -166,7 +173,7 @@ class _EarlyDoorCardState extends State<EarlyDoorCard> {
                     Text(
                       _line(s),
                       style: TextStyle(
-                        color: IvoryColors.emeraldWash.withValues(alpha: 0.9),
+                        color: const Color(0xFFF3E6FF),
                         fontSize: 12.5,
                         height: 1.35,
                       ),
@@ -179,7 +186,7 @@ class _EarlyDoorCardState extends State<EarlyDoorCard> {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: IvoryColors.emeraldWash.withValues(alpha: 0.16),
+                          color: const Color(0xFFFFFFFF).withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -187,7 +194,7 @@ class _EarlyDoorCardState extends State<EarlyDoorCard> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: IvoryColors.emeraldWash,
+                            color: Color(0xFFFFF6FF),
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
                           ),
