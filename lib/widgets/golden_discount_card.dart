@@ -11,6 +11,7 @@ import 'gold_burst.dart';
 import 'gold_button.dart';
 import 'gold_fx.dart';
 import 'gold_fx3d.dart';
+import 'gold_plate.dart';
 import 'gold_seals.dart';
 import 'gold_teaser.dart';
 
@@ -104,14 +105,14 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
   void _spend() => widget.onOpenTab?.call('premium');
 
   static const TextStyle _kicker = TextStyle(
-    color: GoldTones.light,
+    color: IvoryColors.burgundy,
     fontSize: 10.5,
     fontWeight: FontWeight.w800,
     letterSpacing: 2.2,
   );
 
   static TextStyle _lead() => const TextStyle(
-    color: IvoryColors.cream,
+    color: IvoryColors.burgundy,
     fontFamily: IvoryTheme.displayFont,
     fontSize: 17,
     height: 1.32,
@@ -119,7 +120,7 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
   );
 
   static TextStyle _fine() => TextStyle(
-    color: IvoryColors.cream.withValues(alpha: 0.78),
+    color: IvoryColors.burgundy.withValues(alpha: 0.9),
     fontSize: 12.5,
     height: 1.4,
   );
@@ -140,36 +141,38 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: GoldShimmerText(
+                child: const Text(
                   'THE GOLDEN\nKNOCK-OFF',
-                  extrude: calm ? 0 : 3,
-                  style: const TextStyle(
+                  style: TextStyle(
+                    color: IvoryColors.burgundy,
                     fontFamily: IvoryTheme.displayFont,
                     fontSize: 31,
                     height: 1.04,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.2,
+                    shadows: <Shadow>[
+                      Shadow(color: Color(0xFFFFF3B8), offset: Offset(0, 1)),
+                      Shadow(color: Color(0xFF8A5A00), offset: Offset(0, -1)),
+                      Shadow(
+                        color: Color(0x66784600),
+                        offset: Offset(0, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 10),
             calm
-                ? Opacity(opacity: 0.55, child: const GoldCoin(size: 50))
-                : const SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: <Widget>[
-                        OverflowBox(
-                          maxWidth: 170,
-                          maxHeight: 170,
-                          child: GoldRays(size: 170, opacity: 0.4),
-                        ),
-                        GoldCoin(size: 62),
-                      ],
-                    ),
+                ? const Opacity(
+                    opacity: 0.7,
+                    child: GoldWell(circle: true, child: GoldCoin(size: 44)),
+                  )
+                : const GoldWell(
+                    circle: true,
+                    padding: EdgeInsets.all(6),
+                    child: GoldCoin(size: 58),
                   ),
           ],
         ),
@@ -183,20 +186,24 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
       children: <Widget>[
         Row(
           children: <Widget>[
-            const GoldPulseDot(size: 7),
-            const SizedBox(width: 2),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: IvoryColors.burgundy,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
             GoldBeat(
               child: Text(
                 s.rehearsal ? 'ADMIN REHEARSAL' : 'OPEN FOR YOU NOW',
                 style: _kicker.copyWith(
                   fontSize: 12.5,
                   letterSpacing: 2.4,
-                  color: GoldTones.shine,
-                  shadows: <Shadow>[
-                    Shadow(
-                      color: GoldTones.mid.withValues(alpha: 0.9),
-                      blurRadius: 10,
-                    ),
+                  color: IvoryColors.burgundy,
+                  shadows: const <Shadow>[
+                    Shadow(color: Color(0xFFFFF3B8), offset: Offset(0, 1)),
                   ],
                 ),
               ),
@@ -215,8 +222,11 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
           ),
         ),
         const SizedBox(height: 14),
-        GoldSealRow(earned: s.seals, total: s.sealTotal),
-        const SizedBox(height: 6),
+        GoldWell(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          child: GoldSealRow(earned: s.seals, total: s.sealTotal),
+        ),
+        const SizedBox(height: 8),
         Text(
           s.seals == 0
               ? 'Ten topics, ten seals. Your first is waiting.'
@@ -237,10 +247,13 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
           style: _fine(),
         ),
         const SizedBox(height: 16),
-        GoldButton(
-          label: s.rehearsal ? 'REHEARSE THE QUIZ' : 'UNSEAL MY TOPIC',
-          icon: Icons.auto_awesome,
-          onTap: _open,
+        GoldWell(
+          radius: 34,
+          child: GoldButton(
+            label: s.rehearsal ? 'REHEARSE THE QUIZ' : 'UNSEAL MY TOPIC',
+            icon: Icons.auto_awesome,
+            onTap: _open,
+          ),
         ),
         if (s.rehearsal)
           Padding(
@@ -266,10 +279,13 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
           style: _fine(),
         ),
         const SizedBox(height: 16),
-        GoldButton(
-          label: 'BACK TO MY QUESTION',
-          icon: Icons.play_arrow_rounded,
-          onTap: _open,
+        GoldWell(
+          radius: 34,
+          child: GoldButton(
+            label: 'BACK TO MY QUESTION',
+            icon: Icons.play_arrow_rounded,
+            onTap: _open,
+          ),
         ),
       ],
     );
@@ -283,7 +299,7 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
           CountUpText(
             s.creditInr,
             style: const TextStyle(
-              color: GoldTones.light,
+              color: IvoryColors.burgundy,
               fontFamily: IvoryTheme.displayFont,
               fontSize: 38,
               fontWeight: FontWeight.w900,
@@ -307,7 +323,10 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
       children: <Widget>[
         Row(
           children: <Widget>[
-            GoldRing(
+            GoldWell(
+              circle: true,
+              padding: const EdgeInsets.all(5),
+              child: GoldRing(
               progress: p,
               size: 92,
               warn: left < const Duration(hours: 1),
@@ -326,6 +345,7 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
                 ),
               ),
             ),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -334,7 +354,7 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
                   CountUpText(
                     s.creditInr,
                     style: const TextStyle(
-                      color: GoldTones.light,
+                      color: IvoryColors.burgundy,
                       fontFamily: IvoryTheme.displayFont,
                       fontSize: 40,
                       height: 1,
@@ -356,10 +376,13 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
           style: _fine(),
         ),
         const SizedBox(height: 14),
-        GoldButton(
-          label: 'SPEND MY GOLD',
-          icon: Icons.workspace_premium,
-          onTap: _spend,
+        GoldWell(
+          radius: 34,
+          child: GoldButton(
+            label: 'SPEND MY GOLD',
+            icon: Icons.workspace_premium,
+            onTap: _spend,
+          ),
         ),
       ],
     );
@@ -382,14 +405,17 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
         Text(
           goldCountdown(s.untilOpen),
           style: const TextStyle(
-            color: GoldTones.light,
+            color: IvoryColors.burgundy,
             fontFamily: IvoryTheme.displayFont,
             fontSize: 28,
             fontWeight: FontWeight.w900,
           ),
         ),
         const SizedBox(height: 12),
-        GoldSealRow(earned: s.seals, total: s.sealTotal),
+        GoldWell(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          child: GoldSealRow(earned: s.seals, total: s.sealTotal),
+        ),
         const SizedBox(height: 8),
         Text(
           dust
@@ -435,7 +461,7 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
                 width: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.2,
-                  color: GoldTones.mid,
+                  color: IvoryColors.burgundy,
                 ),
               ),
             );
@@ -464,7 +490,7 @@ class _GoldenDiscountCardState extends State<GoldenDiscountCard>
       child: GoldTilt(
         lean: calm ? 0.05 : 0.1,
         sway: calm ? 0.3 : 1,
-        child: GoldenFrame(
+        child: GoldPlate(
           calm: calm,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
