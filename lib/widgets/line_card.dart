@@ -84,8 +84,8 @@ class _LineCardState extends State<LineCard> {
       return ('Your letters are resting', 'A new one frees up as the days pass.');
     }
     return draft
-        ? ('Your letter is kept for you', 'Ivory has not seen it. It travels the moment you join.')
-        : ('Write to Ivory', 'Part of a paid membership. Write your letter now; it travels the moment you join.');
+        ? ('Your letter is kept for you', 'Ivory has not seen it. It is ready to send the moment you join.')
+        : ('Write to Ivory', 'Part of a paid membership. Write your letter now; it is ready to send the moment you join.');
   }
 
   @override
