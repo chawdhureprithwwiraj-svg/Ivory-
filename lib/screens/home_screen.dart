@@ -14,7 +14,6 @@ import '../widgets/story_door.dart';
 import '../widgets/post_actions.dart';
 import '../widgets/firstlist_rail.dart';
 import '../widgets/golden_discount_card.dart';
-import '../widgets/golden_heart_card.dart';
 import '../widgets/vault_card.dart';
 import '../widgets/early_door_card.dart';
 import '../widgets/line_card.dart';
@@ -130,11 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   _hero(),
-                  // THE GOLDEN HEART: a crystal heart with a ring of golden dust
-                  // that circles it like Saturn (CC.164). It draws nothing when
-                  // the house closes the heart.
-                  const SizedBox(height: 18),
-                  const GoldenHeartCard(),
                   // THE GOLDEN KNOCK-OFF: the quiz that turns right answers
                   // into rupees off a membership (CC.123).
                   const SizedBox(height: 18),
