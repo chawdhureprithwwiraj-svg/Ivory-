@@ -12,6 +12,7 @@ import 'gold_fx.dart';
 import 'gold_fx3d.dart';
 import 'gold_teaser.dart';
 import 'vault_keys.dart';
+import 'rising_lights.dart';
 
 /// ============================================================
 /// IVORY - THE TEN-DAY VAULT, ON THE HOME SCREEN
@@ -433,16 +434,33 @@ class _VaultCardState extends State<VaultCard> with WidgetsBindingObserver {
         sway: calm ? 0.3 : 1,
         child: GoldenFrame(
           calm: calm,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          sparkles: false,
+          child: Stack(
             children: <Widget>[
-              _head(s, calm),
-              const SizedBox(height: 14),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.topCenter,
-                child: SizedBox(width: double.infinity, child: body),
+              if (!calm)
+                const Positioned.fill(
+                  child: RisingLights(
+                    scale: 0.55,
+                    lanterns: 4,
+                    gems: 6,
+                    embers: 14,
+                    surge: false,
+                    onDark: true,
+                    seed: 3,
+                  ),
+                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _head(s, calm),
+                  const SizedBox(height: 14),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(width: double.infinity, child: body),
+                  ),
+                ],
               ),
             ],
           ),
