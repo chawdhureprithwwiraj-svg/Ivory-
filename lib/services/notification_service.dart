@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../l10n/content_i18n.dart';
 import '../models/ivory_notification.dart';
+import '../widgets/sound_bank.dart';
 
 /// The single source of truth for the Sanctuary Inbox. It keeps
 /// the total unread count live, flags unread system notices for
@@ -46,7 +47,12 @@ class NotificationService {
           schema: 'public',
           table: 'notifications',
           callback: (PostgresChangePayload payload) async {
+            final int before = unreadCount.value;
             await refreshUnread();
+            // A new notice for this member while the app is open.
+            if (unreadCount.value > before) {
+              SoundBank.instance.play('notify');
+            }
 
             final Map<String, dynamic> inserted = payload.newRecord;
             final int? id = (inserted['id'] as num?)?.toInt();
