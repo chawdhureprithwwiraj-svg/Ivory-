@@ -6,10 +6,10 @@ import '../services/ten_day_vault_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/gold_burst.dart';
 import '../widgets/gold_button.dart';
-import '../widgets/gold_fireworks.dart';
 import '../widgets/gold_fx.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_sound.dart';
+import '../widgets/vault_sky.dart';
 import 'golden_result.dart';
 import 'vault_ceremony.dart';
 import 'vault_question_view.dart';
@@ -249,7 +249,7 @@ class _VaultScreenState extends State<VaultScreen> {
       case _Stage.loading:
       case _Stage.opening:
         return const Center(
-          child: CircularProgressIndicator(color: GoldTones.mid),
+          child: CircularProgressIndicator(color: IvoryColors.burgundy),
         );
       case _Stage.intro:
         return VaultIntro(
@@ -308,16 +308,19 @@ class _VaultScreenState extends State<VaultScreen> {
                   _err,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: IvoryColors.cream.withValues(alpha: 0.92),
+                    color: vaultInk,
                     fontFamily: IvoryTheme.displayFont,
                     fontSize: 16,
                     height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 22),
-                GoldButton(
-                  label: 'BACK TO HOME',
-                  onTap: () => Navigator.of(context).pop(),
+                VaultWell(
+                  radius: 34,
+                  child: GoldButton(
+                    label: 'BACK TO HOME',
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
                 ),
               ],
             ),
@@ -328,33 +331,26 @@ class _VaultScreenState extends State<VaultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // The sunrise by day; the burgundy night for the opening of the vault
+    // and the result, which are built for it.
+    final bool dark = _stage == _Stage.ceremony || _stage == _Stage.result;
+    final Color ink = dark ? GoldTones.light : IvoryColors.burgundy;
     return PopScope(
       canPop: !_locked,
       onPopInvokedWithResult: (bool didPop, Object? _) {
         if (!didPop) _confirmLeave();
       },
       child: Scaffold(
-        backgroundColor: IvoryColors.burgundy,
-        body: Container(
-          decoration: const BoxDecoration(gradient: IvoryColors.deepGradient),
-          child: Stack(
-            children: <Widget>[
-              const Positioned.fill(
-                child: GoldFireworks(rate: 0.5, strength: 0.5, seed: 23),
-              ),
-              const Positioned(
-                top: -120,
-                left: -90,
-                right: -90,
-                child: GoldRays(size: 560, opacity: 0.1),
-              ),
-              SafeArea(
+        backgroundColor: dark ? IvoryColors.burgundy : const Color(0xFFFFB347),
+        body: VaultSky(
+          dark: dark,
+          child: SafeArea(
                 child: Column(
                   children: <Widget>[
                     Row(
                       children: <Widget>[
                         IconButton(
-                          icon: const Icon(Icons.close, color: GoldTones.light),
+                          icon: Icon(Icons.close, color: ink),
                           onPressed: _locked
                               ? _confirmLeave
                               : () => Navigator.of(context).pop(),
@@ -369,7 +365,7 @@ class _VaultScreenState extends State<VaultScreen> {
                                   on
                                       ? Icons.volume_up_rounded
                                       : Icons.volume_off_rounded,
-                                  color: GoldTones.light,
+                                  color: ink,
                                 ),
                                 onPressed: () => GoldSound.instance.setOn(!on),
                               ),
@@ -380,8 +376,6 @@ class _VaultScreenState extends State<VaultScreen> {
                   ],
                 ),
               ),
-            ],
-          ),
         ),
       ),
     );
