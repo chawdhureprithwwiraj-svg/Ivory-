@@ -99,6 +99,9 @@ class _CheerSheetState extends State<_CheerSheet>
       case 'cap':
         return 'You have used all your cheers for today. They return tomorrow.'
             .tr;
+      case 'house':
+        return 'You are the house, so this was a rehearsal. Nothing was sent and nobody was told.'
+            .tr;
       case 'self':
         return 'This one is yours, so it cannot be cheered. Everyone else can send you a cheer.'
             .tr;
@@ -134,7 +137,7 @@ class _CheerSheetState extends State<_CheerSheet>
       _done = status != 'bad';
       _msg = _words(status);
     });
-    if (status == 'sent') {
+    if (status == 'sent' || status == 'house') {
       HapticFeedback.lightImpact();
       TickerSound.instance.play('cheer');
       _b.forward(from: 0);
