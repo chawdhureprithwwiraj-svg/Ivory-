@@ -92,27 +92,18 @@ class _GifFlameHeartState extends State<GifFlameHeart>
     super.dispose();
   }
 
-  // Dimmer at the first level, the full blaze at the last.
+  // Rich, bright gold at every level; only the strength grows. The
+  // warm channels are lifted and the blue is held back so the fire
+  // reads as molten gold, never as brown.
   static ColorFilter _heat(double heat) {
-    // Colour stays true gold; only the strength grows.
-    const double sat = 1.0;
-    final double k = 0.42 + 0.58 * heat;
-    const double lr = 0.213;
-    const double lg = 0.715;
-    const double lb = 0.072;
-    final double a = (lr * (1 - sat) + sat) * k;
-    final double b = lg * (1 - sat) * k;
-    final double c = lb * (1 - sat) * k;
-    final double d = lr * (1 - sat) * k;
-    final double e = (lg * (1 - sat) + sat) * k;
-    final double f = lb * (1 - sat) * k;
-    final double g = lr * (1 - sat) * k;
-    final double h = lg * (1 - sat) * k;
-    final double i = (lb * (1 - sat) + sat) * k;
+    final double k = 0.9 + 0.35 * heat;
+    final double r = 1.12 * k;
+    final double g = 1.04 * k;
+    final double b = 0.82 * k;
     return ColorFilter.matrix(<double>[
-      a, b, c, 0, 0, //
-      d, e, f, 0, 0, //
-      g, h, i, 0, 0, //
+      r, 0, 0, 0, 6, //
+      0, g, 0, 0, 2, //
+      0, 0, b, 0, 0, //
       0, 0, 0, 1, 0,
     ]);
   }
@@ -166,7 +157,8 @@ class _GifFlameHeartState extends State<GifFlameHeart>
                     ),
                   ),
                 ),
-                OverflowBox(
+                ClipRect(
+                  child: OverflowBox(
                   maxWidth: side,
                   maxHeight: side,
                   child: SizedBox(
@@ -202,6 +194,7 @@ class _GifFlameHeartState extends State<GifFlameHeart>
                         ),
                       ),
                     ),
+                  ),
                   ),
                   ),
                 ),
