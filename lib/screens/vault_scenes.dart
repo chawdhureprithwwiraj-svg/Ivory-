@@ -11,6 +11,7 @@ import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_light.dart';
 import '../widgets/gold_sound.dart';
 import '../widgets/vault_keys.dart';
+import '../widgets/vault_sky.dart';
 import 'golden_quiz_parts.dart';
 
 /// ============================================================
@@ -93,11 +94,6 @@ class VaultIntro extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: <Widget>[
-              const OverflowBox(
-                maxWidth: 340,
-                maxHeight: 340,
-                child: GoldRays(size: 340, opacity: 0.32),
-              ),
               TweenAnimationBuilder<double>(
                 tween: Tween<double>(begin: 0.2, end: 1),
                 duration: const Duration(milliseconds: 1100),
@@ -110,7 +106,11 @@ class VaultIntro extends StatelessWidget {
                         child: c,
                       ),
                     ),
-                child: const VaultEmblem(size: 96),
+                child: const VaultWell(
+                  circle: true,
+                  padding: EdgeInsets.all(9),
+                  child: VaultEmblem(size: 96),
+                ),
               ),
             ],
           ),
@@ -122,7 +122,7 @@ class VaultIntro extends StatelessWidget {
             child: Text(
               'ONE KEY A DAY FOR ${vaultWord(s.days)} DAYS',
               textAlign: TextAlign.center,
-              style: goldKick,
+              style: goldKick.copyWith(color: vaultInk),
             ),
           ),
         ),
@@ -130,14 +130,11 @@ class VaultIntro extends StatelessWidget {
         GoldRise(
           delayMs: 250,
           child: Center(
-            child: GoldShimmerText(
+            child: VaultInkTitle(
               'THE ${vaultWord(s.days)}-DAY\nVAULT',
-              textAlign: TextAlign.center,
-              extrude: 5,
-              style: goldSerif(
-                38,
-                w: FontWeight.w900,
-              ).copyWith(letterSpacing: 1.4),
+              size: 38,
+              depth: 5,
+              fontFamily: IvoryTheme.displayFont,
             ),
           ),
         ),
@@ -198,11 +195,14 @@ class VaultIntro extends StatelessWidget {
         const SizedBox(height: 22),
         GoldRise(
           delayMs: 1250,
-          child: GoldButton(
-            label: s.rehearsal ? 'START THE REHEARSAL' : 'BEGIN DAY 1 NOW',
-            icon: Icons.vpn_key_rounded,
-            busy: busy,
-            onTap: onStart,
+          child: VaultWell(
+            radius: 34,
+            child: GoldButton(
+              label: s.rehearsal ? 'START THE REHEARSAL' : 'BEGIN DAY 1 NOW',
+              icon: Icons.vpn_key_rounded,
+              busy: busy,
+              onTap: onStart,
+            ),
           ),
         ),
         Padding(
@@ -212,7 +212,7 @@ class VaultIntro extends StatelessWidget {
             '${s.questionSeconds}-second clock starts with it.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: IvoryColors.cream.withValues(alpha: 0.75),
+              color: vaultInk,
               fontSize: 12.5,
             ),
           ),
@@ -220,10 +220,16 @@ class VaultIntro extends StatelessWidget {
         const SizedBox(height: 10),
         GoldRise(
           delayMs: 1400,
-          child: GoldButton(
-            label: 'NOT NOW',
-            ghost: true,
-            onTap: busy ? null : onClose,
+          child: TextButton(
+            onPressed: busy ? null : onClose,
+            child: const Text(
+              'NOT NOW',
+              style: TextStyle(
+                color: vaultInk,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+              ),
+            ),
           ),
         ),
         if (s.rehearsal)
@@ -233,7 +239,7 @@ class VaultIntro extends StatelessWidget {
               'Admin rehearsal: nothing is won and nothing is locked.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: IvoryColors.cream.withValues(alpha: 0.75),
+                color: vaultInk,
                 fontSize: 12.5,
               ),
             ),
@@ -291,24 +297,17 @@ class _VaultDayTitleState extends State<VaultDayTitle> {
             child: Stack(
               alignment: Alignment.center,
               children: <Widget>[
-                const OverflowBox(
-                  maxWidth: 360,
-                  maxHeight: 360,
-                  child: GoldRays(size: 360, opacity: 0.3),
-                ),
                 TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 2.4, end: 1),
                   duration: const Duration(milliseconds: 900),
                   curve: Curves.easeOutBack,
                   builder: (BuildContext context, double v, Widget? c) =>
                       Transform.scale(scale: v, child: c),
-                  child: GoldShimmerText(
+                  child: VaultInkTitle(
                     'DAY ${widget.day}',
-                    extrude: 7,
-                    style: goldSerif(
-                      64,
-                      w: FontWeight.w900,
-                    ).copyWith(letterSpacing: 2),
+                    size: 64,
+                    depth: 7,
+                    fontFamily: IvoryTheme.displayFont,
                   ),
                 ),
               ],
@@ -318,7 +317,7 @@ class _VaultDayTitleState extends State<VaultDayTitle> {
             delayMs: 500,
             child: Text(
               last ? 'THE LAST KEY' : 'OF ${vaultWord(widget.days)}',
-              style: goldKick.copyWith(fontSize: 13),
+              style: goldKick.copyWith(fontSize: 13, color: vaultInk),
             ),
           ),
           const SizedBox(height: 14),
@@ -333,7 +332,7 @@ class _VaultDayTitleState extends State<VaultDayTitle> {
                     ? 'The gentlest key of all. Take a breath.'
                     : 'Today\u2019s key is a little harder than yesterday\u2019s.',
                 textAlign: TextAlign.center,
-                style: goldSerif(15.5, italic: true),
+                style: goldSerif(15.5, italic: true, color: vaultInk),
               ),
             ),
           ),
@@ -396,19 +395,21 @@ class _VaultSealedSceneState extends State<VaultSealedScene> {
           padding: const EdgeInsets.fromLTRB(22, 4, 22, 30),
           children: <Widget>[
             Center(
-              child: VaultBigKey(animate: widget.animate, onTurned: _turned),
+              child: VaultWell(
+                radius: 30,
+                padding: const EdgeInsets.all(8),
+                child: VaultBigKey(animate: widget.animate, onTurned: _turned),
+              ),
             ),
             const SizedBox(height: 8),
             GoldRise(
               delayMs: widget.animate ? 1800 : 100,
               child: Center(
-                child: GoldShimmerText(
+                child: VaultInkTitle(
                   'DAY $done SEALED',
-                  extrude: 4,
-                  style: goldSerif(
-                    32,
-                    w: FontWeight.w900,
-                  ).copyWith(letterSpacing: 1.6),
+                  size: 32,
+                  depth: 4,
+                  fontFamily: IvoryTheme.displayFont,
                 ),
               ),
             ),
@@ -419,7 +420,7 @@ class _VaultSealedSceneState extends State<VaultSealedScene> {
                 'Your answer is locked in the vault. Right or wrong, nothing '
                 'is revealed until Day ${s.days}.',
                 textAlign: TextAlign.center,
-                style: goldSerif(15.5, italic: true),
+                style: goldSerif(15.5, italic: true, color: vaultInk),
               ),
             ),
             const SizedBox(height: 22),
@@ -460,7 +461,10 @@ class _VaultSealedSceneState extends State<VaultSealedScene> {
             const SizedBox(height: 22),
             GoldRise(
               delayMs: widget.animate ? 2500 : 400,
-              child: GoldButton(label: 'DONE', onTap: widget.onClose),
+              child: VaultWell(
+                radius: 34,
+                child: GoldButton(label: 'DONE', onTap: widget.onClose),
+              ),
             ),
           ],
         ),
