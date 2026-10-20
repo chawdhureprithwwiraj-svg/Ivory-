@@ -5,6 +5,7 @@ import '../models/bell_models.dart';
 import '../models/ladder_models.dart';
 import '../screens/bells_sets_sheet.dart';
 import '../screens/ladder_screen.dart';
+import '../services/auth_service.dart';
 import '../services/bells_service.dart';
 import '../services/crest_service.dart';
 import '../services/ladder_service.dart';
@@ -12,6 +13,7 @@ import 'bell_looks.dart';
 import 'bell_paint.dart';
 import 'crest_pin_sheet.dart';
 import 'crest_ring.dart';
+import 'house_rehearsal_block.dart';
 import 'ladder_paint.dart';
 import 'ticker_options.dart';
 
@@ -414,45 +416,52 @@ class _ProfileCrestCardState extends State<ProfileCrestCard>
                 const SizedBox(height: 10),
                 const Divider(color: Color(0x33FFFFFF), height: 1),
                 const SizedBox(height: 8),
-                Row(
-                  children: <Widget>[
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            'Show my name to other members',
-                            style: TextStyle(
-                              color: _white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13,
+                if (AuthService.instance.isAdminCached)
+                  const HouseRehearsalBlock(
+                    white: _white,
+                    soft: _lilac,
+                    track: LadderTones.mint,
+                  )
+                else
+                  Row(
+                    children: <Widget>[
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              'Show my name to other members',
+                              style: TextStyle(
+                                color: _white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Other members see a small tag with your rung and '
-                            'bell colours beside your name in live chat, and '
-                            'your name may glide by in the ribbons across the '
-                            'screen. Switch it off any time.',
-                            style: TextStyle(
-                              color: _lilac,
-                              fontSize: 11.5,
-                              height: 1.35,
+                            SizedBox(height: 2),
+                            Text(
+                              'Other members see a small tag with your rung and '
+                              'bell colours beside your name in live chat, and '
+                              'your name may glide by in the ribbons across the '
+                              'screen. Switch it off any time.',
+                              style: TextStyle(
+                                color: _lilac,
+                                fontSize: 11.5,
+                                height: 1.35,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Switch(
-                      value: mine?.showOthers ?? true,
-                      onChanged: _saving ? null : _toggleShow,
-                      activeThumbColor: _white,
-                      activeTrackColor: LadderTones.mint,
-                      inactiveThumbColor: _lilac,
-                      inactiveTrackColor: const Color(0x33FFFFFF),
-                    ),
-                  ],
-                ),
+                      Switch(
+                        value: mine?.showOthers ?? true,
+                        onChanged: _saving ? null : _toggleShow,
+                        activeThumbColor: _white,
+                        activeTrackColor: LadderTones.mint,
+                        inactiveThumbColor: _lilac,
+                        inactiveTrackColor: const Color(0x33FFFFFF),
+                      ),
+                    ],
+                  ),
                 TickerOptionsRows(
                   white: _white,
                   soft: _lilac,
