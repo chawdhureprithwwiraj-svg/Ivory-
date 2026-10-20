@@ -100,7 +100,7 @@ class _LineScreenState extends State<LineScreen> {
   Future<void> _keep() async {
     _focus.unfocus();
     await _svc.saveDraft(_text.text);
-    _say('Held for you. Ivory has not seen it. It travels the moment you join.');
+    _say('Held for you. Ivory has not seen it. It is ready to send the moment you join.');
   }
 
   Future<void> _send() async {
@@ -273,8 +273,8 @@ class _LineScreenState extends State<LineScreen> {
           if (!paidCan) ...<Widget>[
             const SizedBox(height: 10),
             _note(
-              'Kept on this phone only. Ivory has not seen it. It travels the '
-              'moment you join.',
+              'Kept on this phone only. Ivory has not seen it. It is ready to '
+              'send the moment you join.',
             ),
           ],
         ],
@@ -286,7 +286,7 @@ class _LineScreenState extends State<LineScreen> {
     final String line;
     if (!s.paid) {
       line = 'The Private Line is part of a paid membership. Write your letter '
-          'now; it is kept for you and travels the moment you join.';
+          'now; it is kept for you and is ready to send the moment you join.';
     } else {
       line = 'Every letter is read. Ivory answers as many as she can, in her '
           'own time.';
