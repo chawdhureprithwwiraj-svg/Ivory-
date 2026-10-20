@@ -8,7 +8,7 @@ import '../models/reward_models.dart';
 import 'treasure_reveal.dart';
 import '../theme/ivory_theme.dart';
 import 'gold_fx.dart';
-import 'heart_paint.dart';
+import 'heart_medallion.dart';
 
 /// ============================================================
 /// IVORY - THE GOLDEN HEART IN THE TOP BAR
@@ -109,17 +109,17 @@ class _HeartButtonState extends State<HeartButton>
                       scale: unlit ? 1 + 0.09 * _pulse.value : 1,
                       child: child,
                     ),
-                    child: HeartPaint(
-                      size: 36,
-                      compact: true,
+                    child: HeartMedallion(
+                      size: 44,
                       fill: s?.fill ?? 0,
                       tier: s?.tierIdx ?? 0,
+                      lit: s?.lit ?? false,
                     ),
                   ),
                   if (streak > 0)
                     Positioned(
-                      right: 2,
-                      bottom: 5,
+                      right: 0,
+                      bottom: 1,
                       child: Container(
                         constraints: const BoxConstraints(minWidth: 17),
                         padding: const EdgeInsets.symmetric(
