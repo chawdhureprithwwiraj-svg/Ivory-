@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -15,9 +16,11 @@ import 'light_shapes.dart';
 ///    magenta, coral and lime. Each is shaded like a real round
 ///    lantern (dark at the edges, glowing in the middle), with
 ///    ribs, brass caps, a flickering flame, a tassel and a halo.
-///  * Jewels: cut gems (ruby, emerald, citrine, rose, peridot,
-///    fire opal) that turn as they climb, show their facets, and
-///    flash.
+///  * Fibre bloom: a fan of hair-fine light fibres springs from
+///    the bottom, each tipped with a twinkling bead, with small
+///    pulses of light running up every strand (like a fibre-optic
+///    lamp). It replaces the small cut gems of CC.168. The `gems`
+///    setting is now how many fibres per three (12 gives 36).
 ///  * Embers: bright coloured sparks drifting upward.
 ///  * Every nine seconds a SURGE: a row of jewel-headed comets
 ///    shoots up from the bottom.
@@ -145,22 +148,6 @@ class _RisingLightsState extends State<RisingLights>
         ),
       );
     }
-    for (int i = 0; i < widget.gems; i++) {
-      out.add(
-        _Item(
-          lantern: false,
-          x: 0.05 + 0.9 * ((i + 0.2 + 0.6 * r.nextDouble()) / widget.gems),
-          size: 11 + 8 * r.nextDouble(),
-          period: 11 + 8 * r.nextDouble(),
-          phase: r.nextDouble(),
-          z: r.nextDouble(),
-          sway: 0.01 + 0.025 * r.nextDouble(),
-          swayRate: 0.8 + 1.2 * r.nextDouble(),
-          spinRate: 1.2 + 2.2 * r.nextDouble(),
-          color: _gemColors[(i + r.nextInt(2)) % _gemColors.length],
-        ),
-      );
-    }
     out.sort((_Item a, _Item b) => a.z.compareTo(b.z));
     return out;
   }
@@ -182,6 +169,7 @@ class _RisingLightsState extends State<RisingLights>
             items: _items,
             scale: widget.scale,
             embers: widget.embers,
+            fibres: widget.gems * 3,
             surge: widget.surge,
             onDark: widget.onDark,
           ),
@@ -197,6 +185,7 @@ class _LightsPainter extends CustomPainter {
     required this.items,
     required this.scale,
     required this.embers,
+    required this.fibres,
     required this.surge,
     required this.onDark,
   }) : super(repaint: clock);
@@ -205,6 +194,7 @@ class _LightsPainter extends CustomPainter {
   final List<_Item> items;
   final double scale;
   final int embers;
+  final int fibres;
   final bool surge;
   final bool onDark;
 
@@ -221,6 +211,7 @@ class _LightsPainter extends CustomPainter {
     if (w <= 0 || h <= 0) return;
     final double k = (w / 360).clamp(0.8, 1.3).toDouble() * scale;
 
+    _fibres(canvas, w, h, t, k);
     _embers(canvas, w, h, t, k);
 
     for (final _Item it in items) {
@@ -246,15 +237,111 @@ class _LightsPainter extends CustomPainter {
         box,
         Paint()..color = const Color(0xFFFFFFFF).withValues(alpha: a),
       );
-      if (it.lantern) {
-        paintLantern(canvas, x, y, s, it.color, it.phase, t, onDark);
-      } else {
-        paintGem(canvas, x, y, s, it.color, it.phase, it.spinRate, t, onDark);
-      }
+      paintLantern(canvas, x, y, s, it.color, it.phase, t, onDark);
       canvas.restore();
     }
 
     if (surge) _surge(canvas, w, h, t, k);
+  }
+
+  static const List<Color> _fibreRamp = <Color>[
+    Color(0xFF12B76A),
+    Color(0xFF9BCB1B),
+    Color(0xFFFFC21A),
+    Color(0xFFFF8A00),
+    Color(0xFFFF5A3C),
+    Color(0xFFE6203F),
+    Color(0xFFE0268F),
+  ];
+
+  /// A fan of hair-fine light fibres from the bottom, each with a
+  /// twinkling bead at its tip and small pulses of light running up it.
+  void _fibres(Canvas canvas, double w, double h, double t, double k) {
+    if (fibres <= 0) return;
+    final Offset base = Offset(w * 0.5, h * 1.05);
+    final Paint line = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final Paint dot = Paint();
+    final Paint halo = Paint();
+    for (int i = 0; i < fibres; i++) {
+      final double f = fibres == 1 ? 0.5 : i / (fibres - 1);
+      final double bias = (f - 0.5) * 2;
+      final double ang = bias * 1.0 + math.sin(t * 0.55 + i * 1.7) * 0.04;
+      final double len =
+          h *
+          (0.5 + 0.55 * _h(i + 11)) *
+          (1 - 0.16 * bias.abs()) *
+          (0.95 + 0.05 * math.sin(t * 0.8 + i));
+      final Offset tip = Offset(
+        base.dx + math.sin(ang) * len * 1.2,
+        base.dy - math.cos(ang) * len,
+      );
+      final Offset ctl = Offset(
+        base.dx + math.sin(ang * 0.5) * len * 0.62,
+        base.dy - len * 0.58,
+      );
+      final int ci = ((f * (_fibreRamp.length - 1)) + 0.5 * _h(i + 21))
+          .floor()
+          .clamp(0, _fibreRamp.length - 1)
+          .toInt();
+      final Color c = _fibreRamp[ci];
+      final Path path = Path()
+        ..moveTo(base.dx, base.dy)
+        ..quadraticBezierTo(ctl.dx, ctl.dy, tip.dx, tip.dy);
+      line
+        ..strokeWidth = 0.9 * k + 0.2
+        ..shader = ui.Gradient.linear(
+          base,
+          tip,
+          <Color>[
+            c.withValues(alpha: 0),
+            c.withValues(alpha: onDark ? 0.5 : 0.42),
+          ],
+        );
+      canvas.drawPath(path, line);
+      line.shader = null;
+
+      Offset at(double u) {
+        final double v = 1 - u;
+        return Offset(
+          v * v * base.dx + 2 * v * u * ctl.dx + u * u * tip.dx,
+          v * v * base.dy + 2 * v * u * ctl.dy + u * u * tip.dy,
+        );
+      }
+
+      // Pulses of light running up the strand.
+      for (int j = 0; j < 2; j++) {
+        final double u =
+            (t * (0.12 + 0.1 * _h(i + 3)) + j * 0.5 + _h(i + 7)) % 1.0;
+        final double a = math.sin(math.pi * u);
+        final Offset p = at(u);
+        halo.color = c.withValues(alpha: 0.38 * a);
+        if (onDark) halo.blendMode = BlendMode.plus;
+        canvas.drawCircle(p, 3.6 * k, halo);
+        halo.blendMode = BlendMode.srcOver;
+        dot.color = lightShade(c, 0.55).withValues(alpha: 0.95 * a);
+        canvas.drawCircle(p, 1.2 * k, dot);
+      }
+
+      // The bead at the tip: twinkles, with a small star at its peak.
+      final double tw =
+          0.5 + 0.5 * math.sin(t * (1.6 + 2.4 * _h(i + 9)) + i * 2.1);
+      halo.color = c.withValues(alpha: 0.5 * tw);
+      if (onDark) halo.blendMode = BlendMode.plus;
+      canvas.drawCircle(tip, 5.5 * k * (0.7 + 0.5 * tw), halo);
+      halo.blendMode = BlendMode.srcOver;
+      dot.color = lightShade(c, 0.7).withValues(alpha: 0.55 + 0.45 * tw);
+      canvas.drawCircle(tip, (1.0 + 1.1 * tw) * k, dot);
+      if (tw > 0.88) {
+        line
+          ..strokeWidth = 0.8
+          ..color = lightShade(c, 0.8).withValues(alpha: 0.9);
+        final double l = 4.5 * k * tw;
+        canvas.drawLine(tip.translate(-l, 0), tip.translate(l, 0), line);
+        canvas.drawLine(tip.translate(0, -l), tip.translate(0, l), line);
+      }
+    }
   }
 
   void _embers(Canvas canvas, double w, double h, double t, double k) {
