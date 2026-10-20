@@ -11,6 +11,7 @@ import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_light.dart';
 import '../widgets/gold_sound.dart';
 import '../widgets/gif_flame_heart.dart';
+import '../widgets/heart_score.dart';
 import '../widgets/heart_sound.dart';
 import 'heart_parts.dart';
 import 'treasures_sheet.dart';
@@ -43,7 +44,8 @@ class HeartSheet extends StatefulWidget {
   State<HeartSheet> createState() => _HeartSheetState();
 }
 
-class _HeartSheetState extends State<HeartSheet> {
+class _HeartSheetState extends State<HeartSheet>
+    with WidgetsBindingObserver {
   HeartState? _s = HeartService.instance.state.value;
   bool _busy = false;
   String? _err;
@@ -53,11 +55,34 @@ class _HeartSheetState extends State<HeartSheet> {
   void initState() {
     super.initState();
     GoldSound.instance.load();
-    // A gentle heartbeat as the heart opens (only if the member has sound on).
-    HeartSound.instance.load().then((_) {
-      if (mounted) HeartSound.instance.play('open', volume: 0.7);
+    WidgetsBinding.instance.addObserver(this);
+    // The owner's two recordings: the rush and heartbeat once, then the
+    // heartbeat for as long as the member stays here. If the recordings
+    // are not in the app, the older soft opening sound is used.
+    HeartScore.instance.start().then((bool played) {
+      if (played || !mounted) return;
+      HeartSound.instance.load().then((_) {
+        if (mounted) HeartSound.instance.play('open', volume: 1.0);
+      });
     });
     _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      HeartScore.instance.resume();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      HeartScore.instance.pause();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    HeartScore.instance.stop();
+    super.dispose();
   }
 
   Future<void> _load() async {
