@@ -50,7 +50,7 @@ class CheerBurstPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final double v = t.value;
     if (v <= 0 || v >= 1) return;
-    final Offset c = Offset(size.width / 2, size.height * 0.5);
+    final Offset c = Offset(size.width / 2, size.height * 0.62);
     final double out = Curves.easeOutCubic.transform(v);
     final double fade = v < 0.55 ? 1.0 : (1 - (v - 0.55) / 0.45).clamp(0.0, 1.0);
 
@@ -74,7 +74,7 @@ class CheerBurstPainter extends CustomPainter {
 
     // The symbol: swells, rises a little, then fades.
     final double scale = 0.55 + 1.05 * out;
-    final double lift = -46 * out;
+    final double lift = -16 * out;
     final IconData ic = cheerIcon(style);
     final TextPainter tp = TextPainter(
       text: TextSpan(
