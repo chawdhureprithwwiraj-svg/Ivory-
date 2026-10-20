@@ -95,11 +95,11 @@ class _HeartButtonState extends State<HeartButton>
           button: true,
           label: 'Your Golden Heart',
           child: InkResponse(
-            radius: 26,
+            radius: 30,
             onTap: () => showHeartSheet(context),
             child: SizedBox(
-              width: 48,
-              height: 48,
+              width: 58,
+              height: 56,
               child: Stack(
                 alignment: Alignment.center,
                 children: <Widget>[
@@ -110,7 +110,7 @@ class _HeartButtonState extends State<HeartButton>
                       child: child,
                     ),
                     child: HeartMedallion(
-                      size: 44,
+                      size: 56,
                       fill: s?.fill ?? 0,
                       tier: s?.tierIdx ?? 0,
                       lit: s?.lit ?? false,
@@ -118,8 +118,8 @@ class _HeartButtonState extends State<HeartButton>
                   ),
                   if (streak > 0)
                     Positioned(
-                      right: 0,
-                      bottom: 1,
+                      right: 4,
+                      bottom: 3,
                       child: Container(
                         constraints: const BoxConstraints(minWidth: 17),
                         padding: const EdgeInsets.symmetric(
