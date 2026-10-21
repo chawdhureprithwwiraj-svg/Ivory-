@@ -1,147 +1,200 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../models/bell_models.dart';
+import '../screens/bells_screen.dart';
+import '../services/bell_push_open.dart';
+import '../services/bells_service.dart';
 import 'bell_paint.dart';
+import 'bell_sound.dart';
 import 'sound_bank.dart';
 
-class _BellOrbData {
-  static const List<IconData> icons = <IconData>[
-    Icons.favorite_rounded,
-    Icons.menu_book_rounded,
-    Icons.groups_rounded,
-    Icons.nightlight_round,
-  ];
-  static const List<String> names = <String>[
-    'GREET',
-    'READ',
-    'JOIN IN',
-    'OPEN LINE',
-  ];
+/// ============================================================
+/// IVORY - THE DOORBELL IN THE TOP BAR
+///
+/// One small bell that tells the member where the day stands.
+///  - A bell is open and not yet rung: it wiggles and its colour
+///    cycles through coral, mint, tangerine and sky, with a badge
+///    counting the open bells still waiting.
+///  - The open bell has been rung: it settles into one calm colour.
+///  - All the bells for today are rung: a soft mint glow.
+/// If the house closes the doorbell, the icon quietly disappears.
+/// ============================================================
+class BellsButton extends StatefulWidget {
+  const BellsButton({super.key, required this.onOpenTab});
+
+  final void Function(String tab) onOpenTab;
+
+  @override
+  State<BellsButton> createState() => _BellsButtonState();
 }
 
-/// ============================================================
-/// IVORY - THE ROUND BUTTON UNDER EACH BELL
-///
-/// A glossy jewel-coloured orb with an icon, its name and a small line
-/// telling the member whether to tap it, when it opens, or that it has
-/// rung. Also holds the rainbow rope the four bells hang from.
-/// ============================================================
-class BellOrb extends StatelessWidget {
-  const BellOrb({
-    super.key,
-    required this.bellKey,
-    required this.item,
-    required this.isRung,
-    required this.onTap,
-  });
+class _BellsButtonState extends State<BellsButton>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+  late final AnimationController _loop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 4000),
+  )..repeat();
+  Timer? _tick;
+  bool _opening = false;
 
-  final String bellKey;
-  final BellItem? item;
-  final bool isRung;
-  final VoidCallback onTap;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    BellsService.instance.start();
+    BellsService.instance.refreshQuietly();
+    // Tapping a bell reminder on the phone opens the doorbell.
+    BellPushOpen.listen(() {
+      if (mounted && !_opening) _open();
+    });
+    _tick = Timer.periodic(const Duration(seconds: 30), (_) {
+      final DateTime? n = BellsService.instance.state.value?.nextOpenAt;
+      if (n != null && !n.isAfter(DateTime.now())) {
+        BellsService.instance.refreshQuietly();
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState s) {
+    if (s == AppLifecycleState.resumed) BellsService.instance.refreshQuietly();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _tick?.cancel();
+    BellPushOpen.stop();
+    _loop.dispose();
+    super.dispose();
+  }
+
+  Future<void> _open() async {
+    _opening = true;
+    SoundBank.instance.play('bells').then((bool ok) {
+      if (!ok) BellSound.instance.play('door');
+    });
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BellsScreen(onOpenTab: widget.onOpenTab),
+      ),
+    );
+    _opening = false;
+    SoundBank.instance.stop('bells');
+    BellsService.instance.refreshQuietly();
+  }
+
+  /// Open bells that have not been rung yet.
+  int _waiting(BellsState s) {
+    int n = 0;
+    for (final BellItem b in s.bells) {
+      if (b.isOpen && !b.rung) n++;
+    }
+    return n;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final String key = bellKey;
-    final BellItem? it = item;
-    final bool rung = isRung;
-    final int i = BellTones.keys.indexOf(key);
-    final Color c = BellTones.of(i);
-    final String time = it?.timeLabel ?? '';
-    String sub;
-    if (rung) {
-      sub = 'rung';
-    } else if (it != null && !it.isOpen) {
-      sub = it.done && !it.isLine ? 'ready at $time' : 'opens $time';
-    } else {
-      sub = 'tap to ring';
-    }
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: rung
-          ? () => SoundBank.instance.play('heartlit')
-          : onTap,
-      child: Opacity(
-        opacity: rung ? 0.5 : 1,
-        child: SizedBox(
-          width: 78,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    center: const Alignment(-0.3, -0.45),
-                    colors: <Color>[
-                      Colors.white,
-                      c,
-                      BellTones.mix(c, BellTones.deep, 0.45),
+    return ValueListenableBuilder<BellsState?>(
+      valueListenable: BellsService.instance.state,
+      builder: (BuildContext context, BellsState? s, Widget? _) {
+        if (s != null && !s.enabled) return const SizedBox.shrink();
+        final int waiting = s == null ? 0 : _waiting(s);
+        final bool pending = waiting > 0;
+        final bool done = s != null && s.allRung;
+        return Semantics(
+          button: true,
+          label: 'Ring My Doorbell',
+          child: InkResponse(
+            radius: 26,
+            onTap: _open,
+            child: SizedBox(
+              width: 46,
+              height: 48,
+              child: AnimatedBuilder(
+                animation: _loop,
+                builder: (BuildContext _, Widget? __) {
+                  final double t = _loop.value;
+                  final Color c = pending
+                      ? _cycle(t)
+                      : done
+                      ? BellTones.noon
+                      : BellTones.pearl;
+                  final double swing = pending
+                      ? math.sin(t * math.pi * 2 * 5) *
+                            0.22 *
+                            (t < 0.35 ? 1 - t / 0.35 : 0)
+                      : 0;
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: <Widget>[
+                      if (s != null)
+                        SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: CircularProgressIndicator(
+                            value: s.need == 0 ? 0 : s.rungN / s.need,
+                            strokeWidth: 2,
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.18,
+                            ),
+                            valueColor: AlwaysStoppedAnimation<Color>(c),
+                          ),
+                        ),
+                      BellShape(
+                        color: c,
+                        width: 25,
+                        glow: pending ? 0.7 : (done ? 0.5 : 0.15),
+                        swing: swing,
+                        dim: !pending && !done,
+                      ),
+                      if (pending)
+                        Positioned(
+                          right: 1,
+                          top: 3,
+                          child: Container(
+                            constraints: const BoxConstraints(minWidth: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: BellTones.dawn,
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(color: Colors.white, width: 1),
+                            ),
+                            child: Text(
+                              '$waiting',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                                height: 1.15,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
-                    stops: const <double>[0, 0.52, 1],
-                  ),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(color: c.withValues(alpha: 0.7), blurRadius: 18),
-                  ],
-                ),
-                child: Icon(
-                  rung ? Icons.check_rounded : _BellOrbData.icons[i],
-                  color: BellTones.deep,
-                  size: 26,
-                ),
+                  );
+                },
               ),
-              const SizedBox(height: 5),
-              Text(
-                _BellOrbData.names[i],
-                style: const TextStyle(
-                  color: Color(0xFFEDE6FF),
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              Text(
-                sub,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFFBFB0F0), fontSize: 9),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class BellRopePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double w = size.width;
-    final Path p = Path()
-      ..moveTo(0, 56)
-      ..quadraticBezierTo(w / 2, -12, w, 56);
-    canvas.drawPath(
-      p,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.4
-        ..strokeCap = StrokeCap.round
-        ..shader = const LinearGradient(
-          colors: <Color>[
-            Color(0xFFFF8FB5),
-            Color(0xFF8FE3FF),
-            Color(0xFFB6FFD2),
-            Color(0xFFFFD59B),
-          ],
-          stops: <double>[0, 0.35, 0.7, 1],
-        ).createShader(Rect.fromLTWH(0, 0, w, 60)),
+        );
+      },
     );
   }
 
-  @override
-  bool shouldRepaint(BellRopePainter o) => false;
+  /// A smooth walk through the four bell colours.
+  Color _cycle(double t) {
+    final double p = t * 4;
+    final int i = p.floor() % 4;
+    return BellTones.mix(BellTones.of(i), BellTones.of(i + 1), p - p.floor());
+  }
 }
 
-// END OF FILE - lib/widgets/bells_orb.dart
+// END OF FILE - lib/widgets/bells_button.dart
