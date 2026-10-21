@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/bell_models.dart';
 import 'bell_paint.dart';
+import 'sound_bank.dart';
 
 class _BellOrbData {
   static const List<IconData> icons = <IconData>[
@@ -57,7 +58,9 @@ class BellOrb extends StatelessWidget {
     }
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: rung ? null : onTap,
+      onTap: rung
+          ? () => SoundBank.instance.play('heartlit')
+          : onTap,
       child: Opacity(
         opacity: rung ? 0.5 : 1,
         child: SizedBox(
