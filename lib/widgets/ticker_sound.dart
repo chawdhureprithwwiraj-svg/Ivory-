@@ -89,12 +89,7 @@ class TickerSound {
       });
       return;
     }
-    if (name == 'tap') {
-      SoundBank.instance.play('click', volume: 0.8).then((bool ok) {
-        if (!ok) _chime(name);
-      });
-      return;
-    }
+    if (name == 'tap') return; // no tap click any more
     _chime(name);
   }
 
