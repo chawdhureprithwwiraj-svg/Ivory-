@@ -7,6 +7,7 @@ import '../models/ladder_models.dart';
 import '../screens/ladder_screen.dart';
 import '../services/ladder_service.dart';
 import 'ladder_paint.dart';
+import 'sound_bank.dart';
 
 /// ============================================================
 /// IVORY - THE LADDER ICON IN THE TOP BAR
@@ -59,6 +60,7 @@ class _LadderButtonState extends State<LadderButton>
   }
 
   Future<void> _open() async {
+    SoundBank.instance.play('ladder');
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const LadderScreen()),
     );
