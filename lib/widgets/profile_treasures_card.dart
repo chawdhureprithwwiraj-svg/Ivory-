@@ -6,6 +6,7 @@ import '../services/reward_service.dart';
 import '../theme/ivory_theme.dart';
 import 'profile_crest_card.dart';
 import 'reward_badge.dart';
+import 'sound_bank.dart';
 
 /// The member's treasures on the Profile screen: a shelf of the
 /// badges earned so far and a door to the full collection. It shows
@@ -44,7 +45,10 @@ class _ProfileTreasuresCardState extends State<ProfileTreasuresCard> {
           padding: const EdgeInsets.only(top: 10),
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: () => showTreasuresSheet(context),
+            onTap: () {
+              SoundBank.instance.play('treasure');
+              showTreasuresSheet(context);
+            },
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: IvoryTheme.card(radius: 20),
