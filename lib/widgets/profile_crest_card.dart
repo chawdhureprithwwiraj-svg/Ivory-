@@ -15,6 +15,7 @@ import 'crest_pin_sheet.dart';
 import 'crest_ring.dart';
 import 'house_rehearsal_block.dart';
 import 'ladder_paint.dart';
+import 'sound_bank.dart';
 import 'ticker_options.dart';
 
 /// ============================================================
@@ -88,6 +89,7 @@ class _ProfileCrestCardState extends State<ProfileCrestCard>
   }
 
   void _pick(LadderState s) {
+    SoundBank.instance.play('pinned_marks');
     final List<MarkItem> earned = s.marks
         .where((MarkItem m) => m.earned)
         .toList();
@@ -113,7 +115,12 @@ class _ProfileCrestCardState extends State<ProfileCrestCard>
 
   Widget _chip(String t, {VoidCallback? onTap, IconData? icon}) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: onTap == null
+          ? null
+          : () {
+              SoundBank.instance.play('pinned_marks');
+              onTap!();
+            },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
