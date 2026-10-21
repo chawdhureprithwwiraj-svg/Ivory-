@@ -11,6 +11,7 @@ import '../services/heart_service.dart';
 import '../widgets/bell_paint.dart';
 import '../widgets/bell_sound.dart';
 import '../widgets/bells_stage.dart';
+import '../widgets/sound_bank.dart';
 import '../widgets/ladder_ceremony.dart';
 import 'bells_panels.dart';
 import 'bells_pledge.dart';
@@ -152,7 +153,7 @@ class _BellsScreenState extends State<BellsScreen> {
     if (_busy) return;
     final BellsState? s = BellsService.instance.state.value;
     final BellItem? it = s?.byKey(key);
-    BellSound.instance.play('tap');
+    SoundBank.instance.play('heartlit');
     switch (key) {
       case 'dawn':
         final HeartState? h = HeartService.instance.state.value;
@@ -194,7 +195,6 @@ class _BellsScreenState extends State<BellsScreen> {
         setState(() => _busy = true);
         try {
           await BellsService.instance.openLine();
-          BellSound.instance.play('line');
         } catch (e) {
           if (mounted) _say(houseMessage(e));
         }
