@@ -4,6 +4,7 @@ import '../core/ivory_errors.dart';
 import '../models/ladder_models.dart';
 import '../services/crest_service.dart';
 import 'ladder_paint.dart';
+import 'sound_bank.dart';
 
 /// The sheet for choosing up to three Marks to pin. Any message the
 /// member needs is written INSIDE the sheet.
@@ -30,6 +31,7 @@ class CrestPinSheetState extends State<CrestPinSheet> {
   String? _msg;
 
   void _flip(MarkItem m) {
+    SoundBank.instance.play('pinned_marks');
     setState(() {
       _msg = null;
       if (_sel.contains(m.key)) {
@@ -43,6 +45,7 @@ class CrestPinSheetState extends State<CrestPinSheet> {
   }
 
   Future<void> _save() async {
+    SoundBank.instance.play('pinned_marks');
     setState(() {
       _busy = true;
       _msg = null;
