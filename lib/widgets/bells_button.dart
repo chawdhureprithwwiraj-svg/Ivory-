@@ -38,7 +38,6 @@ class _BellsButtonState extends State<BellsButton>
     duration: const Duration(milliseconds: 4000),
   )..repeat();
   Timer? _tick;
-  Timer? _preload;
   bool _opening = false;
 
   @override
@@ -47,7 +46,6 @@ class _BellsButtonState extends State<BellsButton>
     WidgetsBinding.instance.addObserver(this);
     BellsService.instance.start();
     BellsService.instance.refreshQuietly();
-    _preload = Timer(const Duration(seconds: 4), BellSound.instance.load);
     // Tapping a bell reminder on the phone opens the doorbell.
     BellPushOpen.listen(() {
       if (mounted && !_opening) _open();
@@ -69,7 +67,6 @@ class _BellsButtonState extends State<BellsButton>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _tick?.cancel();
-    _preload?.cancel();
     BellPushOpen.stop();
     _loop.dispose();
     super.dispose();
