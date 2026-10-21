@@ -11,19 +11,28 @@ import 'premium_assets.dart';
 /// IVORY - THE SOUND BANK
 ///
 /// Plays the owner's own recordings from `assets/premium/` (the app's
-/// video player plays them, so no new package):
-///   'click'        every_clicks      every ordinary tap
-///   'bells'        bells             opening the doorbell
-///   'early_door'   early_door        the Early Door
-///   'private_line' private_line      the Private Line
-///   'kickoff'      golden_kick_off   the Golden Knock-off
-///   'notify'       in_app_notif...   a new notice while the app is open
-///   'ticker'       ticker            each ribbon
-/// A card that plays its own sound calls [quiet] first (or just plays),
-/// so the everyday click never doubles over it. One member switch
+/// video player plays them, so no new package). Each recording has
+/// ONE place it belongs to, and nothing else plays there:
+///   'bells'         bells                    opening the doorbell
+///   'heartlit'      bell_heartlit_tap        Greet, Read, Join in, Open Line
+///   'early_door'    early_door               the Early Door card
+///   'private_line'  the_private_line_        the Private Line card
+///   'ladder'        ladder                   the ladder icon in the top bar
+///   'ivory_ladder'  the_ivory_ladder         the Marks on the Ivory Ladder page
+///   'showcase'      your_showcase            the bell-set row and its sheet
+///   'pinned_marks'  showcase_pinned_marks    the pinned Marks area
+///   'treasure'      your_treasure            the Your Treasures card
+///   'kickoff'       golden_kick_off          the Golden Knock-off
+///   'notify'        in_app_notification      a new notice while the app is open
+///   'ticker'        ticker                   each ribbon
+/// There is NO everyday tap click any more. One member switch
 /// (Profile, Showcase card) turns all of these off. If a file is
 /// missing or cannot play, [play] answers false and the caller keeps
-/// its older sound. Nothing here can throw.
+/// its older sound. Nothing here can throw or hang.
+///
+/// Speed: every player is opened a few seconds after the app starts
+/// (two at a time, so the phone never stutters) and rewinds itself
+/// when it finishes, so a tap only has to press play.
 /// ============================================================
 class SoundBank with WidgetsBindingObserver {
   SoundBank._();
@@ -31,25 +40,44 @@ class SoundBank with WidgetsBindingObserver {
 
   static const String _prefKey = 'ivory_app_sounds_on';
 
-  /// How loud an everyday tap is (0 to 1). Change this ONE number.
-  static const double clickVolume = 0.7;
-
+  // A word starting with '=' must equal the whole file name.
   static const Map<String, List<String>> _words = <String, List<String>>{
-    'click': <String>['every_click'],
     'bells': <String>['bells'],
+    'heartlit': <String>['bell_heartlit_tap'],
     'early_door': <String>['early_door'],
-    'private_line': <String>['private_line'],
+    'private_line': <String>['the_private_line'],
+    'ladder': <String>['=ladder.mp3'],
+    'ivory_ladder': <String>['the_ivory_ladder'],
+    'showcase': <String>['your_showcase'],
+    'pinned_marks': <String>['showcase_pinned_marks'],
+    'treasure': <String>['your_treasure'],
     'kickoff': <String>['golden_kick_off'],
     'notify': <String>['notif'],
     'ticker': <String>['ticker'],
   };
+
+  /// The order they are made ready: the ones a member taps first.
+  static const List<String> _warmOrder = <String>[
+    'private_line',
+    'early_door',
+    'ladder',
+    'bells',
+    'heartlit',
+    'showcase',
+    'pinned_marks',
+    'treasure',
+    'ivory_ladder',
+    'kickoff',
+    'notify',
+    'ticker',
+  ];
   static const List<String> _exts = <String>['.mp3', '.wav', '.ogg', '.m4a'];
 
   final ValueNotifier<bool> on = ValueNotifier<bool>(true);
   final Map<String, _Deck> _decks = <String, _Deck>{};
-  DateTime _quietUntil = DateTime.fromMillisecondsSinceEpoch(0);
   bool _loaded = false;
   bool _hooked = false;
+  bool _warming = false;
 
   Future<void> load() async {
     if (_loaded) return;
@@ -73,69 +101,59 @@ class SoundBank with WidgetsBindingObserver {
     } catch (_) {}
   }
 
-  /// Gets every player ready a moment after the app opens, one by one,
-  /// so the first tap is instant.
+  /// Gets every player ready, two at a time, so the first tap is instant.
   Future<void> warm() async {
-    await load();
-    for (final String id in _words.keys) {
-      await _deck(id).ready;
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-    }
+    if (_warming) return;
+    _warming = true;
+    try {
+      await load();
+      for (int i = 0; i < _warmOrder.length; i += 2) {
+        final List<Future<bool>> batch = <Future<bool>>[];
+        for (int j = i; j < i + 2 && j < _warmOrder.length; j++) {
+          batch.add(_deck(_warmOrder[j]).ready);
+        }
+        await Future.wait<bool>(batch);
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+      }
+    } catch (_) {}
+    _warming = false;
   }
 
   _Deck _deck(String id) {
     return _decks.putIfAbsent(
       id,
-      () => _Deck(id, _words[id] ?? <String>[id], _exts, id == 'click' ? 3 : 1),
+      () => _Deck(id, _words[id] ?? <String>[id], _exts),
     );
   }
 
-  /// Asks the everyday click to stay silent for a moment: a card with
-  /// its own sound calls this.
-  void quiet([int ms = 500]) {
-    _quietUntil = DateTime.now().add(Duration(milliseconds: ms));
-  }
-
-  bool get _isQuiet => DateTime.now().isBefore(_quietUntil);
-
-  /// The everyday tap sound (skipped when a card has a sound of its own).
-  void click() {
-    if (!on.value || _isQuiet) return;
-    unawaited(_play('click', clickVolume));
-  }
-
-  /// Plays [id]; true if a recording really played.
+  /// Plays [id]; true if a recording really played (or sound is off).
   Future<bool> play(String id, {double volume = 1.0}) async {
     if (!on.value) return true; // switched off: stay silent, no fallback
-    quiet();
-    return _play(id, volume);
-  }
-
-  Future<bool> _play(String id, double volume) async {
     try {
       final _Deck d = _deck(id);
-      final bool ok = await d.ready;
+      final bool ok = d.isReady ? true : await d.ready;
       if (!ok) return false;
-      final VideoPlayerController c = d.next();
-      await c.setVolume(volume);
-      await c.seekTo(Duration.zero);
-      await c.play();
+      final VideoPlayerController c = d.player!;
+      final VideoPlayerValue v = c.value;
+      if (v.volume != volume) unawaited(c.setVolume(volume));
+      if (v.isPlaying || v.position > const Duration(milliseconds: 120)) {
+        await c.seekTo(Duration.zero);
+      }
+      unawaited(c.play());
       return true;
     } catch (_) {
       return false;
     }
   }
 
-  /// Stops one recording (for example when its sheet is closed).
+  /// Stops one recording (for example when its screen is closed).
   void stop(String id) {
-    final _Deck? d = _decks[id];
-    if (d == null) return;
-    for (final VideoPlayerController c in d.players) {
-      try {
-        c.pause();
-        c.seekTo(Duration.zero);
-      } catch (_) {}
-    }
+    final VideoPlayerController? c = _decks[id]?.player;
+    if (c == null) return;
+    try {
+      c.pause();
+      c.seekTo(Duration.zero);
+    } catch (_) {}
   }
 
   void stopAll() {
@@ -151,40 +169,63 @@ class SoundBank with WidgetsBindingObserver {
 }
 
 class _Deck {
-  _Deck(this.id, this.words, this.exts, this.size);
+  _Deck(this.id, this.words, this.exts);
 
   final String id;
   final List<String> words;
   final List<String> exts;
-  final int size;
-  final List<VideoPlayerController> players = <VideoPlayerController>[];
-  int _i = 0;
+  VideoPlayerController? player;
   Future<bool>? _ready;
+  DateTime _failedAt = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _rewinding = false;
 
-  Future<bool> get ready => _ready ??= _init();
+  bool get isReady => player != null && player!.value.isInitialized;
+
+  Future<bool> get ready {
+    final Future<bool>? r = _ready;
+    if (r != null) {
+      // A failed start may be tried again, but not more than every 20 s.
+      if (player == null &&
+          _failedAt.millisecondsSinceEpoch > 0 &&
+          DateTime.now().difference(_failedAt).inSeconds > 20) {
+        _ready = null;
+      } else {
+        return r;
+      }
+    }
+    return _ready ??= _init();
+  }
 
   Future<bool> _init() async {
     try {
       final String? path = await PremiumAssets.find(id, words, exts);
-      if (path == null) return false;
-      for (int i = 0; i < size; i++) {
-        final VideoPlayerController c = VideoPlayerController.asset(
-          path,
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-        );
-        await c.initialize();
-        players.add(c);
+      if (path == null) {
+        _failedAt = DateTime.now();
+        return false;
       }
-      return players.isNotEmpty;
+      final VideoPlayerController c = VideoPlayerController.asset(
+        path,
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      );
+      await c.initialize().timeout(const Duration(seconds: 8));
+      // When the recording ends it rewinds itself, ready for the next tap.
+      c.addListener(() => _onTick(c));
+      player = c;
+      return true;
     } catch (_) {
+      _failedAt = DateTime.now();
       return false;
     }
   }
 
-  VideoPlayerController next() {
-    final VideoPlayerController c = players[_i % players.length];
-    _i++;
-    return c;
+  void _onTick(VideoPlayerController c) {
+    final VideoPlayerValue v = c.value;
+    if (_rewinding || !v.isInitialized || v.isPlaying) return;
+    if (v.duration <= Duration.zero) return;
+    if (v.position >= v.duration - const Duration(milliseconds: 80)) {
+      _rewinding = true;
+      c.seekTo(Duration.zero).whenComplete(() => _rewinding = false);
+    }
   }
 }
 
