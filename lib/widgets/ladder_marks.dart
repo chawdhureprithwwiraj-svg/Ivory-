@@ -5,9 +5,9 @@ import '../models/reward_models.dart';
 import '../services/crest_service.dart';
 import '../services/ladder_service.dart';
 import '../services/reward_service.dart';
-import 'bell_sound.dart';
 import 'ladder_paint.dart';
 import 'mark_sheet.dart';
+import 'sound_bank.dart';
 
 /// ============================================================
 /// IVORY - THE MARKS BOOK
@@ -70,7 +70,7 @@ class _MarksBookState extends State<MarksBook> {
   }
 
   void _detail(MarkItem m) {
-    BellSound.instance.play('tap');
+    SoundBank.instance.play('ivory_ladder');
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
