@@ -8,6 +8,7 @@ import '../services/bells_service.dart';
 import '../widgets/bell_looks.dart';
 import '../widgets/bell_paint.dart';
 import '../widgets/bell_sound.dart';
+import '../widgets/sound_bank.dart';
 
 /// ============================================================
 /// IVORY - BELL SETS (earned by Full Days, never for sale)
@@ -18,6 +19,7 @@ import '../widgets/bell_sound.dart';
 /// again earns a small star. Locked sets say how many Full Days to go.
 /// ============================================================
 Future<void> showBellSets(BuildContext context) {
+  SoundBank.instance.play('showcase');
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -74,6 +76,7 @@ class _SetsBodyState extends State<_SetsBody> {
   Future<void> _tap(BellSet s) async {
     final BellsState? st = BellsService.instance.state.value;
     if (st == null || _busy) return;
+    SoundBank.instance.play('showcase');
     final BellLook look = BellLook.of(s.key);
     if (!s.owned) {
       final int have = s.min - s.remaining;
@@ -100,7 +103,6 @@ class _SetsBodyState extends State<_SetsBody> {
     setState(() => _busy = true);
     try {
       await BellsService.instance.wear(s.key);
-      BellSound.instance.play('ring0');
       if (mounted) {
         _show(
           'Now wearing ${s.name}',
