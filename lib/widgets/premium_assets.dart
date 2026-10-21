@@ -51,7 +51,11 @@ class PremiumAssets {
       if (!ext) continue;
       bool hit = true;
       for (final String w in words) {
-        if (!name.contains(w)) hit = false;
+        if (w.startsWith('=')) {
+          if (name != w.substring(1)) hit = false;
+        } else if (!name.contains(w)) {
+          hit = false;
+        }
       }
       if (hit) return a;
     }
