@@ -93,7 +93,7 @@ class TickerOptionsRows extends StatelessWidget {
         ),
         _row(
           'Tap and card sounds',
-          'A soft click on taps, and a sound for the doorbell, the Early Door, the Private Line, the Golden Knock-off and new notices.',
+          'A sound for the doorbell, the Early Door, the Private Line, the Ladder, your Showcase, your Treasures, the Golden Knock-off and new notices.',
           SoundBank.instance.on,
           (bool v) => SoundBank.instance.setOn(v),
         ),
