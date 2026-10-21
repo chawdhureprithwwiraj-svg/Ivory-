@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../models/bell_models.dart';
 import '../models/heart_models.dart';
 import 'bell_paint.dart';
-import 'bell_sound.dart';
 import 'bells_arch.dart';
 import 'bells_fx.dart';
 import 'bells_orb.dart';
@@ -104,7 +103,6 @@ class BellsStageState extends State<BellsStage> with TickerProviderStateMixin {
     final int i = BellTones.keys.indexOf(key);
     if (i < 0) return;
     _swing[i].forward(from: 0);
-    BellSound.instance.play('ring$i');
     final Offset? from = _centre(_bellKeys[i]);
     final Offset? to = _centre(_heartKey);
     if (from != null && to != null) {
@@ -122,7 +120,6 @@ class BellsStageState extends State<BellsStage> with TickerProviderStateMixin {
     if (to != null && card is RenderBox && card.hasSize) {
       _fx.fullDay(to, card.size);
     }
-    BellSound.instance.play('full');
     setState(() => _fullIn = true);
     _pulse.forward(from: 0);
   }
