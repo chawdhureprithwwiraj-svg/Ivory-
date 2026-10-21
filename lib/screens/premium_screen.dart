@@ -5,12 +5,11 @@ import '../models/quiz_models.dart';
 import '../services/content_service.dart';
 import '../services/payment_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/gold_tier_plate.dart';
 import '../widgets/golden_credit_ribbon.dart';
 import 'checkout_screen.dart';
 
-/// Membership tiers, rendered entirely from the database.
-/// Three tiers, four, five - the app simply draws whatever rows are
-/// active, in level order. Nothing here hardcodes a count or a price.
+/// Membership tiers, drawn entirely from the database (any count, any price).
 class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
 
@@ -69,7 +68,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(gradient: IvoryColors.pageGradient),
+      decoration: const BoxDecoration(gradient: GoldTierPlate.pageGradient),
       child: RefreshIndicator(
         color: IvoryColors.burgundy,
         backgroundColor: IvoryColors.surface,
@@ -81,7 +80,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
               child: Text(
                 'PRIVATE MEMBERSHIP',
                 style: TextStyle(
-                  color: IvoryColors.plum,
+                  color: Color(0xFF7A4A12),
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 3,
@@ -103,9 +102,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             const GoldenCreditRibbon(),
             if (_membership != null) _membershipCard(_membership!),
             if (_pending != null) _pendingCard(_pending!),
-            // A member with a paid tier does not need the open
-            // door pointed out. This card is only for the base
-            // Forever Ivory membership.
+            // Only the base Forever Ivory membership needs this card.
             if ((_membership?.tierLevel ?? 0) == 0) _freeCard(),
             if (_loading)
               const Padding(
@@ -129,7 +126,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
               style: TextStyle(
                 fontSize: 12.5,
                 height: 1.5,
-                color: IvoryColors.textFaint,
+                color: IvoryColors.textSoft,
               ),
             ),
           ],
@@ -144,7 +141,6 @@ class _PremiumScreenState extends State<PremiumScreen> {
     required int price,
     required int days,
   }) async {
-    // Gold in hand lowers the price of a tier priced above it (CC.123).
     final GoldenCredit? gc = GoldenCreditStore.instance.usableFor(price);
     final bool? changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
@@ -162,9 +158,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
     if (changed == true) await _load();
   }
 
-  /// The invitation that replaces the old one-line subtitle: the
-  /// masterstroke, set in the house serif, with the crown line raised
-  /// onto its own gold-ruled plate.
+  /// The invitation: the masterstroke, then the crown line on a gold plate.
   Widget _invitation() {
     return Column(
       children: <Widget>[
@@ -184,7 +178,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: <Color>[Color(0xFFFFFCF2), Color(0xFFFDF1DC)],
+              colors: <Color>[Color(0xFFFFFBE8), Color(0xFFFBEAB4)],
             ),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
@@ -193,9 +187,6 @@ class _PremiumScreenState extends State<PremiumScreen> {
             ),
             boxShadow: IvoryTheme.softShadow(blur: 14, y: 5),
           ),
-          // Two lines on purpose: the crown line stays whole (it shrinks a
-          // touch on a narrow phone rather than breaking), and the plain
-          // sentence sits under it.
           child: Column(
             children: <Widget>[
               FittedBox(
@@ -242,21 +233,16 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _membershipCard(Membership m) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: IvoryColors.deepGradient,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: IvoryTheme.softShadow(),
-      ),
+    return GoldTierPlate(
+      shade: 3,
+      shine: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           const Text(
             'YOUR MEMBERSHIP',
             style: TextStyle(
-              color: IvoryColors.gold,
+              color: Color(0xFF6B2236),
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
               letterSpacing: 2.4,
@@ -267,7 +253,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             m.tierName,
             style: const TextStyle(
               fontFamily: IvoryTheme.displayFont,
-              color: IvoryColors.cream,
+              color: IvoryColors.burgundy,
               fontSize: 24,
               fontWeight: FontWeight.w700,
             ),
@@ -278,7 +264,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ? '${m.daysLeft} days remaining. Everything at this level is open to you.'
                 : 'Renewing today keeps your access unbroken.',
             style: TextStyle(
-              color: IvoryColors.cream.withValues(alpha: 0.82),
+              color: IvoryColors.burgundy.withValues(alpha: 0.9),
               fontSize: 13.5,
               height: 1.5,
             ),
@@ -289,10 +275,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _pendingCard(IvoryPayment p) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+    return GoldTierPlate(
+      shade: 1,
+      radius: 20,
       padding: const EdgeInsets.all(18),
-      decoration: IvoryTheme.card(highlighted: true, radius: 20),
       child: Row(
         children: <Widget>[
           const Icon(Icons.hourglass_top_rounded,
@@ -328,10 +314,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _freeCard() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+    return GoldTierPlate(
+      shade: 0,
+      radius: 20,
       padding: const EdgeInsets.all(18),
-      decoration: IvoryTheme.card(),
       child: Row(
         children: <Widget>[
           Container(
@@ -349,7 +335,6 @@ class _PremiumScreenState extends State<PremiumScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                // A member from the moment they arrive.
                 const Text(
                   'Forever Ivory Member',
                   style: TextStyle(
@@ -395,11 +380,11 @@ class _PremiumScreenState extends State<PremiumScreen> {
     final bool isTop = _tiers.isNotEmpty && t == _tiers.last;
     final bool owned =
         _membership != null && _membership!.tierLevel >= level;
+    final int shade = GoldTierPlate.shadeFor(_tiers.indexOf(t), _tiers.length);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(20),
-      decoration: IvoryTheme.card(highlighted: isTop, radius: 22),
+    return GoldTierPlate(
+      shade: shade,
+      shine: isTop,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -409,10 +394,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
-                  color: IvoryColors.amber.withValues(alpha: 0.22),
+                  color: Colors.white.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(7),
-                  border: Border.all(
-                      color: IvoryColors.amber.withValues(alpha: 0.6)),
+                  border: Border.all(color: const Color(0x8CA8731A)),
                 ),
                 child: Text(
                   'TIER $level',
@@ -430,8 +414,11 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    gradient: IvoryColors.goldGradient,
+                    gradient: const LinearGradient(
+                      colors: <Color>[Color(0xFFFFF8D6), Color(0xFFF6D977)],
+                    ),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFA8731A)),
                   ),
                   child: const Text(
                     'THE INNERMOST CIRCLE',
@@ -465,7 +452,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
               Text(
                 days == 30 ? '/ month' : '/ $days days',
                 style: TextStyle(
-                  color: IvoryColors.textFaint,
+                  color: IvoryColors.textSoft,
                   fontSize: 13,
                 ),
               ),
@@ -483,7 +470,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
             ),
           ],
           const SizedBox(height: 18),
-          IvoryGradientButton(
+          GoldTierButton(
+            deep: shade >= 2,
             label: owned ? 'RENEW FOR $days MORE DAYS' : 'UNLOCK THIS TIER',
             icon: owned ? Icons.autorenew : Icons.lock_open,
             onPressed: _pending != null
@@ -499,7 +487,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             const SizedBox(height: 8),
             Text(
               'A payment is already being verified.',
-              style: TextStyle(color: IvoryColors.textFaint, fontSize: 12),
+              style: TextStyle(color: IvoryColors.textSoft, fontSize: 12),
             ),
           ],
         ],
