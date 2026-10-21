@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/live_night.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
-import 'ivory_sheen.dart';
+import 'jewel_plate.dart';
+import 'live_aurora.dart';
 
 /// ============================================================
 /// IVORY - EVERY TIME I HAVE BEEN LIVE.
@@ -106,37 +107,65 @@ class _LiveRecordState extends State<LiveRecord> {
     // all - an empty trophy case is worse than no trophy case.
     if (_nights.isEmpty) return const SizedBox.shrink();
 
-    return IvorySheen(
-      child: (double t) => CustomPaint(
-        painter: _RecordSkin(t),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _heading(),
-              const SizedBox(height: 11),
-              _rhythm(),
-              const SizedBox(height: 13),
-              ..._nights.take(_expanded ? 15 : 1).map(_entry),
-              if (_expanded) ...<Widget>[
-                const SizedBox(height: 11),
-                Text(
-                  'Only the last 15 live broadcasting sessions are listed here.',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    height: 1.4,
-                    fontStyle: FontStyle.italic,
-                    color: IvoryColors.emeraldWash.withValues(alpha: 0.75),
-                  ),
-                ),
-              ],
-            ],
+    // THE CARD STAYS EMERALD (the record). It is now cut like a jewel,
+    // with a slow, colourful aurora of light moving behind the words.
+    return JewelPlate(
+      colors: const <Color>[
+        Color(0xFF137A56),
+        Color(0xFF0C5F42),
+        Color(0xFF07402C),
+        Color(0xFF106E4C),
+        Color(0xFF0A5038),
+      ],
+      stops: const <double>[0, 0.3, 0.55, 0.8, 1],
+      rim: const Color(0xFFFFE9A8),
+      spark: const Color(0xFFFFF3C4),
+      shade: const Color(0xFF053B28),
+      padding: EdgeInsets.zero,
+      child: Stack(
+        children: <Widget>[
+          const Positioned.fill(child: LiveAurora()),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _heading(),
+                  const SizedBox(height: 11),
+                  _rhythm(),
+                  const SizedBox(height: 13),
+                  ..._nights.take(_expanded ? 15 : 1).map(_entry),
+                  if (_expanded) ...<Widget>[
+                    const SizedBox(height: 11),
+                    Text(
+                      'Only the last 15 live broadcasting sessions are listed here.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.4,
+                        fontStyle: FontStyle.italic,
+                        color: IvoryColors.emeraldWash.withValues(alpha: 0.85),
+                        shadows: _lift,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
+
+  /// A soft emerald lift under the words so they stay easy to read over
+  /// the moving light.
+  static const List<Shadow> _lift = <Shadow>[
+    Shadow(color: Color(0xCC053B28), blurRadius: 5, offset: Offset(0, 1)),
+  ];
 
   // ---- the heading, summary and expand/collapse control ----
   Widget _heading() {
@@ -163,6 +192,7 @@ class _LiveRecordState extends State<LiveRecord> {
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.35,
                         color: IvoryColors.gold,
+                        shadows: _lift,
                       ),
                     ),
                     TextSpan(
@@ -174,6 +204,10 @@ class _LiveRecordState extends State<LiveRecord> {
                         fontStyle: FontStyle.italic,
                         letterSpacing: 1.3,
                         color: IvoryColors.cream,
+                        shadows: const <Shadow>[
+                          Shadow(color: Color(0xCC053B28), blurRadius: 5, offset: Offset(0, 1)),
+                          Shadow(color: Color(0x99FFD66B), blurRadius: 12),
+                        ],
                       ),
                     ),
                   ],
@@ -192,7 +226,8 @@ class _LiveRecordState extends State<LiveRecord> {
                 style: TextStyle(
                   fontSize: 12.4,
                   height: 1.4,
-                  color: IvoryColors.emeraldWash.withValues(alpha: 0.9),
+                  color: IvoryColors.emeraldWash.withValues(alpha: 0.95),
+                  shadows: _lift,
                 ),
               ),
             ],
@@ -228,27 +263,60 @@ class _LiveRecordState extends State<LiveRecord> {
       if ((n.minutes ?? 0) > longest) longest = n.minutes ?? 1;
     }
     return SizedBox(
-      height: 34,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: <Widget>[
-          for (final LiveNight n in strip)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 3),
-                child: Container(
-                  height: 9 + 25 * ((n.minutes ?? 0) / longest),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(3),
-                    color: n.tracked && n.youWereThere
-                        ? IvoryColors.gold
-                        : IvoryColors.emeraldLight
-                            .withValues(alpha: n.tracked ? 0.85 : 0.38),
+      height: 36,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 1400),
+        builder: (BuildContext context, double v, Widget? kid) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              for (int i = 0; i < strip.length; i++)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 3),
+                    child: _bar(strip[i], longest, _grow(v, i, strip.length)),
                   ),
                 ),
-              ),
-            ),
-        ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// How far bar [i] of [n] has grown when the whole thing is [v] done.
+  double _grow(double v, int i, int n) {
+    final double start = (i / n) * 0.5;
+    final double x = ((v - start) / 0.5).clamp(0.0, 1.0).toDouble();
+    return Curves.easeOutCubic.transform(x);
+  }
+
+  Widget _bar(LiveNight n, int longest, double grow) {
+    final bool was = n.tracked && n.youWereThere;
+    final double a = n.tracked ? 0.95 : 0.5;
+    return Container(
+      height: (9 + 25 * ((n.minutes ?? 0) / longest)) * grow,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(4),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: was
+              ? const <Color>[Color(0xFFFFF1B5), Color(0xFFF5B800)]
+              : <Color>[
+                  const Color(0xFF9BF6D2).withValues(alpha: a),
+                  const Color(0xFF218A5F).withValues(alpha: a),
+                ],
+        ),
+        boxShadow: was
+            ? <BoxShadow>[
+                BoxShadow(
+                  color: const Color(0xFFFFD66B).withValues(alpha: 0.5),
+                  blurRadius: 6,
+                ),
+              ]
+            : null,
       ),
     );
   }
@@ -272,6 +340,14 @@ class _LiveRecordState extends State<LiveRecord> {
               color: n.tracked && n.youWereThere
                   ? IvoryColors.gold
                   : IvoryColors.emeraldLight.withValues(alpha: 0.7),
+              boxShadow: n.tracked && n.youWereThere
+                  ? <BoxShadow>[
+                      BoxShadow(
+                        color: const Color(0xFFFFD66B).withValues(alpha: 0.7),
+                        blurRadius: 6,
+                      ),
+                    ]
+                  : null,
             ),
           ),
           Expanded(
@@ -288,6 +364,7 @@ class _LiveRecordState extends State<LiveRecord> {
                     fontWeight: FontWeight.w700,
                     height: 1.35,
                     color: IvoryColors.cream,
+                    shadows: _lift,
                   ),
                 ),
                 // THE ONE PLACE A LIE COULD CREEP IN.
@@ -334,76 +411,6 @@ class _LiveRecordState extends State<LiveRecord> {
     final String ap = d.hour < 12 ? 'AM' : 'PM';
     return '${d.day} ${_months[d.month - 1]}, $hour12:$mm $ap';
   }
-}
-
-/// The emerald ground, its gold border, and the light that
-/// crosses both.
-///
-/// The border is painted here rather than set as a `Border` so
-/// that the sheen can run over the gold as well as the green -
-/// a band of light that stopped dead at the frame would look
-/// like a mistake.
-class _RecordSkin extends CustomPainter {
-  const _RecordSkin(this.travel);
-
-  final double travel;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Rect r = Offset.zero & size;
-    final RRect body = RRect.fromRectAndRadius(
-      r.deflate(1.1),
-      const Radius.circular(18),
-    );
-    canvas.saveLayer(r, Paint());
-
-    canvas.drawRRect(
-      body,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            IvoryColors.emeraldMid,
-            IvoryColors.emerald,
-          ],
-        ).createShader(r),
-    );
-
-    // The gold frame. Two passes: a soft wide one that reads as
-    // the glow of metal, then the hairline itself on top.
-    canvas.drawRRect(
-      body,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.4
-        ..color = IvoryColors.gold.withValues(alpha: 0.22),
-    );
-    canvas.drawRRect(
-      body,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            IvoryColors.gold,
-            IvoryColors.amber,
-            IvoryColors.gold,
-          ],
-        ).createShader(r),
-    );
-
-    // Gentler than the gift marks: this is a large calm panel,
-    // and a big surface flashing as hard as a small button
-    // would feel restless.
-    paintIvorySheen(canvas, size, travel, strength: 0.3);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_RecordSkin old) => old.travel != travel;
 }
 
 // END OF FILE - lib/widgets/live_record.dart
