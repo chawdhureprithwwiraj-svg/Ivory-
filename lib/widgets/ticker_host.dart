@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../services/ticker_service.dart';
@@ -47,10 +46,9 @@ class IvoryTicker {
   }
 }
 
-/// Listens (never blocks) for an ordinary tap anywhere in the app and
-/// gives it the owner's click sound. A scroll, drag or long press is
-/// not a tap. Silent in the live room, calls and full-screen films.
-/// A card that plays a sound of its own asks the click to stay quiet.
+/// Gets the owner's recordings ready a few seconds after the app opens.
+/// There is no everyday tap click any more; each card, icon and sheet
+/// plays only its own recording. It never touches a tap or a touch.
 class _ClickCatcher extends StatefulWidget {
   const _ClickCatcher({required this.child});
 
@@ -61,14 +59,13 @@ class _ClickCatcher extends StatefulWidget {
 }
 
 class _ClickCatcherState extends State<_ClickCatcher> {
-  final Map<int, _Touch> _down = <int, _Touch>{};
   Timer? _warm;
 
   @override
   void initState() {
     super.initState();
     unawaited(SoundBank.instance.load());
-    _warm = Timer(const Duration(milliseconds: 2500), () {
+    _warm = Timer(const Duration(milliseconds: 4000), () {
       unawaited(SoundBank.instance.warm());
     });
   }
@@ -79,35 +76,8 @@ class _ClickCatcherState extends State<_ClickCatcher> {
     super.dispose();
   }
 
-  void _up(PointerUpEvent e) {
-    final _Touch? d = _down.remove(e.pointer);
-    if (d == null || _down.isNotEmpty) return;
-    if ((e.position - d.at).distance > 14) return;
-    if (DateTime.now().difference(d.when).inMilliseconds > 400) return;
-    if (IvoryFooter.hiders.value > 0) return;
-    // A moment's wait lets a card with its own sound say so first.
-    Timer(const Duration(milliseconds: 80), SoundBank.instance.click);
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: (PointerDownEvent e) {
-        _down[e.pointer] = _Touch(e.position, DateTime.now());
-      },
-      onPointerUp: _up,
-      onPointerCancel: (PointerCancelEvent e) => _down.remove(e.pointer),
-      child: widget.child,
-    );
-  }
-}
-
-class _Touch {
-  _Touch(this.at, this.when);
-
-  final Offset at;
-  final DateTime when;
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _TickerLane extends StatefulWidget {
