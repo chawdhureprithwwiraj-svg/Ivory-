@@ -3,30 +3,23 @@ import 'package:flutter/material.dart';
 import '../models/live_night.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
-import 'jewel_plate.dart';
-import 'live_aurora.dart';
+import 'ivory_sheen.dart';
 
 /// ============================================================
 /// IVORY - EVERY TIME I HAVE BEEN LIVE.
 ///
-/// The permanent record of her broadcasts, just below the home
-/// hero and before the stories, where it is easy to find.
+/// The permanent record of her broadcasts, below the home hero.
+/// GOLD IS ON AIR NOW, EMERALD IS THE RECORD: warm for happening,
+/// cool for finished and kept. Never reverse it.
+/// The title is hers: "Every time I have been LIVE".
 ///
-/// THE COLOUR CARRIES THE MEANING. **GOLD IS ON AIR NOW,
-/// EMERALD IS THE RECORD.** Warm for happening, cool for
-/// finished and kept. A member learns that in a second without
-/// reading a word, and it must never be reversed.
+/// NOTHING HERE IS INVENTED. Real minutes, real attendance. Where
+/// Ivory does not know (nights before attendance was recorded) it
+/// says nothing rather than guessing.
 ///
-/// THE TITLE IS HERS, AS REQUESTED: "Every time I have been LIVE".
-/// The final word stays uppercase and gets the visual emphasis.
-///
-/// NOTHING HERE IS INVENTED. Real minutes from the real start
-/// and end. Real attendance, counted from people actually in
-/// the room. And where Ivory does not know - every night before
-/// this sprint existed, because attendance was never recorded -
-/// **it says nothing at all rather than guessing.** A member who
-/// watched in silence left no trace, and telling them they
-/// missed a night they watched would be a lie.
+/// CC.176: the original card made richer: deep emerald, a metal
+/// gold frame, a lit top edge and shaded base, jewel bars. The one
+/// gentle light (IvorySheen) is the only movement.
 /// ============================================================
 class LiveRecord extends StatefulWidget {
   const LiveRecord({super.key});
@@ -57,8 +50,6 @@ class _LiveRecordState extends State<LiveRecord> {
         _done = true;
       });
     } catch (_) {
-      // A failure and an emptiness are not the same thing and
-      // must never render the same way.
       if (!mounted) return;
       setState(() {
         _failed = true;
@@ -103,69 +94,49 @@ class _LiveRecordState extends State<LiveRecord> {
         ),
       );
     }
-    // She has never finished a broadcast yet. Say nothing at
-    // all - an empty trophy case is worse than no trophy case.
+    // Never broadcast yet: say nothing at all.
     if (_nights.isEmpty) return const SizedBox.shrink();
 
-    // THE CARD STAYS EMERALD (the record). It is now cut like a jewel,
-    // with a slow, colourful aurora of light moving behind the words.
-    return JewelPlate(
-      colors: const <Color>[
-        Color(0xFF137A56),
-        Color(0xFF0C5F42),
-        Color(0xFF07402C),
-        Color(0xFF106E4C),
-        Color(0xFF0A5038),
-      ],
-      stops: const <double>[0, 0.3, 0.55, 0.8, 1],
-      rim: const Color(0xFFFFE9A8),
-      spark: const Color(0xFFFFF3C4),
-      shade: const Color(0xFF053B28),
-      padding: EdgeInsets.zero,
-      child: Stack(
-        children: <Widget>[
-          const Positioned.fill(child: LiveAurora()),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
-            child: AnimatedSize(
-              duration: const Duration(milliseconds: 280),
-              curve: Curves.easeOutCubic,
-              alignment: Alignment.topCenter,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _heading(),
-                  const SizedBox(height: 11),
-                  _rhythm(),
-                  const SizedBox(height: 13),
-                  ..._nights.take(_expanded ? 15 : 1).map(_entry),
-                  if (_expanded) ...<Widget>[
-                    const SizedBox(height: 11),
-                    Text(
-                      'Only the last 15 live broadcasting sessions are listed here.',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        height: 1.4,
-                        fontStyle: FontStyle.italic,
-                        color: IvoryColors.emeraldWash.withValues(alpha: 0.85),
-                        shadows: _lift,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(color: Color(0x6B06503A), blurRadius: 22, offset: Offset(0, 10)),
+          BoxShadow(color: Color(0x59B9801F), blurRadius: 5, offset: Offset(0, 2)),
         ],
+      ),
+      child: IvorySheen(
+      child: (double t) => CustomPaint(
+        painter: _RecordSkin(t),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(19, 18, 17, 17),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _heading(),
+              const SizedBox(height: 11),
+              _rhythm(),
+              const SizedBox(height: 13),
+              ..._nights.take(_expanded ? 15 : 1).map(_entry),
+              if (_expanded) ...<Widget>[
+                const SizedBox(height: 11),
+                Text(
+                  'Only the last 15 live broadcasting sessions are listed here.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.4,
+                    fontStyle: FontStyle.italic,
+                    color: IvoryColors.emeraldWash.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
       ),
     );
   }
-
-  /// A soft emerald lift under the words so they stay easy to read over
-  /// the moving light.
-  static const List<Shadow> _lift = <Shadow>[
-    Shadow(color: Color(0xCC053B28), blurRadius: 5, offset: Offset(0, 1)),
-  ];
 
   // ---- the heading, summary and expand/collapse control ----
   Widget _heading() {
@@ -191,22 +162,25 @@ class _LiveRecordState extends State<LiveRecord> {
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.35,
-                        color: IvoryColors.gold,
-                        shadows: _lift,
+                        color: const Color(0xFFF6D77C),
+                        shadows: const <Shadow>[
+                          Shadow(color: Color(0xB3023222), offset: Offset(0, 1), blurRadius: 2),
+                        ],
                       ),
                     ),
                     TextSpan(
                       text: 'LIVE',
                       style: TextStyle(
                         fontFamily: IvoryTheme.displayFont,
-                        fontSize: 17,
+                        fontSize: 18.5,
                         fontWeight: FontWeight.w900,
                         fontStyle: FontStyle.italic,
-                        letterSpacing: 1.3,
+                        letterSpacing: 1.4,
                         color: IvoryColors.cream,
-                        shadows: const <Shadow>[
-                          Shadow(color: Color(0xCC053B28), blurRadius: 5, offset: Offset(0, 1)),
-                          Shadow(color: Color(0x99FFD66B), blurRadius: 12),
+                        shadows: <Shadow>[
+                          const Shadow(color: Color(0xFFC99A32), offset: Offset(0, 1)),
+                          const Shadow(color: Color(0xCC023222), offset: Offset(0, 2), blurRadius: 6),
+                          const Shadow(color: Color(0x80F6D77C), blurRadius: 14),
                         ],
                       ),
                     ),
@@ -218,16 +192,13 @@ class _LiveRecordState extends State<LiveRecord> {
                 <String>[
                   '${_nights.length} ${_nights.length == 1 ? 'session' : 'sessions'}',
                   if (totalMinutes > 0) _span(totalMinutes),
-                  // Only claimed where the nights were actually
-                  // recorded. Never count nights Ivory cannot describe.
                   if (counted > 0)
                     'you were there for $attended ${attended == 1 ? 'session' : 'sessions'}',
                 ].join('  \u00B7  '),
                 style: TextStyle(
                   fontSize: 12.4,
                   height: 1.4,
-                  color: IvoryColors.emeraldWash.withValues(alpha: 0.95),
-                  shadows: _lift,
+                  color: const Color(0xFFD9F5E6),
                 ),
               ),
             ],
@@ -244,18 +215,17 @@ class _LiveRecordState extends State<LiveRecord> {
                 ? Icons.keyboard_arrow_up_rounded
                 : Icons.keyboard_arrow_down_rounded,
             size: 26,
-            color: IvoryColors.gold,
+            color: const Color(0xFFF6D77C),
+            shadows: const <Shadow>[
+              Shadow(color: Color(0xCC023222), offset: Offset(0, 1), blurRadius: 2),
+            ],
           ),
         ),
       ],
     );
   }
 
-  // ---- fifteen sessions, as a rhythm ----
-  //
-  // Not a chart. A chart invites comparison and argument; this
-  // is a pulse, and all it says is "here is how often, and how
-  // long". Height is the real length of the night.
+  // ---- fifteen sessions, as a rhythm (height = real length) ----
   Widget _rhythm() {
     final List<LiveNight> strip = _nights.take(15).toList().reversed.toList();
     int longest = 1;
@@ -263,60 +233,58 @@ class _LiveRecordState extends State<LiveRecord> {
       if ((n.minutes ?? 0) > longest) longest = n.minutes ?? 1;
     }
     return SizedBox(
-      height: 36,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(begin: 0, end: 1),
-        duration: const Duration(milliseconds: 1400),
-        builder: (BuildContext context, double v, Widget? kid) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              for (int i = 0; i < strip.length; i++)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 3),
-                    child: _bar(strip[i], longest, _grow(v, i, strip.length)),
-                  ),
-                ),
-            ],
-          );
-        },
+      height: 38,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          for (final LiveNight n in strip)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 3),
+                child: _bar(n, 9 + 29 * ((n.minutes ?? 0) / longest)),
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  /// How far bar [i] of [n] has grown when the whole thing is [v] done.
-  double _grow(double v, int i, int n) {
-    final double start = (i / n) * 0.5;
-    final double x = ((v - start) / 0.5).clamp(0.0, 1.0).toDouble();
-    return Curves.easeOutCubic.transform(x);
-  }
-
-  Widget _bar(LiveNight n, int longest, double grow) {
-    final bool was = n.tracked && n.youWereThere;
-    final double a = n.tracked ? 0.95 : 0.5;
+  /// One polished column: lit from the left, a bright top edge,
+  /// a shaded foot and a little shadow on the card. Gold only for a
+  /// night the member was there.
+  Widget _bar(LiveNight n, double h) {
+    final bool gold = n.tracked && n.youWereThere;
+    final List<Color> c = gold
+        ? const <Color>[Color(0xFFFFF0B0), Color(0xFFEBC050), Color(0xFFC99532)]
+        : n.tracked
+            ? const <Color>[Color(0xFF8FE6BD), Color(0xFF4BBE8B), Color(0xFF2A9068)]
+            : const <Color>[Color(0x738FE6BD), Color(0x734BBE8B), Color(0x732A9068)];
     return Container(
-      height: (9 + 25 * ((n.minutes ?? 0) / longest)) * grow,
+      height: h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: was
-              ? const <Color>[Color(0xFFFFF1B5), Color(0xFFF5B800)]
-              : <Color>[
-                  const Color(0xFF9BF6D2).withValues(alpha: a),
-                  const Color(0xFF218A5F).withValues(alpha: a),
-                ],
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(3.5),
+          bottom: Radius.circular(1.5),
         ),
-        boxShadow: was
-            ? <BoxShadow>[
-                BoxShadow(
-                  color: const Color(0xFFFFD66B).withValues(alpha: 0.5),
-                  blurRadius: 6,
-                ),
-              ]
-            : null,
+        gradient: LinearGradient(colors: c),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Color(n.tracked ? 0x80022818 : 0x40022818),
+            offset: const Offset(0, 3),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Container(
+          height: 1.8,
+          margin: const EdgeInsets.symmetric(horizontal: 1),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(1),
+          ),
+        ),
       ),
     );
   }
@@ -332,22 +300,23 @@ class _LiveRecordState extends State<LiveRecord> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Container(
-            width: 5,
-            height: 5,
-            margin: const EdgeInsets.only(top: 6, right: 9),
+            width: 7,
+            height: 7,
+            margin: const EdgeInsets.only(top: 5, right: 9),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: n.tracked && n.youWereThere
-                  ? IvoryColors.gold
-                  : IvoryColors.emeraldLight.withValues(alpha: 0.7),
-              boxShadow: n.tracked && n.youWereThere
-                  ? <BoxShadow>[
-                      BoxShadow(
-                        color: const Color(0xFFFFD66B).withValues(alpha: 0.7),
-                        blurRadius: 6,
-                      ),
-                    ]
-                  : null,
+              gradient: RadialGradient(
+                center: const Alignment(-0.3, -0.4),
+                colors: n.tracked && n.youWereThere
+                    ? const <Color>[Color(0xFFFFF6CC), Color(0xFFE3B54A)]
+                    : const <Color>[Color(0xFFD9FFEB), Color(0xFF4BBE8B)],
+              ),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: Color(n.tracked && n.youWereThere ? 0xB3F6D77C : 0xB382F0BE),
+                  blurRadius: 5,
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -364,13 +333,9 @@ class _LiveRecordState extends State<LiveRecord> {
                     fontWeight: FontWeight.w700,
                     height: 1.35,
                     color: IvoryColors.cream,
-                    shadows: _lift,
                   ),
                 ),
-                // THE ONE PLACE A LIE COULD CREEP IN.
-                // No attendance data for this night means no
-                // sentence about attendance. Not a guess, not a
-                // hedge, not "probably" - silence.
+                // No attendance data means no sentence about it.
                 if (n.tracked)
                   Text(
                     n.youWereThere
@@ -381,8 +346,8 @@ class _LiveRecordState extends State<LiveRecord> {
                       fontStyle: FontStyle.italic,
                       height: 1.35,
                       color: n.youWereThere
-                          ? IvoryColors.gold.withValues(alpha: 0.95)
-                          : IvoryColors.emeraldWash.withValues(alpha: 0.62),
+                          ? const Color(0xFFF6D77C)
+                          : const Color(0xFFBDE5CF),
                     ),
                   ),
               ],
@@ -411,6 +376,121 @@ class _LiveRecordState extends State<LiveRecord> {
     final String ap = d.hour < 12 ? 'AM' : 'PM';
     return '${d.day} ${_months[d.month - 1]}, $hour12:$mm $ap';
   }
+}
+
+/// The card, cut like an emerald in a metal frame.
+///
+/// Gold metal frame, emerald face lit from the top left, two soft
+/// facets, a bright top edge, a shaded base, a fine inner gold line,
+/// then the one gentle light.
+class _RecordSkin extends CustomPainter {
+  const _RecordSkin(this.travel);
+
+  final double travel;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect r = Offset.zero & size;
+    final RRect frame = RRect.fromRectAndRadius(
+      r.deflate(0.5),
+      const Radius.circular(20),
+    );
+    final RRect face = RRect.fromRectAndRadius(
+      r.deflate(3),
+      const Radius.circular(17.5),
+    );
+    canvas.saveLayer(r, Paint());
+
+    canvas.drawRRect(
+      frame,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color(0xFFFFEDAA),
+            Color(0xFFD9A73B),
+            Color(0xFFFFF2BE),
+            Color(0xFFB9801F),
+            Color(0xFFF2CB68),
+          ],
+          stops: <double>[0, 0.28, 0.5, 0.75, 1],
+        ).createShader(r),
+    );
+
+    canvas.save();
+    canvas.clipRRect(face);
+    canvas.drawRect(
+      r,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color(0xFF10855C),
+            Color(0xFF0A6446),
+            Color(0xFF07503A),
+          ],
+          stops: <double>[0, 0.42, 1],
+        ).createShader(r),
+    );
+    canvas.drawRect(
+      r,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(-0.7, -1.15),
+          radius: 1.1,
+          colors: <Color>[Color(0x6182F0BE), Color(0x0082F0BE)],
+        ).createShader(r),
+    );
+    final double w = size.width;
+    final double h = size.height;
+    canvas.drawPath(
+      Path()..moveTo(0, 0)..lineTo(w * 0.62, 0)..lineTo(w * 0.34, h)..lineTo(0, h)..close(),
+      Paint()..color = const Color(0x14FFFFFF),
+    );
+    canvas.drawPath(
+      Path()..moveTo(w * 0.78, 0)..lineTo(w, 0)..lineTo(w, h)..lineTo(w * 0.52, h)..close(),
+      Paint()..color = const Color(0x5E023222),
+    );
+    canvas.drawRect(
+      r,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[Color(0x00023222), Color(0x00023222), Color(0x8C03321F)],
+          stops: <double>[0, 0.55, 1],
+        ).createShader(r),
+    );
+    canvas.restore();
+
+    canvas.drawRRect(
+      face.deflate(0.6),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[Color(0xB0BEFFE1), Color(0x00BEFFE1)],
+          stops: <double>[0, 0.4],
+        ).createShader(r),
+    );
+    canvas.drawRRect(
+      face.deflate(4),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = const Color(0x61FFDE82),
+    );
+
+    paintIvorySheen(canvas, size, travel, strength: 0.3);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_RecordSkin old) => old.travel != travel;
 }
 
 // END OF FILE - lib/widgets/live_record.dart
