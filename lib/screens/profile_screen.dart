@@ -345,7 +345,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 18),
               Center(
                 child: Text(
-                  'Ivory · Every story leaves a mark',
+                  'Ivory · Where every story leaves a mark',
                   style:
                       TextStyle(fontSize: 12, color: IvoryColors.textFaint),
                 ),
