@@ -4,6 +4,7 @@ import '../models/live_models.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 import 'wish_guide.dart';
+import 'vault_skin.dart';
 
 /// YOUR SESSIONS WITH IVORY - the card on the Profile page.
 ///
@@ -60,7 +61,76 @@ class _SessionsCardState extends State<SessionsCard> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const SizedBox.shrink();
+    if (_anyIncluded) return _vault();
+    return _cream();
+  }
 
+  /// Paid members: the Jewel Vault - velvet, white gold, jewelled
+  /// minute dials, and a very light coloured life behind them.
+  Widget _vault() {
+    return VaultPlate(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const VaultEyebrow('Your sessions with Ivory',
+              icon: Icons.graphic_eq_rounded),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: VaultCoin(
+                  title: 'Face to face',
+                  icon: Icons.videocam_rounded,
+                  jewel: const Color(0xFFD42450),
+                  remaining: _video?.remaining ?? 0,
+                  allowed: _video?.allowed ?? 0,
+                  periodLabel: _video?.periodLabel ?? '',
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: VaultCoin(
+                  title: 'Voice only',
+                  icon: Icons.phone_in_talk_rounded,
+                  jewel: const Color(0xFF9A55E6),
+                  remaining: _audio?.remaining ?? 0,
+                  allowed: _audio?.allowed ?? 0,
+                  periodLabel: _audio?.periodLabel ?? '',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'These are already yours. Nothing more to pay, '
+            'nothing to book anywhere else.',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: Color(0xFFF0D9A8),
+            ),
+          ),
+          const SizedBox(height: 14),
+          VaultButton(
+            label: 'HOW TO USE THEM',
+            icon: Icons.auto_stories_rounded,
+            onPressed: () => _openGuide(context),
+          ),
+          const SizedBox(height: 9),
+          VaultButton(
+            label: 'ASK FOR A SESSION',
+            icon: Icons.east_rounded,
+            outline: true,
+            onPressed: () => widget.onOpenTab?.call('wish'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Forever members: the cream card, exactly as it was.
+  Widget _cream() {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.fromLTRB(18, 17, 18, 17),
