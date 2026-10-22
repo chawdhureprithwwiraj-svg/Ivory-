@@ -7,16 +7,18 @@ import 'premium_assets.dart';
 import 'vault_keys.dart';
 
 /// ============================================================
-/// IVORY - THE TEN-DAY VAULT KEY, TURNING
+/// IVORY - THE TEN-DAY VAULT KEY, TURNING IN ITS LOCK
 ///
-/// The owner's own golden key (`10_day_key_animation.png`) turns slowly
-/// about its upright axis, CLOCKWISE seen from above: the face nearest
-/// you sweeps to the left, then the key shows its edge, then its back,
-/// then its face again. The key is a flat picture, so it is given
-/// thickness: seven thin copies stacked in depth, darker gold behind,
-/// so the edge looks like cast metal. A band of light slides down the
-/// key as it turns, and the jewel in the bow twinkles. If the picture
-/// is missing the older coin emblem shows instead, so nothing breaks.
+/// The owner's own golden key (`10_day_key_animation.png`) hangs upright
+/// on its velvet ring and is never still: it sways gently like a key on
+/// a hook and breathes up and down, and once every cycle it TURNS IN
+/// ITS LOCK - a slow quarter-turn against the plate and back, as if it
+/// were unlocking the day. At the peak of the turn the jewel in the bow
+/// flashes, one soft ring of light breathes out from the medallion, and
+/// afterwards a band of sheen crosses the blade. The key keeps its cast
+/// thickness: darker gold copies sit behind the face like metal depth.
+/// If the picture is missing the older coin emblem shows instead, so
+/// nothing breaks.
 /// ============================================================
 class VaultKeySpin extends StatefulWidget {
   const VaultKeySpin({super.key, this.size = 62});
@@ -30,10 +32,10 @@ class VaultKeySpin extends StatefulWidget {
 
 class _VaultKeySpinState extends State<VaultKeySpin>
     with SingleTickerProviderStateMixin {
-  // One full turn takes eight seconds.
+  // One whole ritual - sway, breath, turn, flash, ring, sheen - 5.2 s.
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(seconds: 8),
+    duration: const Duration(milliseconds: 5200),
   )..repeat();
   ui.Image? _img;
 
@@ -74,6 +76,20 @@ class _VaultKeySpinState extends State<VaultKeySpin>
   }
 }
 
+double _smooth(double x) => x * x * (3 - 2 * x);
+
+double _clamp01(double x) => x < 0 ? 0 : (x > 1 ? 1 : x);
+
+/// The turn of the lock, in radians: still, a quarter-turn against the
+/// plate, a breath held, then home again.
+double _lockTurn(double t) {
+  if (t < 0.58) return 0;
+  if (t < 0.72) return -0.70 * _smooth((t - 0.58) / 0.14);
+  if (t < 0.84) return -0.70;
+  if (t < 0.96) return -0.70 * (1 - _smooth((t - 0.84) / 0.12));
+  return 0;
+}
+
 class _KeyPainter extends CustomPainter {
   _KeyPainter(this.img, this.t);
 
@@ -83,117 +99,121 @@ class _KeyPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double s = size.height;
-    // Clockwise seen from above = a negative turn about the upright.
-    final double th = -t * math.pi * 2;
-    final double cs = math.cos(th);
-    final double sn = math.sin(th);
+    final Offset c = Offset(size.width / 2, s / 2);
     final double kh = s * 0.98;
     final double kw = kh * img.width / img.height;
-    final Offset c = Offset(size.width / 2, s / 2);
-    final Rect src = Rect.fromLTWH(
-      0,
-      0,
-      img.width.toDouble(),
-      img.height.toDouble(),
-    );
-    final double sway = math.sin(t * math.pi * 4) * 0.035;
+    // The sway of a key on a hook, and a slow breath up and down.
+    final double sway = math.sin(t * math.pi * 2 * (5.2 / 3.4)) * 0.042;
+    final double bob = math.sin(t * math.pi * 2 * 2) * s * 0.018;
+    final double turn = _lockTurn(t);
+    final Rect src = Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
 
-    // A soft glow behind the key.
+    // A soft glow behind the key, warming as the turn comes.
+    final double heat = t > 0.58 && t < 0.96 ? 0.16 : 0;
     canvas.drawCircle(
       c,
       s * 0.5,
       Paint()
         ..shader = RadialGradient(
           colors: <Color>[
-            const Color(0xFFFFD34D).withValues(alpha: 0.28),
+            const Color(0xFFFFD34D).withValues(alpha: 0.26 + heat),
             const Color(0x00FFD34D),
           ],
         ).createShader(Rect.fromCircle(center: c, radius: s * 0.5)),
     );
 
-    const int layers = 7;
-    final double depth = kw * 0.2;
-    // Back layers first. A layer at depth z is in front when z * cos > 0.
-    final List<int> order = List<int>.generate(layers, (int i) => i);
-    order.sort((int a, int b) {
-      final double za = (a - 3) * cs;
-      final double zb = (b - 3) * cs;
-      return za.compareTo(zb);
-    });
-    for (final int i in order) {
-      final double z = (i - 3) / 3 * depth / 2;
-      final bool front = (i == 6 && cs >= 0) || (i == 0 && cs < 0);
-      canvas.save();
-      canvas.translate(c.dx + z * sn, c.dy);
-      canvas.rotate(sway);
-      // Squeezed by the turn; a sliver at the edge.
-      // Past the edge the back of the key shows, so it is mirrored.
-      canvas.scale(cs >= 0 ? math.max(0.035, cs) : -math.max(0.035, -cs), 1);
-      final Rect dst = Rect.fromCenter(
-        center: Offset.zero,
-        width: kw,
-        height: kh,
+    // The ring of light breathing out just after the turn peaks.
+    if (t > 0.72 && t < 0.98) {
+      final double q = (t - 0.72) / 0.26;
+      canvas.drawCircle(
+        c,
+        s * (0.30 + 0.32 * _smooth(q)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = const Color(0xFFFFF3CF).withValues(alpha: 0.8 * (1 - q)),
       );
-      if (front) {
-        canvas.saveLayer(dst.inflate(2), Paint());
-        canvas.drawImageRect(
-          img,
-          src,
-          dst,
-          Paint()
-            ..filterQuality = FilterQuality.high
-            ..isAntiAlias = true,
-        );
-        // A band of light sliding down the key.
-        final double p = -0.2 + 1.4 * ((t * 2) % 1.0);
-        double st(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
-        canvas.drawRect(
-          dst,
-          Paint()
-            ..blendMode = BlendMode.srcATop
-            ..shader = LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                const Color(0x00FFF3C4),
-                Color(0xFFFFF3C4).withValues(alpha: 0.55 * cs.abs()),
-                const Color(0x00FFF3C4),
-              ],
-              stops: <double>[st(p - 0.12), st(p), st(p + 0.12)],
-            ).createShader(dst),
-        );
-        canvas.restore();
-      } else {
-        canvas.drawImageRect(
-          img,
-          src,
-          dst,
-          Paint()
-            ..filterQuality = FilterQuality.medium
-            ..colorFilter = const ColorFilter.mode(
-              Color(0xFF9A6208),
-              BlendMode.modulate,
-            ),
-        );
-      }
-      canvas.restore();
     }
 
-    // The jewel in the bow twinkles (mostly when the face is toward us).
-    final double tw = math.pow(
-      math.max(0.0, math.sin(math.pi * 2 * (t * 3 + 0.2))),
-      6,
-    ).toDouble();
-    if (tw > 0.05 && cs.abs() > 0.3) {
-      final Offset g = Offset(c.dx + kw * 0.02 * cs, c.dy - kh * 0.27);
+    canvas.save();
+    canvas.translate(c.dx, c.dy + bob);
+    canvas.rotate(sway + turn);
+    final Rect dst = Rect.fromCenter(center: Offset.zero, width: kw, height: kh);
+    // Cast thickness: darker copies a hair behind, down and right.
+    for (int i = 5; i >= 0; i--) {
+      final double d = (i + 1) * 0.7;
+      canvas.drawImageRect(
+        img,
+        src,
+        dst.shift(Offset(d * 0.6, d)),
+        Paint()
+          ..filterQuality = FilterQuality.medium
+          ..colorFilter = ColorFilter.mode(
+            Color(0xFF9A6208).withValues(alpha: 0.55 - i * 0.08),
+            BlendMode.modulate,
+          ),
+      );
+    }
+    // The face of the key.
+    canvas.saveLayer(dst.inflate(2), Paint());
+    canvas.drawImageRect(
+      img,
+      src,
+      dst,
+      Paint()
+        ..filterQuality = FilterQuality.high
+        ..isAntiAlias = true,
+    );
+    // A band of sheen crossing the blade after the turn.
+    if (t > 0.84) {
+      final double p = -0.25 + 1.5 * _clamp01((t - 0.84) / 0.16);
+      canvas.drawRect(
+        dst,
+        Paint()
+          ..blendMode = BlendMode.srcATop
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              const Color(0x00FFF3C4),
+              const Color(0x8CFFF3C4),
+              const Color(0x00FFF3C4),
+            ],
+            stops: <double>[
+              _clamp01(p - 0.12),
+              _clamp01(p),
+              _clamp01(p + 0.12),
+            ],
+          ).createShader(dst),
+      );
+    }
+    canvas.restore();
+
+    // The jewel in the bow flashes at the peak of the turn.
+    final double w = 1 - ((t - 0.74) / 0.10).abs();
+    if (w > 0) {
+      final double f = _smooth(_clamp01(w));
+      final Offset g = Offset(kw * 0.02, -kh * 0.27);
+      canvas.drawCircle(
+        g,
+        s * 0.10 * f,
+        Paint()
+          ..shader = RadialGradient(
+            colors: <Color>[
+              const Color(0xFFFFFBE8).withValues(alpha: 0.9 * f),
+              const Color(0x00FFFBE8),
+            ],
+          ).createShader(Rect.fromCircle(center: g, radius: s * 0.10 * f)),
+      );
       final Paint sp = Paint()
-        ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.95 * tw)
-        ..strokeWidth = 1.2
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.95 * f)
+        ..strokeWidth = 1.3
         ..strokeCap = StrokeCap.round;
-      final double len = s * (0.08 + 0.1 * tw) * cs.abs();
+      final double len = s * (0.06 + 0.10 * f);
       canvas.drawLine(g.translate(-len, 0), g.translate(len, 0), sp);
       canvas.drawLine(g.translate(0, -len), g.translate(0, len), sp);
     }
+    canvas.restore();
   }
 
   @override
