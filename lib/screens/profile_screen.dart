@@ -11,6 +11,7 @@ import '../services/push_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/push_refused_note.dart';
 import '../widgets/sessions_panel.dart';
+import '../widgets/vault_skin.dart';
 import '../widgets/member_pulse.dart';
 import '../widgets/premium_badge.dart';
 import '../widgets/report_sheet.dart';
@@ -104,7 +105,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // ---- identity card ----
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: IvoryTheme.card(highlighted: true, radius: 24),
+                decoration: (_membership?.tierLevel ?? 0) > 0 && !(p?.isAdmin ?? false)
+                    ? IvoryTheme.card(highlighted: true, radius: 24)
+                        .copyWith(border: Border.all(color: const Color(0xFFE8C86A), width: 1.6))
+                    : IvoryTheme.card(highlighted: true, radius: 24),
                 child: Column(
                   children: <Widget>[
                     Row(
@@ -215,79 +219,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 18),
 
               // ---- membership ----
-              // THE OWNER IS NOT A CUSTOMER OF HER OWN HOUSE: nothing to
-              // buy, renew or count down on her page; this card shows
-              // what she holds, not what she lacks.
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: IvoryTheme.card(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    IvoryEyebrow(
-                      (p?.isAdmin ?? false) ? 'The house' : 'Your membership',
-                      icon: (p?.isAdmin ?? false)
-                          ? Icons.vpn_key_outlined
-                          : Icons.diamond_outlined,
-                    ),
-                    const SizedBox(height: 12),
-                    if (p?.isAdmin ?? false) ...<Widget>[
+              // Owner: her house, not a shop. Paid: the Vault. Forever cream.
+              if (p?.isAdmin ?? false)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: IvoryTheme.card(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const IvoryEyebrow('The house', icon: Icons.vpn_key_outlined),
+                      const SizedBox(height: 12),
                       const OwnerHouseCard(),
-                    ] else if ((_membership?.tierLevel ?? 0) > 0) ...<Widget>[
-                      PremiumBadge.ribbon(
-                        tierName: _membership!.tierName,
-                        level: _membership!.tierLevel,
-                        subtitle: 'Premium member \u00b7 '
-                            '${_membership!.daysLeft} days remaining',
-                      ),
-                      const SizedBox(height: 14),
-                    ] else ...<Widget>[
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 8,
+                      if (_payments.isNotEmpty) _payRows(),
+                    ],
+                  ),
+                )
+              else if ((_membership?.tierLevel ?? 0) > 0) ...<Widget>[
+                VaultMembershipCard(tierName: _membership!.tierName,
+                    daysLeft: _membership!.daysLeft,
+                    onManage: () => widget.onOpenTab?.call('premium')),
+                if (_payments.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.all(20),
+                    decoration: IvoryTheme.card(),
+                    child: _payRows(lead: false)),
+              ]
+              else
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: IvoryTheme.card(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const IvoryEyebrow('Your membership', icon: Icons.diamond_outlined),
+                      const SizedBox(height: 12),
+                      Wrap(spacing: 10, runSpacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: <Widget>[
-                          Text(
-                            'Forever Ivory Member',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          ForeverMemberChip(
-                            onTap: () => widget.onOpenTab?.call('premium'),
-                          ),
+                          Text('Forever Ivory Member',
+                              style: Theme.of(context).textTheme.titleLarge),
+                          ForeverMemberChip(onTap: () => widget.onOpenTab?.call('premium')),
                         ],
                       ),
-                    ],
-                    // No price, no countdown and no way into
-                    // checkout on the owner's own page.
-                    if (!(p?.isAdmin ?? false)) ...<Widget>[
                       const SizedBox(height: 6),
-                      Text(
-                        _membership == null
-                            ? 'The open feed, polls and teasers. Unlock a '
-                                'tier to open the private rooms.'
-                            : '${_membership!.daysLeft} days remaining. '
-                                'Everything at this level is open to you.',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
+                      Text('The open feed, polls and teasers. Unlock a tier to open the private rooms.',
+                          style: Theme.of(context).textTheme.bodyMedium),
                       const SizedBox(height: 16),
-                      IvoryGradientButton(
-                        label: _membership == null
-                            ? 'SEE MEMBERSHIP TIERS'
-                            : 'MANAGE OR RENEW',
-                        icon: Icons.workspace_premium_outlined,
-                        onPressed: () => widget.onOpenTab?.call('premium'),
-                      ),
+                      IvoryGradientButton(label: 'SEE MEMBERSHIP TIERS',
+                          icon: Icons.workspace_premium_outlined,
+                          onPressed: () => widget.onOpenTab?.call('premium')),
+                      if (_payments.isNotEmpty) _payRows(),
                     ],
-                    if (_payments.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 18),
-                      const IvoryEyebrow('Payment history',
-                          icon: Icons.receipt_long_outlined),
-                      const SizedBox(height: 10),
-                      ..._payments.take(4).map(_paymentRow),
-                    ],
-                  ],
+                  ),
                 ),
-              ),
               const SizedBox(height: 14),
 
               // ---- shortcuts ----
@@ -369,6 +354,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _payRows({bool lead = true}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (lead) const SizedBox(height: 18),
+        const IvoryEyebrow('Payment history', icon: Icons.receipt_long_outlined),
+        const SizedBox(height: 10),
+        ..._payments.take(4).map(_paymentRow),
+      ],
     );
   }
 
