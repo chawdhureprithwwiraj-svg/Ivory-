@@ -57,7 +57,7 @@ class CandleRoomLight extends CustomPainter {
     canvas.drawRect(
       r,
       Paint()
-        ..blendMode = BlendMode.plusLighter
+        ..blendMode = BlendMode.screen
         ..shader = RadialGradient(
           center: const Alignment(0, -0.72),
           radius: 1.05,
