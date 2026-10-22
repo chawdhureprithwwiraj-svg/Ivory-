@@ -330,7 +330,7 @@ class _MetalPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2
       ..color = const Color(0x59A0640A);
-    for (final PathMetric m in path.computeMetrics()) {
+    for (final m in path.computeMetrics()) {
       for (double d = 0; d < m.length; d += 10) {
         canvas.drawPath(m.extractPath(d, math.min(d + 5, m.length)), p);
       }
