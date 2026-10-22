@@ -93,7 +93,7 @@ class _GoldenResultState extends State<GoldenResult> {
     Share.share(
       'I scored ${s.score}/${s.questions} on ${widget.shareName} in Ivory'
       '${s.totalInr > 0 ? ' and earned \u20B9${s.totalInr} off a membership' : ''}. '
-      'Every story leaves a mark.',
+      'Where every story leaves a mark.',
     );
   }
 
