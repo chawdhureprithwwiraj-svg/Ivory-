@@ -6,6 +6,7 @@ import '../services/ticker_service.dart';
 import 'ivory_footer.dart';
 import 'sound_bank.dart';
 import 'ticker_ribbon.dart';
+import 'golden_gate.dart';
 
 /// ============================================================
 /// IVORY - THE TICKER'S LANE (one place, over every screen)
@@ -40,6 +41,8 @@ class IvoryTicker {
         children: <Widget>[
           Positioned.fill(child: IvoryFooter.wrap(context, child)),
           const _TickerLane(),
+          // The Golden Gate: the house's first impression, once per open.
+          const GoldenGate(),
         ],
       ),
     );
