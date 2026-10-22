@@ -426,7 +426,7 @@ class _BannerStrip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 14),
       decoration: const BoxDecoration(gradient: IvoryColors.goldGradient),
       child: const Text(
-        'IVORY · Golden Edition\nEvery story leaves a mark',
+        'IVORY · Golden Edition\nWhere every story leaves a mark',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: IvoryColors.burgundy,
