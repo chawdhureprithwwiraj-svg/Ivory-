@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The gold heart of the house, as a vector: no binary to upload. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="26dp"
+    android:height="26dp"
+    android:viewportWidth="26"
+    android:viewportHeight="26">
+    <path
+        android:fillColor="#FFC9962C"
+        android:pathData="M13,19c-3.4,-2.7 -5.6,-4.7 -5.6,-7.1C7.4,10.1 8.7,9 10.3,9c1.1,0 2.1,0.5 2.7,1.4C13.6,9.5 14.6,9 15.7,9c1.6,0 2.9,1.1 2.9,2.9c0,2.4 -2.2,4.4 -5.6,7.1z" />
+    <path
+        android:fillColor="#FFE8C86A"
+        android:pathData="M13,6.2c-0.5,0 -0.9,-0.4 -0.9,-0.9s0.4,-0.9 0.9,-0.9 0.9,0.4 0.9,0.9 -0.4,0.9 -0.9,0.9z" />
+</vector>
