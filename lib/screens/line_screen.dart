@@ -7,6 +7,7 @@ import '../models/discount_models.dart';
 import '../services/code_service.dart';
 import '../services/line_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/candle_room.dart';
 import '../widgets/line_letter_card.dart';
 import '../widgets/line_seal.dart';
 
@@ -28,7 +29,12 @@ class LineScreen extends StatefulWidget {
   State<LineScreen> createState() => _LineScreenState();
 }
 
-class _LineScreenState extends State<LineScreen> {
+class _LineScreenState extends State<LineScreen>
+    with SingleTickerProviderStateMixin {
+  // One heartbeat: flames and room-light read this controller.
+  late final AnimationController _flick = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 2600))
+    ..repeat();
   final TextEditingController _text = TextEditingController();
   final FocusNode _focus = FocusNode();
   Timer? _saver;
@@ -70,6 +76,7 @@ class _LineScreenState extends State<LineScreen> {
     _seen?.cancel();
     final String t = _text.text;
     if (t.trim().isNotEmpty && t != _svc.draft.value) _svc.saveDraft(t);
+    _flick.dispose();
     _text.dispose();
     _focus.dispose();
     super.dispose();
@@ -168,12 +175,19 @@ class _LineScreenState extends State<LineScreen> {
   Widget _paper(Widget child) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: IvoryColors.surface,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: IvoryColors.emeraldLight.withValues(alpha: 0.35),
+      gradient: const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: <Color>[Color(0xFFFFF9E8), Color(0xFFFFFCF2), Color(0xFFF6EEDB)],
+        stops: <double>[0, 0.3, 1],
       ),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: const Color(0x73C9962C)),
       boxShadow: <BoxShadow>[
+        BoxShadow(
+          color: const Color(0xFFFFC464).withValues(alpha: 0.28),
+          blurRadius: 34,
+        ),
         BoxShadow(
           color: IvoryColors.burgundy.withValues(alpha: 0.08),
           blurRadius: 14,
@@ -256,8 +270,12 @@ class _LineScreenState extends State<LineScreen> {
             child: FilledButton.icon(
               style: FilledButton.styleFrom(
                 backgroundColor: IvoryColors.emerald,
-                foregroundColor: IvoryColors.emeraldWash,
+                foregroundColor: const Color(0xFFF6DE9C),
                 padding: const EdgeInsets.symmetric(vertical: 14),
+                side: const BorderSide(color: Color(0xB3C9962C), width: 1.4),
+                shape: const StadiumBorder(),
+                shadowColor: const Color(0x55FFC464),
+                elevation: 3,
               ),
               onPressed: len < 3 || _busy ? null : (paidCan ? _send : _keep),
               icon: Icon(paidCan ? Icons.mail_outline : Icons.bookmark_border),
@@ -353,8 +371,9 @@ class _LineScreenState extends State<LineScreen> {
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
                 foregroundColor: IvoryColors.emerald,
-                side: const BorderSide(color: IvoryColors.emeraldMid),
+                side: const BorderSide(color: Color(0x99C9962C), width: 1.4),
                 padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: const StadiumBorder(),
               ),
               onPressed: _toMemberships,
               child: const Text(
@@ -401,7 +420,9 @@ class _LineScreenState extends State<LineScreen> {
           ? const Center(
               child: CircularProgressIndicator(color: IvoryColors.emerald),
             )
-          : ListView(
+          : Stack(
+              children: <Widget>[
+                ListView(
               padding: EdgeInsets.fromLTRB(
                 16,
                 6,
@@ -409,6 +430,7 @@ class _LineScreenState extends State<LineScreen> {
                 30 + MediaQuery.of(context).viewPadding.bottom,
               ),
               children: <Widget>[
+                CandleRoomOpening(flick: _flick),
                 _intro(s),
                 const SizedBox(height: 14),
                 if (s.paid && s.canSend && _hadDraft) ...<Widget>[
@@ -454,6 +476,16 @@ class _LineScreenState extends State<LineScreen> {
                     'Only you and Ivory can read your letters, unless you allow a '
                     'letter to be shared without your name. Delete any letter '
                     'and its words are erased.',
+                  ),
+                ),
+              ],
+            ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: AnimatedBuilder(
+                      animation: _flick,
+                      builder: (BuildContext c, Widget? w) => CustomPaint(painter: CandleRoomLight(_flick.value)),
+                    ),
                   ),
                 ),
               ],
