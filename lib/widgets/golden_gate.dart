@@ -107,7 +107,7 @@ class _GoldenGateState extends State<GoldenGate>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Every story leaves a mark',
+                        'Where every story leaves a mark',
                         style: TextStyle(
                           fontSize: 12.5,
                           fontStyle: FontStyle.italic,
