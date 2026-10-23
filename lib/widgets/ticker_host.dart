@@ -188,7 +188,6 @@ class _TickerLaneState extends State<_TickerLane>
       if (_cross != null || _queued != null || _cardOpen) {
         setState(() {
           _cross = null;
-          _show = null;
           _queued = null;
           _cardOpen = false;
         });
@@ -444,6 +443,7 @@ class _TickerLaneState extends State<_TickerLane>
       ),
     );
   }
+}
 
 /// Where the ribbon is, moment by moment: one straight, even glide from
 /// fully off the left edge to fully off the right edge.
@@ -470,4 +470,3 @@ class _CrossDelegate extends SingleChildLayoutDelegate {
 }
 
 // END OF FILE - lib/widgets/ticker_host.dart
-  
