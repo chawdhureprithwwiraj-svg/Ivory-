@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- CC.193B: the house gold, lent to the notification crest. -->
+    <color name="ivory_notif_gold">#FFC9962C</color>
+</resources>
+<!-- END OF FILE - android/app/src/main/res/values/ivory_notif_color.xml -->
