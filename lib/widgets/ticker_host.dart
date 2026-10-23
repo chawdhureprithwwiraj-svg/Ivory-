@@ -130,7 +130,7 @@ class _TickerLaneState extends State<_TickerLane>
   bool _cardChecked = false;
   Offset _burstAt = Offset.zero;
   Timer? _breath;
-  Timer? _pulse;
+  Timer? _retry;
   MediaQueryData? _mq;
   late final Listenable _watch;
 
@@ -157,7 +157,6 @@ class _TickerLaneState extends State<_TickerLane>
     _c.addStatusListener(_onStatus);
     s.start();
     DreamEngine.instance.start();
-    _pulse = Timer.periodic(const Duration(seconds: 1), (_) => _autoDrain());
     unawaited(_loadViewerName());
     unawaited(_loadCard());
   }
@@ -172,7 +171,7 @@ class _TickerLaneState extends State<_TickerLane>
     TickerService.instance.showRibbons.removeListener(_onGate);
     TickerService.instance.blocked.value = false;
     _breath?.cancel();
-    _pulse?.cancel();
+    _retry?.cancel();
     _c.dispose();
     _b.dispose();
     super.dispose();
@@ -184,6 +183,7 @@ class _TickerLaneState extends State<_TickerLane>
     final TickerService s = TickerService.instance;
     if (!s.signedIn.value || !s.showRibbons.value) {
       _c.stop();
+      _retry?.cancel();
       DreamEngine.instance.stop();
       if (_cross != null || _queued != null || _cardOpen) {
         setState(() {
@@ -197,29 +197,14 @@ class _TickerLaneState extends State<_TickerLane>
     }
   }
 
-  /// CC.197: one steady pulse. Every second the lane asks: is anything
-  /// waiting that could cross now? A queued ribbon, a dream beat or a
-  /// house show that slipped through any race is picked up at once, so
-  /// no beat of either heartbeat can ever drop again.
-  void _autoDrain() {
-    if (!mounted || _cross != null || _cardOpen) return;
-    final TickerService s = TickerService.instance;
-    if (!s.signedIn.value || !s.showRibbons.value) return;
-    final _Cross? q = _queued;
-    if (q != null) {
-      setState(() => _queued = null);
-      _tryStart(q);
-      return;
-    }
-    final DreamShow? d = DreamEngine.instance.current.value;
-    if (d != null && _cross?.dream != d && _queued?.dream != d) {
+  /// A beat that somehow never started gets offered again once.
+  void _watchDream(DreamShow d) {
+    Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      if (DreamEngine.instance.current.value != d) return;
+      if (_cross?.dream == d || _queued?.dream == d || _cardOpen) return;
       _offer(_Cross.dream(d));
-      return;
-    }
-    final TickerShow? h = s.current.value;
-    if (h != null && _cross?.house != h && _queued?.house != h) {
-      _offer(_Cross.house(h));
-    }
+    });
   }
 
   Future<void> _loadViewerName() async {
@@ -264,6 +249,7 @@ class _TickerLaneState extends State<_TickerLane>
     if (!s.signedIn.value || !s.showRibbons.value) return;
     if (_cross?.dream == d) return;
     _offer(_Cross.dream(d));
+    _watchDream(d);
   }
 
   /// A ribbon wants to cross. If the lane is busy it waits in the one
@@ -285,6 +271,7 @@ class _TickerLaneState extends State<_TickerLane>
   }
 
   void _onFlags() {
+    _retry?.cancel();
     _drain();
   }
 
@@ -307,8 +294,12 @@ class _TickerLaneState extends State<_TickerLane>
     final bool keyboard = mq.viewInsets.bottom > 80;
     final Lane? lane = LaneLaw.laneFor(LaneLaw.mode.value, keyboard);
     if (lane == null) {
-      // Both lanes are owned right now: the one-second pulse re-checks.
+      // Both lanes are owned right now: wait and re-check.
       setState(() => _queued = c);
+      _retry?.cancel();
+      _retry = Timer.periodic(const Duration(milliseconds: 1500), (_) {
+        if (_cross == null) _drain();
+      });
       return;
     }
     if (c.isDream && _cardChecked && !_cardSeen) {
@@ -321,6 +312,7 @@ class _TickerLaneState extends State<_TickerLane>
       setState(() => _queued = c); // the card is still loading
       return;
     }
+    _retry?.cancel();
     _start(c, lane);
   }
 
@@ -410,7 +402,8 @@ class _TickerLaneState extends State<_TickerLane>
 
   Widget _ribbon(BuildContext context, MediaQueryData mq, TickerService s,
       _Cross cross, bool lookOnly) {
-    final double top = mq.padding.top + 56 + s.settings.laneOffset;
+    final double top = mq.padding.top + 56 + LaneLaw.topChrome.value +
+        s.settings.laneOffset;
     final double bottom = mq.padding.bottom + mq.viewInsets.bottom +
         LaneLaw.bottomGap(LaneLaw.mode.value);
     final Widget child = DefaultTextStyle(
