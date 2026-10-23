@@ -139,17 +139,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     .headlineMedium
                                     ?.copyWith(fontSize: 20, height: 1.15),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                p == null ? '—' : 'ID ${p.shortId}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: IvoryColors.textFaint,
-                                  fontSize: 12.5,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
                             ],
                           ),
                         ),
@@ -202,7 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           : _membership == null
                               ? 'Forever Ivory Member \u00b7 no paid tier active yet'
                               : '${_membership!.tierName} \u00b7 '
-                                  '${_membership!.daysLeft} days remaining',
+                                  '${_membership!.daysLeft == 1 ? "1 day" : "${_membership!.daysLeft} days"} remaining',
                     ),
                     if (p?.isAdmin ?? false) ...<Widget>[
                       const SizedBox(height: 10),
