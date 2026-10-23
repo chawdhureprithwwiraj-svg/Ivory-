@@ -78,6 +78,9 @@ class _AdminTickerNotesState extends State<AdminTickerNotes> {
                   maxLength: 140,
                   decoration: const InputDecoration(labelText: 'What it says'),
                 ),
+                // CC.200: breathing room, so no border ever sits on
+                // the next field's border.
+                const SizedBox(height: 16),
                 DropdownButtonFormField<int>(
                   value: colour,
                   decoration: const InputDecoration(labelText: 'Colour'),
@@ -94,6 +97,7 @@ class _AdminTickerNotesState extends State<AdminTickerNotes> {
                   ],
                   onChanged: (int? v) => setS(() => colour = v ?? 0),
                 ),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: link,
                   decoration: const InputDecoration(labelText: 'A tap opens'),
@@ -120,6 +124,7 @@ class _AdminTickerNotesState extends State<AdminTickerNotes> {
                   ],
                   onChanged: (String? v) => setS(() => link = v ?? ''),
                 ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: hours,
                   keyboardType: TextInputType.number,
@@ -127,6 +132,7 @@ class _AdminTickerNotesState extends State<AdminTickerNotes> {
                     labelText: 'Show for how many hours (0 = until I remove it)',
                   ),
                 ),
+                const SizedBox(height: 8),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Grand look (longer, with a gold burst)'),
