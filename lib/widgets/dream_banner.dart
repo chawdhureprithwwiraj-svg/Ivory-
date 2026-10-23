@@ -299,7 +299,7 @@ class _BannerPainter extends CustomPainter {
 /// Petals from a cheered dream: nine twinkles walking outward and
 /// fading, in cream and gold. A dream's cheer leaves no ledger.
 class DreamPetalPainter extends CustomPainter {
-  _PetalPainter(this.t, this.at) : super(repaint: t);
+  DreamPetalPainter(this.t, this.at) : super(repaint: t);
 
   final Animation<double> t;
   final Offset at;
@@ -330,7 +330,7 @@ class DreamPetalPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_PetalPainter old) => old.t != t || old.at != at;
+  bool shouldRepaint(DreamPetalPainter old) => old.t != t || old.at != at;
 }
 
 
