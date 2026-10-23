@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- IVORY - THE NOTIFICATION CREST (CC.193)
+     The heart of the house with its spark, as a pure white
+     silhouette: this is the shape Android paints in the status
+     bar and in shades that insist on monochrome. Where the phone
+     allows colour, the manifest's notification colour lends this
+     same shape the house gold. No stroke, no fill but white. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,21.2C7.6,18 4,14.9 4,11.3C4,8.3 6.2,6 8.9,6C10.2,6 11.3,6.6 12,7.5C12.7,6.6 13.8,6 15.1,6C17.8,6 20,8.3 20,11.3C20,14.9 16.4,18 12,21.2Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M17.7,3.4C18.7,3.4 19.5,4.2 19.5,5.2C19.5,6.2 18.7,7 17.7,7C16.7,7 15.9,6.2 15.9,5.2C15.9,4.2 16.7,3.4 17.7,3.4Z" />
+</vector>
