@@ -1,3 +1,4 @@
+import 'lane_law.dart';
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
@@ -78,6 +79,9 @@ class _ExtensionSheetState extends State<_ExtensionSheet> {
   @override
   void initState() {
     super.initState();
+    // CC.195: while the extend-time offer stands, the bottom lane
+    // is owned; ribbons ride the top until it goes.
+    LaneLaw.bottomBusy.value = true;
     _load();
   }
 
@@ -105,6 +109,7 @@ class _ExtensionSheetState extends State<_ExtensionSheet> {
 
   @override
   void dispose() {
+    LaneLaw.bottomBusy.value = false;
     _utr.dispose();
     super.dispose();
   }
