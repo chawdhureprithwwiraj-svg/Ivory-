@@ -112,7 +112,7 @@ class _OfferDialogState extends State<_OfferDialog> {
             'This appears on their screen straight away and their '
             'phone is notified at the same moment. You can send it '
             'again as often as you like. It stays on their screen '
-            'for one minute.',
+            'for 30 seconds.',
             style: TextStyle(fontSize: 13, height: 1.5),
           ),
           const SizedBox(height: 16),
@@ -183,14 +183,14 @@ class MoreTimeCard extends StatefulWidget {
 class _MoreTimeCardState extends State<MoreTimeCard> {
   Timer? _hold;
 
-  /// One full minute, as the owner asked, so an audio-call offer
+  /// Thirty seconds, as the owner asked again (CC.199), so an offer
   /// is readable even when the phone is at an ear or backgrounded.
-  int _left = 60;
+  int _left = 30;
 
   @override
   void initState() {
     super.initState();
-    // It holds for one minute, then steps aside quietly.
+    // It holds for thirty seconds, then steps aside quietly.
     // Nothing is lost if it does: the handset notification sent
     // at the same moment stays in her notification tray.
     _hold = Timer.periodic(const Duration(seconds: 1), (Timer t) {
