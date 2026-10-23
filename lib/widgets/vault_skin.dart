@@ -446,7 +446,8 @@ class VaultMembershipCard extends StatelessWidget {
               style: const TextStyle(color: _paleGold, fontSize: 22,
                   fontWeight: FontWeight.w800, height: 1.15)),
           const SizedBox(height: 6),
-          Text('Premium member \u00b7 $daysLeft days remaining. '
+          Text('Premium member \u00b7 '
+              '${daysLeft == 1 ? "1 day" : "$daysLeft days"} remaining. '
               'Everything at this level is open to you.',
               style: const TextStyle(fontSize: 13, height: 1.45, color: _softGold)),
           const SizedBox(height: 16),
