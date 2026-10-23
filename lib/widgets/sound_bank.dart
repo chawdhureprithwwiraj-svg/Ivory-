@@ -58,6 +58,13 @@ class SoundBank with WidgetsBindingObserver {
     'ticker': <String>['ticker'],
     'missed_you': <String>['missed_you'],
     'dream_ribbon': <String>['dream_ribbon'],
+    // CC.201: three composed voices per heartbeat, taken in turn.
+    'dream_voice_1': <String>['dream_voice_1'],
+    'dream_voice_2': <String>['dream_voice_2'],
+    'dream_voice_3': <String>['dream_voice_3'],
+    'house_voice_1': <String>['house_voice_1'],
+    'house_voice_2': <String>['house_voice_2'],
+    'house_voice_3': <String>['house_voice_3'],
   };
 
   /// The order they are made ready: the ones a member taps first.
@@ -76,6 +83,12 @@ class SoundBank with WidgetsBindingObserver {
     'kickoff',
     'notify',
     'ticker',
+    'dream_voice_1',
+    'dream_voice_2',
+    'dream_voice_3',
+    'house_voice_1',
+    'house_voice_2',
+    'house_voice_3',
   ];
   static const List<String> _exts = <String>['.mp3', '.wav', '.ogg', '.m4a'];
 
@@ -123,6 +136,27 @@ class SoundBank with WidgetsBindingObserver {
       }
     } catch (_) {}
     _warming = false;
+  }
+
+  /// CC.201: the three voices of one heartbeat, taken in order, so
+  /// no two crossings in a row wear the same one. If a voice is not
+  /// on the phone yet, the next one answers; if none is, false.
+  static const Map<String, List<String>> _rotate = <String, List<String>>{
+    'dream': <String>['dream_voice_1', 'dream_voice_2', 'dream_voice_3'],
+    'house': <String>['house_voice_1', 'house_voice_2', 'house_voice_3'],
+  };
+  final Map<String, int> _turn = <String, int>{};
+
+  Future<bool> playRotate(String group, {double volume = 1.0}) async {
+    final List<String> r = _rotate[group] ?? <String>[group];
+    final int first = (_turn[group] ?? 0) % r.length;
+    for (int k = 0; k < r.length; k++) {
+      final String id = r[(first + k) % r.length];
+      if (k == 0) _turn[group] = first + 1;
+      final bool ok = await play(id, volume: volume);
+      if (ok) return true;
+    }
+    return false;
   }
 
   _Deck _deck(String id) {
