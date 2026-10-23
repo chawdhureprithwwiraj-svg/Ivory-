@@ -5,6 +5,7 @@ import '../models/reward_models.dart';
 import '../services/reward_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/gold_button.dart';
+import '../widgets/key_spin.dart';
 import '../widgets/gold_fx.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/reward_badge.dart';
@@ -103,7 +104,11 @@ class _TreasuresSheetState extends State<TreasuresSheet> {
       children: <Widget>[
         Opacity(
           opacity: r.active ? 1 : 0.55,
-          child: RewardBadge(shape: r.shape, metal: r.metal, size: 92),
+          // An earned KEY is cast gold and turns in its lock (CC.193);
+          // every other treasure keeps its own badge.
+          child: r.shape == 'key'
+              ? VaultKeySpin(size: 92)
+              : RewardBadge(shape: r.shape, metal: r.metal, size: 92),
         ),
         const SizedBox(height: 6),
         Text(
