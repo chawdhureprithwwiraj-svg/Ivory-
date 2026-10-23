@@ -12,6 +12,7 @@ import 'ivory_footer.dart';
 import 'lane_law.dart';
 import 'sound_bank.dart';
 import 'ticker_ribbon.dart';
+import 'ticker_sound.dart';
 
 /// ============================================================
 /// IVORY - THE TICKER'S LANE (one place, over every screen)
@@ -333,9 +334,17 @@ class _TickerLaneState extends State<_TickerLane>
       _cross = c;
       _lane = lane;
     });
-    if (c.isDream && IvoryFooter.hiders.value == 0) {
-      // The dream rings only outside live rooms: silent on calls.
-      unawaited(SoundBank.instance.play('dream_ribbon'));
+    // CC.199: inside a live room - audio call, video call or
+    // broadcast - every crossing is seen and never heard, so the
+    // voice in the room stays the only sound there. Outside, the
+    // house band rings the moment it appears, not before.
+    final bool silentRoom = LaneLaw.mode.value != LaneMode.everyday;
+    if (!silentRoom && IvoryFooter.hiders.value == 0) {
+      if (c.isDream) {
+        unawaited(SoundBank.instance.play('dream_ribbon'));
+      } else if (c.house != null) {
+        TickerSound.instance.play(c.house!.event.grand ? 'grand' : 'soft');
+      }
     }
     _c.forward();
   }
