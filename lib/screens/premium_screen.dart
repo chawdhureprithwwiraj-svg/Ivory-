@@ -261,7 +261,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
           const SizedBox(height: 8),
           Text(
             m.daysLeft > 0
-                ? '${m.daysLeft} days remaining. Everything at this level is open to you.'
+                ? '${m.daysLeft == 1 ? "1 day" : "${m.daysLeft} days"} remaining. Everything at this level is open to you.'
                 : 'Renewing today keeps your access unbroken.',
             style: TextStyle(
               color: IvoryColors.burgundy.withValues(alpha: 0.9),
