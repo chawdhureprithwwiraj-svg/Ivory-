@@ -60,7 +60,9 @@ class _SessionsCardState extends State<SessionsCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const SizedBox.shrink();
+    // While the balances load, the cream card already stands at its
+    // full height with quiet meters - so nothing below ever jumps.
+    if (_loading) return _cream();
     if (_anyIncluded) return _vault();
     return _cream();
   }
