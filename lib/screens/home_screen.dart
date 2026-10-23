@@ -5,6 +5,7 @@ import '../models/ivory_post.dart';
 import '../services/content_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/ivory_logo.dart';
+import '../widgets/lane_law.dart';
 import '../widgets/live_banner.dart';
 import '../widgets/ivory_signature.dart';
 import '../widgets/explore_everything_cta.dart';
@@ -39,6 +40,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // CC.198: the gold house band owns the top row on Home; the
+    // ribbon lane rides below it so the two never overlap.
+    LaneLaw.topChrome.value = 52;
     _load();
     contentRevision.addListener(_onContentChanged);
   }
@@ -47,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     // Must be removed, or this calls setState on a dead screen.
     contentRevision.removeListener(_onContentChanged);
+    LaneLaw.topChrome.value = 0;
     super.dispose();
   }
 
