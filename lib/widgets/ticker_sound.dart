@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import 'gold_synth.dart';
+import 'lane_law.dart';
+import '../services/ticker_service.dart';
 import 'sound_bank.dart';
 import 'ticker_synth.dart';
 
@@ -82,6 +84,16 @@ class TickerSound {
   /// 'soft', 'grand' or 'tap'.
   void play(String name) {
     if (!on.value) return;
+    // CC.199: the house band is silent inside live rooms (audio
+    // call, video call, broadcast) - there the ribbon crosses seen
+    // and unheard. And it rings only once the band is actually on
+    // screen: an early ring, before the lane lets it cross, would
+    // sound long before the wood appears.
+    if ((name == 'soft' || name == 'grand') &&
+        (LaneLaw.mode.value != LaneMode.everyday ||
+            TickerService.instance.current.value == null)) {
+      return;
+    }
     // The owner's own recordings first; the old chimes are the fallback.
     if (name == 'soft' || name == 'grand') {
       SoundBank.instance.play('ticker', volume: 0.85).then((bool ok) {
