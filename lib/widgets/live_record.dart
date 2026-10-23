@@ -254,11 +254,13 @@ class _LiveRecordState extends State<LiveRecord> {
   /// night the member was there.
   Widget _bar(LiveNight n, double h) {
     final bool gold = n.tracked && n.youWereThere;
+    // CC.200: cream-pearl bars on the green card - they read at a
+    // glance now; gold stays reserved for a night the member was in.
     final List<Color> c = gold
         ? const <Color>[Color(0xFFFFF0B0), Color(0xFFEBC050), Color(0xFFC99532)]
         : n.tracked
-            ? const <Color>[Color(0xFF8FE6BD), Color(0xFF4BBE8B), Color(0xFF2A9068)]
-            : const <Color>[Color(0x738FE6BD), Color(0x734BBE8B), Color(0x732A9068)];
+            ? const <Color>[Color(0xFFFDFAF0), Color(0xFFEFE6CC), Color(0xFFD2C096)]
+            : const <Color>[Color(0x8CFDFAF0), Color(0x8CEFE6CC), Color(0x8CD2C096)];
     return Container(
       height: h,
       decoration: BoxDecoration(
