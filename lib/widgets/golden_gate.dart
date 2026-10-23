@@ -176,7 +176,7 @@ class _GoldenGateState extends State<GoldenGate>
                     child: Opacity(
                       opacity: frost,
                       child: CustomPaint(
-                        painter: _FrostPainter(_frost.value),
+                        painter: MissedYouFrostPainter(_frost.value),
                       ),
                     ),
                   ),
