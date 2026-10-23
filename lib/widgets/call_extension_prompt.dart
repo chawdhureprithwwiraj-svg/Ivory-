@@ -79,9 +79,10 @@ class _ExtensionSheetState extends State<_ExtensionSheet> {
   @override
   void initState() {
     super.initState();
-    // CC.195: while the extend-time offer stands, the bottom lane
-    // is owned; ribbons ride the top until it goes.
-    LaneLaw.bottomBusy.value = true;
+    // CC.198: while the extend-time offer stands it owns the bottom
+    // of the call; the lane rides above the card - never behind it
+    // and never on the top lane.
+    LaneLaw.offerUp.value = true;
     _load();
   }
 
@@ -109,7 +110,7 @@ class _ExtensionSheetState extends State<_ExtensionSheet> {
 
   @override
   void dispose() {
-    LaneLaw.bottomBusy.value = false;
+    LaneLaw.offerUp.value = false;
     _utr.dispose();
     super.dispose();
   }
