@@ -281,9 +281,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _row(Icons.auto_awesome, 'Your wishes',
                     () => widget.onOpenTab?.call('wish'))
               else
-                ProfileWishShortcut(
-                  onOpenWish: () => widget.onOpenTab?.call('wish'),
-                  onOpenScheduledCall: widget.onOpenCall,
+                // Its row arrives a moment after the page; the space
+                // is kept for it so the scroll never jumps.
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 76),
+                  child: ProfileWishShortcut(
+                    onOpenWish: () => widget.onOpenTab?.call('wish'),
+                    onOpenScheduledCall: widget.onOpenCall,
+                  ),
                 ),
               ProfileFolioCard(
                 onOpen: () => Navigator.of(context).push<void>(
