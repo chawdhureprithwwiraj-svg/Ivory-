@@ -193,6 +193,10 @@ class _HouseRehearsalBlockState extends State<HouseRehearsalBlock> {
             ),
           ),
           style: OutlinedButton.styleFrom(
+            // CC.197: the app theme fills outlined buttons cream, which
+            // swallowed this button's white words on the purple card.
+            backgroundColor: const Color(0x00000000),
+            foregroundColor: widget.white,
             side: BorderSide(color: widget.white.withValues(alpha: 0.6)),
           ),
         ),
