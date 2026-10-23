@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../models/reward_models.dart';
 import '../screens/treasures_sheet.dart';
 import '../services/reward_service.dart';
 import '../theme/ivory_theme.dart';
