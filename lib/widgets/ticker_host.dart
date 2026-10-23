@@ -341,7 +341,7 @@ class _TickerLaneState extends State<_TickerLane>
     final bool silentRoom = LaneLaw.mode.value != LaneMode.everyday;
     if (!silentRoom && IvoryFooter.hiders.value == 0) {
       if (c.isDream) {
-        unawaited(SoundBank.instance.play('dream_ribbon'));
+        unawaited(SoundBank.instance.playRotate('dream'));
       } else if (c.house != null) {
         TickerSound.instance.play(c.house!.event.grand ? 'grand' : 'soft');
       }
@@ -371,7 +371,7 @@ class _TickerLaneState extends State<_TickerLane>
   void _dreamTap(Offset local) {
     setState(() => _burstAt = local);
     _b.forward(from: 0);
-    unawaited(SoundBank.instance.play('dream_ribbon'));
+    unawaited(SoundBank.instance.playRotate('dream'));
     // A dream's cheer is counted nowhere: no ledger, no ladder, no
     // bell. Only petals, and the quiet knowing that a light was left.
   }
