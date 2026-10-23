@@ -14,8 +14,8 @@ import 'package:flutter/material.dart';
 /// golden sweep of the gate wipes the glass clean into the house.
 /// Only golds, creams and warm plums. No dark, no black.
 /// ============================================================
-class _FrostPainter extends CustomPainter {
-  _FrostPainter(this.t);
+class MissedYouFrostPainter extends CustomPainter {
+  MissedYouFrostPainter(this.t);
 
   final double t;
 
@@ -234,7 +234,7 @@ class _FrostPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FrostPainter old) => old.t != t;
+  bool shouldRepaint(MissedYouFrostPainter old) => old.t != t;
 }
 
 // END OF FILE - lib/widgets/missed_you_glass.dart
