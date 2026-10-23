@@ -33,6 +33,7 @@ import '../widgets/live_member_top_bar.dart';
 import '../widgets/premium_badge.dart';
 import '../widgets/live_ended_notice.dart';
 import '../widgets/live_broadcast_stage.dart';
+import '../widgets/lane_law.dart';
 import '../widgets/live_guest_consent.dart';
 import '../widgets/live_guest_room_action.dart';
 
@@ -167,6 +168,11 @@ class _LiveScreenState extends State<LiveScreen> {
   @override
   void initState() {
     super.initState();
+    // CC.195: tell the Lane Law which room is open, so ribbons
+    // ride the right lane: audio below, video and broadcast above.
+    LaneLaw.mode.value = widget.mode == LiveMode.call
+        ? (widget.videoEnabled ? LaneMode.video : LaneMode.audio)
+        : LaneMode.broadcast;
     _camOn = widget.mode == LiveMode.host ? widget.hostVideoEnabled : true;
     if (widget.mode != LiveMode.call) {
       _guestState = LiveGuestRoomState(widget.sessionId)
@@ -350,6 +356,7 @@ class _LiveScreenState extends State<LiveScreen> {
 
   @override
   void dispose() {
+    LaneLaw.mode.value = LaneMode.everyday;
     _startupTimer?.cancel();
     if (widget.mode == LiveMode.host &&
         !_liveActivationStarted &&
