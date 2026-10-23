@@ -1,6 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'missed_you_glass.dart';
+import 'sound_bank.dart';
 
 /// ============================================================
 /// IVORY - THE GOLDEN GATE (the first impression)
@@ -38,7 +42,16 @@ class _GoldenGateState extends State<GoldenGate>
     vsync: this,
     duration: const Duration(milliseconds: 450),
   );
+  // CC.194: the missed-you glass, two seconds, before the sweep.
+  late final AnimationController _frost = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2000),
+  );
   bool _gone = GoldenGate._played;
+  bool _miss = false;
+
+  /// A member away six hours or more is missed, and told so.
+  static const String _walkKey = 'ivory_last_walk';
 
   static const Color _cream = Color(0xFFFAF5E9);
   static const Color _gold = Color(0xFFC9962C);
@@ -48,6 +61,29 @@ class _GoldenGateState extends State<GoldenGate>
   void initState() {
     super.initState();
     if (_gone) return;
+    _open();
+  }
+
+  /// CC.194: away six hours or more, the frosted glass breathes
+  /// first - 'I missed you' traced in the dew - then the golden
+  /// sweep wipes it clean into the house. Otherwise the sweep
+  /// begins at once, exactly as before.
+  Future<void> _open() async {
+    bool miss = false;
+    try {
+      final SharedPreferences p = await SharedPreferences.getInstance();
+      final int last = p.getInt(_walkKey) ?? 0;
+      final int now = DateTime.now().millisecondsSinceEpoch;
+      miss = now - last > 6 * 60 * 60 * 1000;
+      await p.setInt(_walkKey, now);
+    } catch (_) {}
+    if (!mounted || _gone) return;
+    setState(() => _miss = miss);
+    if (miss) {
+      SoundBank.instance.play('missed_you');
+      await _frost.forward();
+    }
+    if (!mounted || _gone) return;
     _sweep.forward().then((_) => _burst.forward()).then((_) async {
       await Future<void>.delayed(const Duration(milliseconds: 150));
       await _fade.forward();
@@ -61,7 +97,16 @@ class _GoldenGateState extends State<GoldenGate>
     _sweep.dispose();
     _burst.dispose();
     _fade.dispose();
+    _frost.dispose();
     super.dispose();
+  }
+
+  /// 1 while the glass holds, fading out as the sweep arrives.
+  double _frostAlpha() {
+    if (!_miss) return 0;
+    if (_frost.value < 1) return 1;
+    final double x = 1 - _sweep.value / 0.30;
+    return x < 0 ? 0 : (x > 1 ? 1 : x);
   }
 
   void _skip() {
@@ -82,10 +127,11 @@ class _GoldenGateState extends State<GoldenGate>
       child: Opacity(
         opacity: 1 - _fade.value,
         child: AnimatedBuilder(
-          animation: Listenable.merge(<Listenable>[_sweep, _burst]),
+          animation: Listenable.merge(<Listenable>[_sweep, _burst, _frost]),
           builder: (BuildContext context, Widget? child) {
             final double m = _mix(_sweep.value);
-            return CustomPaint(
+            final double frost = _frostAlpha();
+            final Widget gate = CustomPaint(
               painter: _GatePainter(_sweep.value, _burst.value),
               child: SafeArea(
                 child: Center(
@@ -120,6 +166,22 @@ class _GoldenGateState extends State<GoldenGate>
                   ),
                 ),
               ),
+            );
+            if (frost <= 0) return gate;
+            return Stack(
+              children: <Widget>[
+                gate,
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Opacity(
+                      opacity: frost,
+                      child: CustomPaint(
+                        painter: _FrostPainter(_frost.value),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -291,5 +353,6 @@ class _GatePainter extends CustomPainter {
   bool shouldRepaint(_GatePainter old) =>
       old.sweep != sweep || old.burst != burst;
 }
+
 
 // END OF FILE - lib/widgets/golden_gate.dart
