@@ -207,7 +207,7 @@ class _BannerPainter extends CustomPainter {
 
     // The metallic cartouche seal.
     const double sx = 52;
-    final Rect seal = Rect.fromLTWH(sx, cy - 8, 96, 16);
+    final Rect seal = Rect.fromLTWH(sx, cy - 8, 104, 16);
     canvas.drawRRect(
       RRect.fromRectAndRadius(seal, const Radius.circular(4)),
       Paint()
@@ -226,20 +226,22 @@ class _BannerPainter extends CustomPainter {
     _text(
       canvas,
       'YOUR DREAM HOUSE',
-      Offset(sx + 7, cy - 5),
+      Offset(sx + 6, cy - 5),
       TextStyle(
-        fontSize: 8.5,
+        fontSize: 7.5,
         fontWeight: FontWeight.w900,
-        letterSpacing: 1.6,
+        letterSpacing: 1.1,
         color: const Color(0xFF3A2405),
       ),
+      maxW: 92,
     );
 
     // The dreamed name and deed.
+    final double maxW = w - sx - 112 - 10;
     _text(
       canvas,
       show.name,
-      Offset(sx + 104, cy - 15),
+      Offset(sx + 112, cy - 15),
       const TextStyle(
         fontFamily: 'serif',
         fontStyle: FontStyle.italic,
@@ -248,17 +250,19 @@ class _BannerPainter extends CustomPainter {
         color: Color(0xFFFFF3CF),
       ),
       shadow: const Shadow(color: Color(0x993C0A12), offset: Offset(0, 1)),
+      maxW: maxW,
     );
     _text(
       canvas,
       show.deed,
-      Offset(sx + 104, cy + 4),
+      Offset(sx + 112, cy + 4),
       const TextStyle(
         fontFamily: 'serif',
         fontStyle: FontStyle.italic,
-        fontSize: 11.5,
+        fontSize: 11,
         color: Color(0xD9F6DE9C),
       ),
+      maxW: maxW,
     );
 
     // The shimmer walking the metal.
@@ -283,11 +287,14 @@ class _BannerPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _text(Canvas canvas, String s, Offset at, TextStyle st, {Shadow? shadow}) {
+  void _text(Canvas canvas, String s, Offset at, TextStyle st,
+      {Shadow? shadow, double? maxW}) {
     final TextPainter tp = TextPainter(
       text: TextSpan(text: s, style: shadow == null ? st : st.copyWith(shadows: <Shadow>[shadow])),
       textDirection: TextDirection.ltr,
-    )..layout();
+      maxLines: 1,
+      ellipsis: '\u2026',
+    )..layout(maxWidth: maxW ?? double.infinity);
     tp.paint(canvas, at);
   }
 
@@ -331,6 +338,75 @@ class DreamPetalPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(DreamPetalPainter old) => old.t != t || old.at != at;
+}
+
+
+/// The burgundy honesty card, shown once, before the first dream.
+class DreamHonestyCard extends StatelessWidget {
+const DreamHonestyCard({super.key, required this.onClose});
+
+final VoidCallback onClose;
+
+@override
+Widget build(BuildContext context) {
+  return Positioned(
+    left: 16,
+    right: 16,
+    bottom: MediaQuery.of(context).padding.bottom + 24,
+    child: Material(
+      color: const Color(0xFF4A0E17),
+      borderRadius: BorderRadius.circular(18),
+      elevation: 10,
+      shadowColor: const Color(0x66280812),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE2B34C), width: 2),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text(
+              'Sometimes the house dreams aloud',
+              style: TextStyle(
+                fontFamily: 'serif',
+                fontStyle: FontStyle.italic,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFFFFF3CF),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'A ribbon sealed YOUR DREAM HOUSE imagines a member yet '
+              'to come - a quiet fiction, always labelled, never '
+              'counted anywhere. Every other ribbon is a real voice '
+              'from a real room.',
+              style: TextStyle(fontSize: 13, height: 1.45,
+                  color: Color(0xE6F6DE9C)),
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onClose,
+                child: const Text(
+                  'Let the house dream',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFFFE9A8),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 }
 
 
