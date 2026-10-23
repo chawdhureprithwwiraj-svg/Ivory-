@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -56,7 +58,7 @@ class _AdminTickerTabState extends State<AdminTickerTab> {
   String? _error;
 
   bool _on = true;
-  int _gap = 30;
+  int _gap = 60;
   int _ownMin = 5;
   int _ownMax = 10;
   int _cross = 10;
@@ -94,7 +96,7 @@ class _AdminTickerTabState extends State<AdminTickerTab> {
           : <String, dynamic>{};
       setState(() {
         _on = m['is_on'] != false;
-        _gap = _i(m['gap_seconds'], 30);
+        _gap = _i(m['gap_seconds'], 60);
         _ownMin = _i(m['own_min_minutes'], 5);
         _ownMax = _i(m['own_max_minutes'], 10);
         _cross = _i(m['cross_seconds'], 10);
@@ -113,6 +115,13 @@ class _AdminTickerTabState extends State<AdminTickerTab> {
         _error = null;
         _loading = false;
       });
+      // CC.199: the breath between ribbons is a full minute now, as
+      // the owner asked; a house still storing the old half minute
+      // moves over once, the moment this tab opens.
+      if (_gap == 30) {
+        setState(() => _gap = 60);
+        await _save();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
