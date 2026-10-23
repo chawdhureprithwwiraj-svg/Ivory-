@@ -74,7 +74,9 @@ class _GoldenGateState extends State<GoldenGate>
       final SharedPreferences p = await SharedPreferences.getInstance();
       final int last = p.getInt(_walkKey) ?? 0;
       final int now = DateTime.now().millisecondsSinceEpoch;
-      miss = now - last > 6 * 60 * 60 * 1000;
+      // CC.197: a phone with no walk-in stamp yet holds nobody to miss -
+      // the glass breathes only for a member with a real last visit.
+      miss = last > 0 && now - last > 6 * 60 * 60 * 1000;
       await p.setInt(_walkKey, now);
     } catch (_) {}
     if (!mounted || _gone) return;
