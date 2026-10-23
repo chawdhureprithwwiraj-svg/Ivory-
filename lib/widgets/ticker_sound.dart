@@ -96,7 +96,7 @@ class TickerSound {
     }
     // The owner's own recordings first; the old chimes are the fallback.
     if (name == 'soft' || name == 'grand') {
-      SoundBank.instance.play('ticker', volume: 0.85).then((bool ok) {
+      SoundBank.instance.playRotate('house', volume: 0.85).then((bool ok) {
         if (!ok) _chime(name);
       });
       return;
