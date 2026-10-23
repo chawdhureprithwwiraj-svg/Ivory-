@@ -22,9 +22,9 @@ import 'ticker_ribbon.dart';
 /// calls, broadcasts, full-screen films, the Bells, the Ladder, posts,
 /// sheets and dialogs.
 ///
-/// CC.195 - THE TWO HEARTBEATS AND THE LANE LAW:
-/// * The house speaks (TickerService) and the house dreams
-///   (DreamEngine) on their own breaths; this lane carries BOTH.
+/// CC.195 - TWO HEARTBEATS, ONE LANE LAW:
+/// * House (TickerService) and dream (DreamEngine) breaths share
+///   this lane; CC.196 adds the sign-out gate and the beat watchdog.
 /// * A ribbon picks its lane the moment it starts - TOP on everyday
 ///   screens and live video and broadcasts, BOTTOM on live audio and
 ///   whenever the top lane is owned - and never jumps mid-flight.
@@ -122,7 +122,6 @@ class _TickerLaneState extends State<_TickerLane>
     vsync: this,
     duration: const Duration(milliseconds: 900),
   );
-  TickerShow? _show;
   _Cross? _cross;
   _Cross? _queued;
   Lane _lane = Lane.top;
@@ -153,6 +152,8 @@ class _TickerLaneState extends State<_TickerLane>
     DreamEngine.instance.current.addListener(_onDream);
     LaneLaw.flags.addListener(_onFlags);
     s.paused.addListener(_onPause);
+    s.signedIn.addListener(_onGate);
+    s.showRibbons.addListener(_onGate);
     _c.addStatusListener(_onStatus);
     s.start();
     DreamEngine.instance.start();
@@ -166,12 +167,45 @@ class _TickerLaneState extends State<_TickerLane>
     DreamEngine.instance.current.removeListener(_onDream);
     LaneLaw.flags.removeListener(_onFlags);
     TickerService.instance.paused.removeListener(_onPause);
+    TickerService.instance.signedIn.removeListener(_onGate);
+    TickerService.instance.showRibbons.removeListener(_onGate);
     TickerService.instance.blocked.value = false;
     _breath?.cancel();
     _retry?.cancel();
     _c.dispose();
     _b.dispose();
     super.dispose();
+  }
+
+  /// Sign-out or ribbons-off: every ribbon dies at once, dream included,
+  /// and the dream sleeps until the member is back.
+  void _onGate() {
+    final TickerService s = TickerService.instance;
+    if (!s.signedIn.value || !s.showRibbons.value) {
+      _c.stop();
+      _retry?.cancel();
+      DreamEngine.instance.stop();
+      if (_cross != null || _queued != null || _cardOpen) {
+        setState(() {
+          _cross = null;
+          _show = null;
+          _queued = null;
+          _cardOpen = false;
+        });
+      }
+    } else {
+      DreamEngine.instance.start();
+    }
+  }
+
+  /// A beat that somehow never started gets offered again once.
+  void _watchDream(DreamShow d) {
+    Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      if (DreamEngine.instance.current.value != d) return;
+      if (_cross?.dream == d || _queued?.dream == d || _cardOpen) return;
+      _offer(_Cross.dream(d));
+    });
   }
 
   Future<void> _loadViewerName() async {
@@ -201,7 +235,7 @@ class _TickerLaneState extends State<_TickerLane>
     final TickerShow? show = TickerService.instance.current.value;
     if (show == null) {
       _c.stop();
-      if (mounted) setState(() { _show = null; _cross = null; });
+      if (mounted) setState(() => _cross = null);
       return;
     }
     if (_cross?.house == show) return;
@@ -216,6 +250,7 @@ class _TickerLaneState extends State<_TickerLane>
     if (!s.signedIn.value || !s.showRibbons.value) return;
     if (_cross?.dream == d) return;
     _offer(_Cross.dream(d));
+    _watchDream(d);
   }
 
   /// A ribbon wants to cross. If the lane is busy it waits in the one
@@ -297,7 +332,6 @@ class _TickerLaneState extends State<_TickerLane>
     _c.value = 0;
     setState(() {
       _cross = c;
-      _show = c.house;
       _lane = lane;
     });
     if (c.isDream && IvoryFooter.hiders.value == 0) {
@@ -320,7 +354,7 @@ class _TickerLaneState extends State<_TickerLane>
     if (st != AnimationStatus.completed) return;
     final _Cross? done = _cross;
     if (done?.house != null) TickerService.instance.finish(done!.house);
-    setState(() { _cross = null; _show = null; });
+    setState(() => _cross = null);
     _breath?.cancel();
     // A short breath, then the waiting ribbon may follow back to back.
     _breath = Timer(const Duration(milliseconds: 1200), _drain);
@@ -354,7 +388,13 @@ class _TickerLaneState extends State<_TickerLane>
           children: <Widget>[
             if (!off && cross != null) _ribbon(context, mq, s, cross, lookOnly),
             if (_b.isAnimating || _b.value > 0) _petals(),
-            if (_cardOpen) _honestyCard(context),
+            if (_cardOpen)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.of(context).padding.bottom + 24,
+                child: DreamHonestyCard(onClose: _closeCard),
+              ),
           ],
         );
       },
@@ -405,68 +445,6 @@ class _TickerLaneState extends State<_TickerLane>
     );
   }
 
-  /// The burgundy honesty card, shown once, before the first dream.
-  Widget _honestyCard(BuildContext context) {
-    return Positioned(
-      left: 16,
-      right: 16,
-      bottom: MediaQuery.of(context).padding.bottom + 24,
-      child: Material(
-        color: const Color(0xFF4A0E17),
-        borderRadius: BorderRadius.circular(18),
-        elevation: 10,
-        shadowColor: const Color(0x66280812),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE2B34C), width: 2),
-          ),
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Text(
-                'Sometimes the house dreams aloud',
-                style: TextStyle(
-                  fontFamily: 'serif',
-                  fontStyle: FontStyle.italic,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFFFFF3CF),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'A ribbon sealed YOUR DREAM HOUSE imagines a member yet '
-                'to come - a quiet fiction, always labelled, never '
-                'counted anywhere. Every other ribbon is a real voice '
-                'from a real room.',
-                style: TextStyle(fontSize: 13, height: 1.45,
-                    color: Color(0xE6F6DE9C)),
-              ),
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _closeCard,
-                  child: const Text(
-                    'Let the house dream',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFFFFE9A8),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Where the ribbon is, moment by moment: one straight, even glide from
 /// fully off the left edge to fully off the right edge.
 class _CrossDelegate extends SingleChildLayoutDelegate {
@@ -492,3 +470,4 @@ class _CrossDelegate extends SingleChildLayoutDelegate {
 }
 
 // END OF FILE - lib/widgets/ticker_host.dart
+  
