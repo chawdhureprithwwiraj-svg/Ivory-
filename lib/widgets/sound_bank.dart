@@ -25,6 +25,7 @@ import 'premium_assets.dart';
 ///   'kickoff'       golden_kick_off          the Golden Knock-off
 ///   'notify'        in_app_notification      a new notice while the app is open
 ///   'ticker'        ticker                   each ribbon
+///   'missed_you'    missed_you               the missed-you glass at open
 /// There is NO everyday tap click any more. One member switch
 /// (Profile, Showcase card) turns all of these off. If a file is
 /// missing or cannot play, [play] answers false and the caller keeps
@@ -54,10 +55,12 @@ class SoundBank with WidgetsBindingObserver {
     'kickoff': <String>['golden_kick_off'],
     'notify': <String>['notif'],
     'ticker': <String>['ticker'],
+    'missed_you': <String>['missed_you'],
   };
 
   /// The order they are made ready: the ones a member taps first.
   static const List<String> _warmOrder = <String>[
+    'missed_you',
     'private_line',
     'early_door',
     'ladder',
