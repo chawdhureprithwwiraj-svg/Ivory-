@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CC.203: the masked icon slot draws nothing at all. Android 12 and
+     above clip whatever sits here to a circle, so nothing may sit here:
+     the wordmark lives in the window background instead, which no
+     version of Android has ever masked. -->
+<color xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#00000000" />
+<!-- END OF FILE - android_res/drawable/splash_transparent.xml -->
