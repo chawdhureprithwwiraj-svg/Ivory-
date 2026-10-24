@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The first screen of Ivory: cream, like the house, never black. -->
+<!-- The first screen of Ivory on the oldest phones: cream and the
+     wordmark, centred at its natural size. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <color android:color="#FFFAF5E9" />
     </item>
-    <item
-        android:width="150dp"
-        android:height="150dp"
-        android:gravity="center"
-        android:drawable="@drawable/launch_icon" />
+    <item android:gravity="center" android:drawable="@drawable/splash_wordmark" />
 </layer-list>
+<!-- END OF FILE - android_res/drawable-v21/launch_background.xml -->
