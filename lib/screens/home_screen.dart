@@ -18,6 +18,7 @@ import '../widgets/golden_discount_card.dart';
 import '../widgets/vault_card.dart';
 import '../widgets/early_door_card.dart';
 import '../widgets/line_card.dart';
+import '../widgets/house_seal.dart';
 import '../widgets/line_daily_card.dart';
 import '../widgets/post_card.dart';
 
@@ -149,6 +150,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   // THE PRIVATE LINE: a letter to Ivory (CC.145). It draws
                   // nothing when the house switches it off.
                   LineCard(onOpenTab: _go),
+                  // THE HOUSE SEAL (CC.209): one scan carries the house to
+                  // another phone - seal, fingerprint, share, copy.
+                  const SizedBox(height: 18),
+                  const HouseSealCard(),
                   // THE LETTER OF THE DAY (CC.147): a shared letter, no name.
                   const LineDailyCard(),
                   // HER RECENT BROADCASTS BELONG NEAR THE FRONT DOOR,
