@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// ============================================================
 /// IVORY - YOUR DREAM HOUSE (CC.195)
@@ -14,10 +15,11 @@ import 'package:flutter/foundation.dart';
 /// viewing member's own is skipped at draw time, so no one ever
 /// meets a ghost wearing her face.
 ///
-/// The dream keeps its own IDs for the rotation logic; they are
-/// never shown, because a shown ID would promise a person the
-/// house cannot find. The dream lives in the APK and nowhere
-/// else: no rows, no traffic, no cost.
+/// CC.202: the dream has ONE master switch and it is the owner's:
+/// a single column in ticker_settings, read once when the engine
+/// starts. Off means no dream crosses on any phone; the house's
+/// own ribbons - real moments and the owner's announcements -
+/// never stop, and no member side ever sees a switch.
 /// ============================================================
 class DreamShow {
   const DreamShow(this.id, this.name, this.deed);
@@ -146,19 +148,42 @@ class DreamEngine {
   static final DreamEngine instance = DreamEngine._();
 
   final ValueNotifier<DreamShow?> current = ValueNotifier<DreamShow?>(null);
+
+  /// CC.202: the owner's master switch. True until the house says
+  /// otherwise; a phone that cannot read the column simply dreams on.
+  final ValueNotifier<bool> on = ValueNotifier<bool>(true);
   Timer? _timer;
   bool _started = false;
 
   void start() {
     if (_started) return;
     _started = true;
+    _readSwitch();
     _timer = Timer(const Duration(seconds: 15), () {
       _beat();
       _timer = Timer.periodic(const Duration(seconds: 30), (_) => _beat());
     });
   }
 
+  /// One quiet read of the master switch when the engine wakes.
+  Future<void> _readSwitch() async {
+    try {
+      final dynamic r = await Supabase.instance.client
+          .from('ticker_settings')
+          .select('dreams_on')
+          .limit(1);
+      if (r is List && r.isNotEmpty) {
+        on.value = (r.first as Map)['dreams_on'] != false;
+      }
+    } catch (_) {
+      on.value = true; // no column yet, no network: the dream stays on
+    }
+  }
+
   void _beat() {
+    // CC.202: switched off, the dream simply does not start; a
+    // crossing already in flight finishes, then silence.
+    if (!on.value) return;
     current.value = DreamHouse.instance.draw();
   }
 
