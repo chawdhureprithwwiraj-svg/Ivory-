@@ -80,7 +80,7 @@ class _AdminTickerNotesState extends State<AdminTickerNotes> {
     try {
       await _db.from('ticker_settings').update(<String, dynamic>{
         'dreams_on': v,
-      });
+      }).eq('id', 1); // CC.203: Supabase refuses a bare UPDATE
       _say(v
           ? 'The dream house crosses again.'
           : 'The dream house rests. No dream will cross until you switch it back.');
