@@ -48,7 +48,7 @@ class _DreamBannerState extends State<DreamBanner>
     return AnimatedBuilder(
       animation: _life,
       builder: (BuildContext context, Widget? child) => CustomPaint(
-        size: const Size(340, 58),
+        size: const Size(292, 46),
         painter: _BannerPainter(widget.show, _life.value),
       ),
     );
@@ -61,10 +61,10 @@ class _BannerPainter extends CustomPainter {
   final DreamShow show;
   final double life;
 
-  static const double H = 58;
+  static const double H = 46;
 
   Path _plaque(double w, double inset) {
-    final double p = 12 - inset * 0.6;
+    final double p = 10 - inset * 0.5;
     return Path()
       ..moveTo(inset, H / 2)
       ..lineTo(inset + p, inset)
@@ -86,7 +86,7 @@ class _BannerPainter extends CustomPainter {
       _plaque(w, 2),
       Paint()
         ..color = const Color(0x55280812)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
 
     // The cast-gold bevel frame.
@@ -126,20 +126,20 @@ class _BannerPainter extends CustomPainter {
     // A whisper of damask in the velvet.
     canvas.save();
     canvas.clipPath(_plaque(w, 4.5));
-    for (double x = 0; x < w; x += 14) {
+    for (double x = 0; x < w; x += 12) {
       canvas.drawLine(
         Offset(x, 0),
         Offset(x + H, H),
-        Paint()..color = const Color(0x0DF6DE9C)..strokeWidth = 3,
+        Paint()..color = const Color(0x0DF6DE9C)..strokeWidth = 2.5,
       );
     }
     // Inner top light and bottom shade: the velvet has a body.
     canvas.drawRect(
-      Rect.fromLTRB(0, 4, w, 12),
+      Rect.fromLTRB(0, 3, w, 9),
       Paint()..color = const Color(0x26FFECBE),
     );
     canvas.drawRect(
-      Rect.fromLTRB(0, H - 12, w, H - 4),
+      Rect.fromLTRB(0, H - 9, w, H - 3),
       Paint()..color = const Color(0x33140206),
     );
     canvas.restore();
@@ -154,29 +154,29 @@ class _BannerPainter extends CustomPainter {
     );
 
     // Rivets at the heraldic points.
-    for (final double rx in <double>[13, w - 13]) {
+    for (final double rx in <double>[11, w - 11]) {
       canvas.drawCircle(
         Offset(rx, H / 2),
-        2.6,
+        2.2,
         Paint()
           ..shader = RadialGradient(
             center: const Alignment(-0.35, -0.4),
             colors: <Color>[const Color(0xFFFFF6D8), const Color(0xFFA9781C)],
-          ).createShader(Rect.fromCircle(center: Offset(rx, H / 2), radius: 2.6)),
+          ).createShader(Rect.fromCircle(center: Offset(rx, H / 2), radius: 2.2)),
       );
     }
 
     // The crown medallion, embossed.
-    const double cx = 30;
+    const double cx = 25;
     const double cy = H / 2;
     canvas.drawCircle(
-      Offset(cx, cy + 1.2),
-      15,
+      Offset(cx, cy + 1),
+      12,
       Paint()..color = const Color(0x66200409),
     );
     canvas.drawCircle(
       Offset(cx, cy),
-      15,
+      12,
       Paint()
         ..shader = RadialGradient(
           center: const Alignment(-0.36, -0.42),
@@ -188,28 +188,28 @@ class _BannerPainter extends CustomPainter {
             const Color(0xFF5C3A08),
           ],
           stops: const <double>[0, 0.3, 0.55, 0.82, 1],
-        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: 15)),
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: 12)),
     );
     // The crown itself: three points, two pearls.
     final Path crown = Path()
-      ..moveTo(cx - 8, cy + 5)
-      ..lineTo(cx - 8, cy - 1)
-      ..lineTo(cx - 4, cy + 1.5)
-      ..lineTo(cx, cy - 5)
-      ..lineTo(cx + 4, cy + 1.5)
-      ..lineTo(cx + 8, cy - 1)
-      ..lineTo(cx + 8, cy + 5)
+      ..moveTo(cx - 6.5, cy + 4)
+      ..lineTo(cx - 6.5, cy - 0.8)
+      ..lineTo(cx - 3.2, cy + 1.2)
+      ..lineTo(cx, cy - 4)
+      ..lineTo(cx + 3.2, cy + 1.2)
+      ..lineTo(cx + 6.5, cy - 0.8)
+      ..lineTo(cx + 6.5, cy + 4)
       ..close();
     canvas.drawPath(crown, Paint()..color = const Color(0xFF5C1220));
-    canvas.drawCircle(Offset(cx, cy - 6.4), 1.5, Paint()..color = const Color(0xFFFFF6D8));
-    canvas.drawCircle(Offset(cx - 8, cy - 2.4), 1.2, Paint()..color = const Color(0xFFFFF6D8));
-    canvas.drawCircle(Offset(cx + 8, cy - 2.4), 1.2, Paint()..color = const Color(0xFFFFF6D8));
+    canvas.drawCircle(Offset(cx, cy - 5.2), 1.2, Paint()..color = const Color(0xFFFFF6D8));
+    canvas.drawCircle(Offset(cx - 6.5, cy - 2), 1, Paint()..color = const Color(0xFFFFF6D8));
+    canvas.drawCircle(Offset(cx + 6.5, cy - 2), 1, Paint()..color = const Color(0xFFFFF6D8));
 
     // The metallic cartouche seal.
-    const double sx = 52;
-    final Rect seal = Rect.fromLTWH(sx, cy - 8, 104, 16);
+    const double sx = 43;
+    final Rect seal = Rect.fromLTWH(sx, cy - 6.5, 88, 13);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(seal, const Radius.circular(4)),
+      RRect.fromRectAndRadius(seal, const Radius.circular(3)),
       Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
@@ -226,26 +226,26 @@ class _BannerPainter extends CustomPainter {
     _text(
       canvas,
       'YOUR DREAM HOUSE',
-      Offset(sx + 6, cy - 5),
+      Offset(sx + 5, cy - 4.2),
       TextStyle(
-        fontSize: 7.5,
+        fontSize: 6.5,
         fontWeight: FontWeight.w900,
-        letterSpacing: 1.1,
+        letterSpacing: 0.9,
         color: const Color(0xFF3A2405),
       ),
-      maxW: 92,
+      maxW: 78,
     );
 
     // The dreamed name and deed.
-    final double maxW = w - sx - 112 - 10;
+    final double maxW = w - sx - 95 - 8;
     _text(
       canvas,
       show.name,
-      Offset(sx + 112, cy - 15),
+      Offset(sx + 95, cy - 12),
       const TextStyle(
         fontFamily: 'serif',
         fontStyle: FontStyle.italic,
-        fontSize: 15,
+        fontSize: 12.5,
         fontWeight: FontWeight.w800,
         color: Color(0xFFFFF3CF),
       ),
@@ -255,11 +255,11 @@ class _BannerPainter extends CustomPainter {
     _text(
       canvas,
       show.deed,
-      Offset(sx + 112, cy + 4),
+      Offset(sx + 95, cy + 3),
       const TextStyle(
         fontFamily: 'serif',
         fontStyle: FontStyle.italic,
-        fontSize: 11,
+        fontSize: 9.5,
         color: Color(0xD9F6DE9C),
       ),
       maxW: maxW,
