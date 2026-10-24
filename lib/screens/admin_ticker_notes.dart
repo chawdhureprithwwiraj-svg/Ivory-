@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/ivory_errors.dart';
 import '../services/ticker_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/dream_house.dart';
 import '../widgets/ticker_palettes.dart';
 
 /// ============================================================
@@ -26,6 +27,7 @@ class _AdminTickerNotesState extends State<AdminTickerNotes> {
 
   List<Map<String, dynamic>> _notes = <Map<String, dynamic>>[];
   bool _busy = false;
+  bool? _dreams; // CC.202: null while the master switch is being read
 
   @override
   void initState() {
@@ -40,11 +42,25 @@ class _AdminTickerNotesState extends State<AdminTickerNotes> {
           .select()
           .order('id', ascending: false)
           .limit(30);
+      // CC.202: the dream house master switch, same quiet read.
+      bool? dreams;
+      try {
+        final dynamic s = await _db
+            .from('ticker_settings')
+            .select('dreams_on')
+            .limit(1);
+        if (s is List && s.isNotEmpty) {
+          dreams = (s.first as Map)['dreams_on'] != false;
+        }
+      } catch (_) {
+        dreams = null; // column not there yet: show it as on
+      }
       if (!mounted) return;
       setState(() {
         _notes = (n as List)
             .map((dynamic e) => Map<String, dynamic>.from(e as Map))
             .toList();
+        _dreams = dreams;
       });
     } catch (e) {
       _say(adminDetail(e));
@@ -54,6 +70,26 @@ class _AdminTickerNotesState extends State<AdminTickerNotes> {
   void _say(String m) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  }
+
+  /// CC.202: the master switch, written to the house and felt at once
+  /// by this phone's engine; every other phone reads it at its next open.
+  Future<void> _dreamsOn(bool v) async {
+    setState(() => _dreams = v);
+    DreamEngine.instance.on.value = v;
+    try {
+      await _db.from('ticker_settings').update(<String, dynamic>{
+        'dreams_on': v,
+      });
+      _say(v
+          ? 'The dream house crosses again.'
+          : 'The dream house rests. No dream will cross until you switch it back.');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _dreams = !v);
+      DreamEngine.instance.on.value = !v;
+      _say('The switch did not take: ${adminDetail(e)} Run the CC.202 SQL once if the column is missing.');
+    }
   }
 
   Future<void> _addNote() async {
@@ -220,6 +256,31 @@ class _AdminTickerNotesState extends State<AdminTickerNotes> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
+        // CC.202: the dream house master switch, above everything.
+        Container(
+          margin: const EdgeInsets.only(top: 14, bottom: 4),
+          decoration: IvoryTheme.card(),
+          child: SwitchListTile(
+            title: const Text(
+              'Let the dream house cross',
+              style: TextStyle(
+                color: IvoryColors.burgundy,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            subtitle: const Text(
+              'Dream ribbons wearing the YOUR DREAM HOUSE seal cross the '
+              'house about once a minute. Switch off and they stop for '
+              'everyone, on every phone, the moment each app next opens - '
+              'a crossing already in flight always finishes. The house\'s '
+              'own ribbons, real moments and your announcements, never '
+              'stop. No member ever sees this switch.',
+              style: TextStyle(color: IvoryColors.plum, height: 1.4),
+            ),
+            value: _dreams ?? DreamEngine.instance.on.value,
+            onChanged: (bool v) => _dreamsOn(v),
+          ),
+        ),
         const Padding(
           padding: EdgeInsets.fromLTRB(2, 22, 2, 10),
           child: Text(
