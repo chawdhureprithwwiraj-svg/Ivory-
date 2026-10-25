@@ -7,6 +7,7 @@ import '../core/ivory_errors.dart';
 import '../models/ladder_models.dart';
 import '../services/ladder_service.dart';
 import '../widgets/bell_sound.dart';
+import '../widgets/lane_law.dart';
 import '../widgets/ladder_calendar.dart';
 import '../widgets/ladder_ceremony.dart';
 import '../widgets/ladder_film.dart';
@@ -53,11 +54,15 @@ class _LadderScreenState extends State<LadderScreen>
     super.initState();
     LadderService.instance.start();
     BellSound.instance.load();
+    // CC.215: the back arrow lives in the ribbon lane's street; while
+    // the ladder is open the lane waits, so the arrow always answers.
+    LaneLaw.topBusy.value = true;
     _load();
   }
 
   @override
   void dispose() {
+    LaneLaw.topBusy.value = false;
     _loop.dispose();
     _shine.dispose();
     super.dispose();
