@@ -170,7 +170,8 @@ class _LivePassSheetState extends State<LivePassSheet> {
                 )
               else if (_done) ...<Widget>[
                 const Center(
-                    child: Text('🎟️', style: TextStyle(fontSize: 44))),
+                    child: const Icon(Icons.confirmation_number_rounded,
+                          size: 44, color: Color(0xFFD4AF37))),
                 const SizedBox(height: 10),
                 Center(
                   child: Text(
