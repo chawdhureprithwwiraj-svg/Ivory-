@@ -12,6 +12,7 @@ import '../widgets/gold_fx.dart';
 import '../widgets/gold_fireworks.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_sound.dart';
+import '../widgets/lane_law.dart';
 import 'golden_question_view.dart';
 import 'golden_quiz_parts.dart';
 import 'golden_result.dart';
@@ -56,11 +57,15 @@ class _GoldenQuizScreenState extends State<GoldenQuizScreen> {
   void initState() {
     super.initState();
     GoldSound.instance.load();
+    // CC.214: the rapid-fire round asks for an undisturbed room. While
+    // this screen lives, every ticker ribbon and ticker sound stands down.
+    LaneLaw.hush.value = true;
     _boot();
   }
 
   @override
   void dispose() {
+    LaneLaw.hush.value = false;
     GoldSound.instance.release();
     super.dispose();
   }
