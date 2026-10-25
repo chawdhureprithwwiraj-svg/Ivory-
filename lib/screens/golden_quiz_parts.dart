@@ -154,7 +154,58 @@ class GoldenIntro extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
+        GoldRise(
+          delayMs: 320,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: IvoryColors.burgundy.withValues(alpha: 0.55),
+              border: Border.all(color: GoldTones.rim.withValues(alpha: 0.7)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Center(
+                  child: Text(
+                    'THE RAPID FIRE ROUND\nREAD BEFORE YOU BEGIN',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: GoldTones.shine,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.6,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                for (final String line in <String>[
+                  '1. Ten questions come one after another. There is no rest and no interval between them.',
+                  '2. Each question has its own short clock. When a clock ends, the next question begins at once.',
+                  '3. The whole round happens AT ONE GO. If you leave this screen at any point - even for a moment - the attempt is lost and counts as missed.',
+                  '4. After a finished or missed attempt, the next attempt opens six hours later, as per the house rule.',
+                  '5. Inside the round there are no tickers and no ticker sounds. Nothing will disturb you.',
+                  'Sit comfortably, keep your time free, and begin only when you are ready to finish all ten.',
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      line,
+                      style: TextStyle(
+                        color: IvoryColors.cream.withValues(alpha: 0.94),
+                        fontSize: 13.5,
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
         GoldTilt(
           radius: 26,
           lean: 0.07,
