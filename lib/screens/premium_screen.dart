@@ -135,6 +135,27 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
+  /// A dead button teaches nothing; a sentence teaches everything.
+  void _pendingNotice(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext c) => AlertDialog(
+        title: const Text('A payment is already being verified'),
+        content: const Text(
+            'One payment is still with the house for checking. When it is '
+            'approved or released, every paid door opens again by itself. '
+            'Until then no new payment can begin - the house protecting '
+            'you from paying twice.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(),
+            child: const Text('UNDERSTOOD'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _checkout({
     required int tierId,
     required String name,
@@ -474,14 +495,18 @@ class _PremiumScreenState extends State<PremiumScreen> {
             deep: shade >= 2,
             label: owned ? 'RENEW FOR $days MORE DAYS' : 'UNLOCK THIS TIER',
             icon: owned ? Icons.autorenew : Icons.lock_open,
-            onPressed: _pending != null
-                ? null
-                : () => _checkout(
-                      tierId: ((t['id'] as num?) ?? 0).toInt(),
-                      name: name,
-                      price: price,
-                      days: days,
-                    ),
+            onPressed: () {
+              if (_pending != null) {
+                _pendingNotice(context);
+                return;
+              }
+              _checkout(
+                tierId: ((t['id'] as num?) ?? 0).toInt(),
+                name: name,
+                price: price,
+                days: days,
+              );
+            },
           ),
           if (_pending != null) ...<Widget>[
             const SizedBox(height: 8),
