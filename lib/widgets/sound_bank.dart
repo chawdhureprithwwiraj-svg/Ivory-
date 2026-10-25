@@ -53,6 +53,8 @@ class SoundBank with WidgetsBindingObserver {
     'showcase': <String>['your_showcase'],
     'pinned_marks': <String>['showcase_pinned_marks'],
     'treasure': <String>['your_treasure'],
+    // CC.214: the vault's own voice, waiting in assets/premium.
+    'vault': <String>['10_day_vault'],
     'kickoff': <String>['golden_kick_off'],
     'notify': <String>['notif'],
     'ticker': <String>['ticker'],
