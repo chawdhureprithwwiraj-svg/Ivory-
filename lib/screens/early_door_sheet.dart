@@ -7,6 +7,7 @@ import '../core/ivory_errors.dart';
 import '../models/ivory_post.dart';
 import '../services/early_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/lane_law.dart';
 import '../widgets/early_door_view.dart';
 import '../widgets/post_actions.dart';
 
@@ -48,6 +49,9 @@ class _EarlyDoorSheetState extends State<_EarlyDoorSheet> {
     super.initState();
     EarlyService.instance.state.addListener(_changed);
     EarlyService.instance.refresh(force: true);
+    // CC.215: while the early door is open the ribbon lane waits, so
+    // the new back arrow is never covered mid-crossing.
+    LaneLaw.topBusy.value = true;
     _tick = Timer.periodic(const Duration(seconds: 20), (Timer _) {
       if (mounted) setState(() {});
     });
@@ -55,6 +59,7 @@ class _EarlyDoorSheetState extends State<_EarlyDoorSheet> {
 
   @override
   void dispose() {
+    LaneLaw.topBusy.value = false;
     EarlyService.instance.state.removeListener(_changed);
     _tick?.cancel();
     super.dispose();
@@ -181,15 +186,28 @@ class _EarlyDoorSheetState extends State<_EarlyDoorSheet> {
                   controller: sc,
                   padding: EdgeInsets.fromLTRB(18, 14, 18, 28 + bottom),
                   children: <Widget>[
-                    Center(
-                      child: Container(
-                        width: 42,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: _wash.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(4),
+                    Row(
+                      children: <Widget>[
+                        IconButton(
+                          tooltip: 'Back',
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: Icon(Icons.arrow_back,
+                              color: _wash, size: 22),
                         ),
-                      ),
+                        Expanded(
+                          child: Center(
+                            child: Container(
+                              width: 42,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: _wash.withValues(alpha: 0.4),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 48),
+                      ],
                     ),
                     const SizedBox(height: 14),
                     Center(
