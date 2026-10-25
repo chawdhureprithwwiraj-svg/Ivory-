@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../theme/ivory_theme.dart';
 
@@ -97,14 +98,13 @@ class HouseSeal {
         '(build $liveBuild, seal $liveFingerprint)';
   }
 
-  /// Native share sheet when the platform side listens; until then the
-  /// link is copied and the member is told so, gently.
+  /// The native share sheet, via the same plugin the house's other
+  /// share buttons already use: WhatsApp, Drive, Telegram, messages -
+  /// whichever door the member chooses. If the phone refuses, the words
+  /// are copied and the member is told so, gently.
   static Future<bool> share(BuildContext context, String? penName) async {
-    const channel = MethodChannel('ivory_house/seal');
     try {
-      await channel.invokeMethod<void>('share', <String, String>{
-        'text': shareText(penName),
-      });
+      await Share.share(shareText(penName));
       return true;
     } catch (_) {
       await Clipboard.setData(ClipboardData(text: shareText(penName)));
