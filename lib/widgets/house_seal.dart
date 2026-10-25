@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,9 +21,66 @@ class HouseSeal {
   static const String url =
       'https://ivory-stories.pages.dev/download.html?from=seal';
 
-  /// Build 1692, first eight hex of its SHA-256, as printed on the seal.
-  static const String build = '1692';
-  static const String fingerprint = '45CC 8AB8';
+  /// Build 1700 - the first build signed with the Ivory release key -
+  /// and the first eight hex of its SHA-256, as printed on the seal.
+  /// These baked values are the offline fallback; [refresh] follows the
+  /// newest public release so the seal never lies about the house again.
+  static const String build = '1700';
+  static const String fingerprint = '6156 E779';
+
+  static String liveBuild = build;
+  static String liveFingerprint = fingerprint;
+  static bool _fetching = false;
+
+  /// Ask GitHub for the newest release and lift its number and fingerprint.
+  /// Silent on any failure: offline, rate-limited or blocked, the baked
+  /// numbers keep showing, which is always better than a broken seal.
+  static Future<void> refresh() async {
+    if (_fetching) return;
+    _fetching = true;
+    final HttpClient client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 8);
+    try {
+      final HttpClientRequest req = await client.getUrl(Uri.parse(
+          'https://api.github.com/repos/chawdhureprithwwiraj-svg/Ivory-'
+          '/releases/latest'));
+      req.headers.set('User-Agent', 'ivory-house-seal');
+      final HttpClientResponse res =
+          await req.close().timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final dynamic j =
+            jsonDecode(await res.transform(utf8.decoder).join());
+        if (j is Map<String, dynamic>) {
+          final String tag = (j['tag_name'] ?? '').toString();
+          String sha = '';
+          int size = 0;
+          final dynamic assets = j['assets'];
+          if (assets is List<dynamic>) {
+            for (final dynamic a in assets) {
+              if (a is Map<String, dynamic> &&
+                  a['name'].toString() == 'app-release.apk') {
+                sha = a['digest'].toString().replaceFirst('sha256:', '');
+                size = (a['size'] is num) ? (a['size'] as num).toInt() : 0;
+              }
+            }
+          }
+          if (tag.startsWith('build-') && sha.length >= 8) {
+            liveBuild = tag.substring(6);
+            final String h = sha.substring(0, 8).toUpperCase();
+            liveFingerprint = '${h.substring(0, 4)} ${h.substring(4, 8)}';
+            liveSize = size;
+          }
+        }
+      }
+    } catch (_) {
+      // The baked numbers stay; a quiet seal is better than a wrong one.
+    } finally {
+      client.close(force: true);
+      _fetching = false;
+    }
+  }
+
+  static int liveSize = 0;
 
   /// The seal itself, embedded so no asset and no pubspec line is needed.
   static const String _png = 'iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAIAAADdBSngAAAEVklEQVR42u3dwY3bMBQE0CRIBekh1aTeVJMectjzAkkBeyGImU+u/N7ZlmVpQOKLIvn13/vbF7jPN5cA0QTRRDRBNBFNEE0QTUQTRBPRhGnfVz7068fPg6f4+++f0pE//q+931o5zso1TP36ypHvv6daTXToIJqIJogmKvTbqubet3r1+N5vTf6L+++pVhMdOogmogmiiQp9sgqbHLNOfSZVs6fOMHU+tz0x0GqiQwfRRDRBNFGhf0a9ce1e7X925F2rCaKJaIJoIpqgQm9IVbKpMfRUHT05n12rCaKJaIJoIprwjAr9/qpwcr526u30s/X42Xuq1USHDqKJaIJookJfcf+b1b1Z3pO/dXZevFYTRBPRBNFENOG2Cv0Zb00/4xlC6n7df0+1mogmiCaiCaLJi/n67/3tYC2ZqjdTb4P3jtNb3b33T3v3S6uJDh1EE9EE0YQPPuU89Nuq1Ge8Vb5yDVO71a9cH60mOnQQTUQTRBMVeqpGnqwBzz4fmBwf37uGe3u97Z1zana/VhMdOogmogmiyYtZesu9V7P3Vma7rfruXcM9vVF+b7mjQwfRBNFENGFLbAx9skbujf+m1mBPXZ/UOfeeD/RWyNdqokMH0UQ0QTR5MZsrxfVMjj5PjuBPzgt4xlp2Wk106CCaiCaIJi9mcwy9N+97r76b3Dc8dZyze6an7kUvLVpNdOggmogmiCYq9FRNOllv9sa1UyPCvRo59byilwStJjp0EE1EE0QTUhV6b4753q/3KuvUW9yTM9z3TK6ib7c1dOggmogmiCYs2JyH3lsfbFJvfPzsXuepSj81x1yFjg4dRBPRBNGEVIW+V5M+o7a9bQ2621Z46z3l0GqiQwfRRDRBNFGhT9aSk296nx3Tn6ysn7Ebu1YTHTqIJqIJosmL+Z460OT64WfnxafOpzdmPal3hlpNdOggmogmiCYq9JVasrfG2tm9w87u2nb/Guwfv5W671pNdOggmogmiCYq9NSBUnVZr+JLnXNqBL835733Rn3v17Wa6NBBNBFNEE1U6KkD9dZyP1uzp86wV9f37k5qVztruaNDB9FENEE0YUFst7Wztfb9O4nfth967/mAMXR06CCaIJqIJvQq9NtMzme/rWqerJHPrtiv1USHDqKJaIJo8mI2V4qbtPLG+P2j2L293nrz/SefKmg10aGDaCKaIJqo0CdrrlS9mapJe9/aO05v1bXUHZx8GqDVRIcOoologmiiQu9VoL1KP/X2dW/PuNv+V4q13NGhg2iCaCKacFuFfr/eGPrku/GTO6D13h8who4OHUQT0QTRhKdW6JOzqvdGqCd3N9v7F3vnnPqWVhMdOogmogmiiQo9daBeRdyrdleO3KtkU/V46mpMrn6v1USHDqKJaIJoQqpCP7u6++Sqa3t1a2pMPzXHPDUHf+/umIeODh1EE9EE0YQFn3I/dLSaIJogmogmiCaiCaKJaIJogmgimlDwH9gE4k29RN05AAAAAElFTkSuQmCC';
@@ -36,7 +94,7 @@ class HouseSeal {
     return '$who sends you Ivory - where every story leaves a mark. '
         'True stories, confessions and real crime from India, told aloud. '
         'Free Android app, official page only: $url '
-        '(build $build, seal $fingerprint)';
+        '(build $liveBuild, seal $liveFingerprint)';
   }
 
   /// Native share sheet when the platform side listens; until then the
@@ -70,10 +128,23 @@ class HouseSeal {
 }
 
 /// The card on the home shelf: seal, fingerprint, three quiet actions.
-class HouseSealCard extends StatelessWidget {
+class HouseSealCard extends StatefulWidget {
   const HouseSealCard({super.key, this.penName});
 
   final String? penName;
+
+  @override
+  State<HouseSealCard> createState() => _HouseSealCardState();
+}
+
+class _HouseSealCardState extends State<HouseSealCard> {
+  @override
+  void initState() {
+    super.initState();
+    HouseSeal.refresh().then((_) {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +189,7 @@ class HouseSealCard extends StatelessWidget {
                         fontSize: 12,
                         color: IvoryColors.burgundy.withOpacity(0.75))),
                 const SizedBox(height: 4),
-                Text('BUILD ${HouseSeal.build} · SEAL ${HouseSeal.fingerprint}',
+                Text('BUILD ${HouseSeal.liveBuild} · SEAL ${HouseSeal.liveFingerprint}',
                     style: TextStyle(
                         fontSize: 9.5,
                         letterSpacing: 0.6,
@@ -129,7 +200,7 @@ class HouseSealCard extends StatelessWidget {
                   runSpacing: 8,
                   children: <Widget>[
                     _sealButton(context, 'SHOW LARGE', () => _large(context)),
-                    _sealButton(context, 'SHARE', () => HouseSeal.share(context, penName)),
+                    _sealButton(context, 'SHARE', () => HouseSeal.share(context, widget.penName)),
                     _sealButton(context, 'COPY', () => HouseSeal.copy(context)),
                   ],
                 ),
@@ -197,7 +268,7 @@ class HouseSealCard extends StatelessWidget {
                 const Text('Where every story leaves a mark',
                     style: TextStyle(fontSize: 12, color: IvoryColors.burgundy)),
                 const SizedBox(height: 4),
-                Text('BUILD ${HouseSeal.build} · SEAL ${HouseSeal.fingerprint}',
+                Text('BUILD ${HouseSeal.liveBuild} · SEAL ${HouseSeal.liveFingerprint}',
                     style: TextStyle(
                         fontSize: 9.5,
                         letterSpacing: 0.6,
