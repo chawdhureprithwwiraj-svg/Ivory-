@@ -64,6 +64,7 @@ class _GiftSheetState extends State<GiftSheet> {
   String _mode = 'upi';
 
   bool _loading = true;
+  String? _loadError;
   bool _busy = false;
   String? _message;
 
@@ -94,11 +95,16 @@ class _GiftSheetState extends State<GiftSheet> {
         _gifts = g;
         _settings = s;
         _mode = m;
+        _loadError = null;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loadError = 'The house could not reach its gift shelf. '
+            'Tap retry to look again.';
+        _loading = false;
+      });
     }
   }
 
@@ -313,6 +319,35 @@ class _GiftSheetState extends State<GiftSheet> {
             child: Padding(
               padding: EdgeInsets.all(22),
               child: CircularProgressIndicator(color: IvoryColors.amber),
+            ),
+          )
+        else if (_loadError != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Column(
+              children: <Widget>[
+                Text(
+                  _loadError!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 13, color: IvoryColors.textSoft),
+                ),
+                const SizedBox(height: 10),
+                IvoryGradientButton(
+                  label: 'RETRY',
+                  icon: Icons.refresh_rounded,
+                  onPressed: _load,
+                ),
+              ],
+            ),
+          )
+        else if (_gifts.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 14),
+            child: Text(
+              'The house has no gifts on this surface today.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: IvoryColors.textSoft),
             ),
           )
         else
