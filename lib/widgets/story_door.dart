@@ -71,9 +71,15 @@ class _StoryDoorBandState extends State<StoryDoorBand> {
                     letterSpacing: 1.4,
                   ),
               ),
-              Transform.scale(
-                scaleX: -1,
-                child: const Text('🪶', style: TextStyle(fontSize: 20)),
+              // CC.215: the feather used to be a stranger's glyph - the
+              // phone vendor's own emoji, mirrored. Vendors draw it facing
+              // whichever way they please, so on some phones it stood on
+              // its head. This quill the house paints itself: the same
+              // stroke on every Android, every version, every brand.
+              const SizedBox(
+                width: 24,
+                height: 22,
+                child: CustomPaint(painter: _QuillPainter()),
               ),
             ],
           ),
@@ -240,9 +246,12 @@ class _DoorSheetState extends State<_DoorSheet> {
               const SizedBox(height: 18),
               if (_done) ...<Widget>[
                 Center(
-                    child: Transform.scale(
-                  scaleX: -1,
-                  child: const Text('🪶', style: TextStyle(fontSize: 44)),
+                    // CC.215: the celebration quill, painted by the house
+                    // too - the same one true direction on every phone.
+                    child: const SizedBox(
+                  width: 52,
+                  height: 48,
+                  child: CustomPaint(painter: _QuillPainter()),
                 )),
                 const SizedBox(height: 10),
                 Center(
@@ -324,6 +333,47 @@ class _DoorSheetState extends State<_DoorSheet> {
       ),
     );
   }
+}
+
+/// CC.215: a golden quill drawn in code, nib low-left, tip high-right -
+/// the one true direction, on every device the house ever meets.
+class _QuillPainter extends CustomPainter {
+  const _QuillPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint vane = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.bottomLeft,
+        end: Alignment.topRight,
+        colors: <Color>[
+          const Color(0xFFD4AF37).withValues(alpha: 0.95),
+          const Color(0xFFB88D28),
+        ],
+      ).createShader(Offset.zero & size);
+    final Path body = Path()
+      ..moveTo(size.width * 0.10, size.height * 0.92)
+      ..quadraticBezierTo(size.width * 0.02, size.height * 0.45,
+          size.width * 0.55, size.height * 0.10)
+      ..quadraticBezierTo(size.width * 0.98, size.height * 0.02,
+          size.width * 0.92, size.height * 0.16)
+      ..quadraticBezierTo(size.width * 0.80, size.height * 0.62,
+          size.width * 0.30, size.height * 0.88)
+      ..close();
+    canvas.drawPath(body, vane);
+    final Paint shaft = Paint()
+      ..color = const Color(0xFF8F5B00)
+      ..strokeWidth = 1.3
+      ..style = PaintingStyle.stroke;
+    final Path spine = Path()
+      ..moveTo(size.width * 0.12, size.height * 0.95)
+      ..quadraticBezierTo(size.width * 0.45, size.height * 0.55,
+          size.width * 0.88, size.height * 0.12);
+    canvas.drawPath(spine, shaft);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // END OF FILE - lib/widgets/story_door.dart
