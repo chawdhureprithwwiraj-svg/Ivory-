@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/ivory_errors.dart';
@@ -9,6 +11,7 @@ import '../widgets/gold_button.dart';
 import '../widgets/gold_fx.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_sound.dart';
+import '../widgets/sound_bank.dart';
 import '../widgets/vault_sky.dart';
 import 'golden_result.dart';
 import 'vault_ceremony.dart';
@@ -61,11 +64,17 @@ class _VaultScreenState extends State<VaultScreen> {
   void initState() {
     super.initState();
     GoldSound.instance.load();
+    // CC.214: the ten-day vault has a voice at last - the recording that
+    // slept in assets/premium. It obeys this screen's own sound toggle.
+    if (GoldSound.instance.on.value) {
+      unawaited(SoundBank.instance.play('vault', volume: 0.85));
+    }
     _boot();
   }
 
   @override
   void dispose() {
+    SoundBank.instance.stop('vault');
     GoldSound.instance.release();
     super.dispose();
   }
