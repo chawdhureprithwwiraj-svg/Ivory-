@@ -329,7 +329,7 @@ class _GiftSheetState extends State<GiftSheet> {
                 Text(
                   _loadError!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 13, color: IvoryColors.textSoft),
                 ),
                 const SizedBox(height: 10),
@@ -342,8 +342,8 @@ class _GiftSheetState extends State<GiftSheet> {
             ),
           )
         else if (_gifts.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
             child: Text(
               'The house has no gifts on this surface today.',
               textAlign: TextAlign.center,
