@@ -109,7 +109,38 @@ class _LadderFilmState extends State<LadderFilm> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    if (_failed) return const SizedBox.shrink();
+    if (_failed) {
+      // CC.215: even a film that cannot play keeps its seat. Collapsing
+      // to nothing mid-scroll was one of the ladder's jumps; this golden
+      // frame holds the same 16:9 space on every device, forever.
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[Color(0xFFFFE2B0), Color(0xFFE8A86A)],
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  'The ladder film rests on this device.',
+                  style: TextStyle(
+                    color: const Color(0xFF8F5B00).withValues(alpha: 0.8),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final VideoPlayerController? c = _c;
     final bool playing = _ready && c != null && c.value.isPlaying;
     return Padding(
