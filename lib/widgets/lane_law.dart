@@ -39,6 +39,11 @@ class LaneLaw {
   /// of hiding behind it or fleeing to the top lane.
   static final ValueNotifier<bool> offerUp = ValueNotifier<bool>(false);
 
+  /// CC.214: while true, every ticker ribbon and every ticker sound
+  /// stands down. The Golden Knock-off raises it for the whole of its
+  /// round, so ten questions run in an undisturbed room.
+  static final ValueNotifier<bool> hush = ValueNotifier<bool>(false);
+
   /// CC.198: extra height of this screen's own top chrome (house
   /// ticker band, admin tab row, live pill row). The top lane rides
   /// below it so a ribbon never covers the band or the tabs.
