@@ -28,6 +28,7 @@ class LadderNextGift extends StatefulWidget {
 class _LadderNextGiftState extends State<LadderNextGift> {
   Map<String, dynamic>? _g;
   int _last = -1;
+  bool _asked = false;
 
   @override
   void initState() {
@@ -65,6 +66,8 @@ class _LadderNextGiftState extends State<LadderNextGift> {
       setState(() => _g = next ? m : null);
     } catch (_) {
       // Quiet: the card just stays as it is.
+    } finally {
+      _asked = true;
     }
   }
 
@@ -76,7 +79,43 @@ class _LadderNextGiftState extends State<LadderNextGift> {
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic>? g = _g;
-    if (g == null) return const SizedBox.shrink();
+    if (g == null) {
+      // CC.214: a reserved slot of the same shell. While the ladder is
+      // still asking - or has nothing to show - the page keeps this
+      // space, so a scroll never jumps when the answer arrives late.
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(26),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              LadderTones.tealMid.withValues(alpha: 0.85),
+              LadderTones.tealDeep.withValues(alpha: 0.9),
+            ],
+          ),
+          border: Border.all(color: LadderTones.mint.withValues(alpha: 0.22)),
+        ),
+        child: SizedBox(
+          height: 96,
+          child: Center(
+            child: Text(
+              _asked
+                  ? 'No gift waiting right now. The next one is being woven.'
+                  : 'The ladder is looking ahead to your next gift.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: LadderTones.pearl.withValues(alpha: 0.9),
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final String rung = '${g['rung_name'] ?? ''}';
     final int need = (g['points_needed'] as num?)?.toInt() ?? 0;
     final int days = (g['days'] as num?)?.toInt() ?? 0;
