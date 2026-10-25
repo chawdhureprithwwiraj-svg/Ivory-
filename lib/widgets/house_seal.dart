@@ -94,8 +94,7 @@ class HouseSeal {
         : penName;
     return '$who sends you Ivory - where every story leaves a mark. '
         'True stories, confessions and real crime from India, told aloud. '
-        'Free Android app, official page only: $url '
-        '(build $liveBuild, seal $liveFingerprint)';
+        'Free Android app, official page only: $url';
   }
 
   /// The native share sheet, via the same plugin the house's other
@@ -189,11 +188,6 @@ class _HouseSealCardState extends State<HouseSealCard> {
                         fontSize: 12,
                         color: IvoryColors.burgundy.withOpacity(0.75))),
                 const SizedBox(height: 4),
-                Text('BUILD ${HouseSeal.liveBuild} · SEAL ${HouseSeal.liveFingerprint}',
-                    style: TextStyle(
-                        fontSize: 9.5,
-                        letterSpacing: 0.6,
-                        color: IvoryColors.burgundy.withOpacity(0.6))),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
@@ -268,11 +262,6 @@ class _HouseSealCardState extends State<HouseSealCard> {
                 const Text('Where every story leaves a mark',
                     style: TextStyle(fontSize: 12, color: IvoryColors.burgundy)),
                 const SizedBox(height: 4),
-                Text('BUILD ${HouseSeal.liveBuild} · SEAL ${HouseSeal.liveFingerprint}',
-                    style: TextStyle(
-                        fontSize: 9.5,
-                        letterSpacing: 0.6,
-                        color: IvoryColors.burgundy.withOpacity(0.6))),
                 const SizedBox(height: 6),
                 Text('Any camera reads this seal. The page it opens prints the '
                     'full fingerprint of the build, so a receiver can verify '
