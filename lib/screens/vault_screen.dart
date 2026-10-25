@@ -11,6 +11,7 @@ import '../widgets/gold_button.dart';
 import '../widgets/gold_fx.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_sound.dart';
+import '../widgets/lane_law.dart';
 import '../widgets/sound_bank.dart';
 import '../widgets/vault_sky.dart';
 import 'golden_result.dart';
@@ -69,11 +70,14 @@ class _VaultScreenState extends State<VaultScreen> {
     if (GoldSound.instance.on.value) {
       unawaited(SoundBank.instance.play('vault', volume: 0.85));
     }
+    // CC.215: the vault's close button owns the top lane while open.
+    LaneLaw.topBusy.value = true;
     _boot();
   }
 
   @override
   void dispose() {
+    LaneLaw.topBusy.value = false;
     SoundBank.instance.stop('vault');
     GoldSound.instance.release();
     super.dispose();
