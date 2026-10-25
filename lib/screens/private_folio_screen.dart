@@ -37,7 +37,11 @@ class _PrivateFolioScreenState extends State<PrivateFolioScreen> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  /// [refetchCalls] stays false right after a save: the call shelf
+  /// cannot have changed while the editor was open, and skipping that
+  /// second journey to the server is the difference between a save that
+  /// feels instant and a save that feels like a queue.
+  Future<void> _load({bool refetchCalls = true}) async {
     setState(() {
       _loading = true;
       _error = null;
@@ -45,10 +49,12 @@ class _PrivateFolioScreenState extends State<PrivateFolioScreen> {
     try {
       final List<FolioEntry> entries =
           await PrivateFolioService.instance.fetchEntries();
-      List<CallRequest> calls = <CallRequest>[];
-      try {
-        calls = await LiveService.instance.myCalls();
-      } catch (_) {}
+      List<CallRequest> calls = _calls;
+      if (refetchCalls) {
+        try {
+          calls = await LiveService.instance.myCalls();
+        } catch (_) {}
+      }
       if (!mounted) return;
       setState(() {
         _entries = entries;
@@ -88,7 +94,7 @@ class _PrivateFolioScreenState extends State<PrivateFolioScreen> {
       ),
       builder: (_) => PrivateFolioEntryEditor(entry: entry, calls: _calls),
     );
-    if (saved == true) await _load();
+    if (saved == true) await _load(refetchCalls: false);
   }
 
   Future<void> _delete(FolioEntry entry) async {
