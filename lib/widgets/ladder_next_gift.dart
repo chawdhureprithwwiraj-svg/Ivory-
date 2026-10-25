@@ -8,7 +8,7 @@ import 'ladder_paint.dart';
 /// IVORY - THE NEXT LADDER GIFT
 ///
 /// One card on the Ladder screen: the nearest discount gift still
-/// ahead of the member ("Climb to Tusk and earn 15% off a membership,
+/// ahead of the member ("Climb to Task and earn 15% off a membership,
 /// 18 points to go"). It only reads; the gift itself is made by the
 /// treasures when the rung is reached. If there is no gift ahead, or
 /// anything fails, the card simply is not there. The numbers come from
