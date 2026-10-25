@@ -148,6 +148,7 @@ class _TickerLaneState extends State<_TickerLane>
       s.current,
       DreamEngine.instance.current,
       LaneLaw.flags,
+      LaneLaw.hush,
     ]);
     s.current.addListener(_onHouse);
     DreamEngine.instance.current.addListener(_onDream);
@@ -339,7 +340,9 @@ class _TickerLaneState extends State<_TickerLane>
     // voice in the room stays the only sound there. Outside, the
     // house band rings the moment it appears, not before.
     final bool silentRoom = LaneLaw.mode.value != LaneMode.everyday;
-    if (!silentRoom && IvoryFooter.hiders.value == 0) {
+    if (!silentRoom &&
+        IvoryFooter.hiders.value == 0 &&
+        !LaneLaw.hush.value) {
       if (c.isDream) {
         unawaited(SoundBank.instance.playRotate('dream'));
       } else if (c.house != null) {
@@ -389,14 +392,16 @@ class _TickerLaneState extends State<_TickerLane>
     return AnimatedBuilder(
       animation: _watch,
       builder: (BuildContext context, Widget? _) {
-        final bool off = !s.signedIn.value || !s.showRibbons.value;
+        final bool off = !s.signedIn.value ||
+            !s.showRibbons.value ||
+            LaneLaw.hush.value;
         final _Cross? cross = _cross;
         final bool lookOnly = IvoryFooter.hiders.value > 0;
         return Stack(
           children: <Widget>[
             if (!off && cross != null) _ribbon(context, mq, s, cross, lookOnly),
             if (_b.isAnimating || _b.value > 0) _petals(),
-            if (_cardOpen)
+            if (_cardOpen && !LaneLaw.hush.value)
               Positioned(
                 left: 16,
                 right: 16,
