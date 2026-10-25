@@ -37,7 +37,7 @@ class DreamHouse {
     'rings the Dawn bell three hours early',
     'lit her Golden Heart tonight',
     'lit his Golden Heart tonight',
-    'climbed to Tusk on the Ivory Ladder',
+    'climbed to Task on the Ivory Ladder',
     'kept a letter in the Private Line',
     'opened the Ten-Day Vault on Day 1',
     'pinned a Mark to the showcase',
