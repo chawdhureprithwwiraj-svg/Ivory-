@@ -10,6 +10,7 @@ import '../widgets/gold_fx.dart';
 import '../widgets/gold_fx3d.dart';
 import '../widgets/gold_light.dart';
 import '../widgets/gold_sound.dart';
+import '../widgets/lane_law.dart';
 import '../widgets/gif_flame_heart.dart';
 import '../widgets/heart_score.dart';
 import '../widgets/heart_sound.dart';
@@ -56,6 +57,10 @@ class _HeartSheetState extends State<HeartSheet>
     super.initState();
     GoldSound.instance.load();
     WidgetsBinding.instance.addObserver(this);
+    // CC.215: the ribbon lane borrows the top of the screen while a
+    // ribbon crosses. While the heart is open the lane waits, so the
+    // back arrow at the top-left is always the thing your thumb meets.
+    LaneLaw.topBusy.value = true;
     // The owner's two recordings: the rush and heartbeat once, then the
     // heartbeat for as long as the member stays here. If the recordings
     // are not in the app, the older soft opening sound is used.
@@ -80,6 +85,7 @@ class _HeartSheetState extends State<HeartSheet>
 
   @override
   void dispose() {
+    LaneLaw.topBusy.value = false;
     WidgetsBinding.instance.removeObserver(this);
     HeartScore.instance.stop();
     super.dispose();
