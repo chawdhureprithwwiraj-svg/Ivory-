@@ -211,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: Theme.of(context).textTheme.displayLarge),
                   const SizedBox(height: 6),
                   Text(
-                    'Every story leaves a mark'.tr,
+                    'Where every story leaves a mark',
                     style: TextStyle(
                       fontFamily: IvoryTheme.displayFont,
                       fontSize: 14.5,
