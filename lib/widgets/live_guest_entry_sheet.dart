@@ -124,7 +124,47 @@ class _LiveGuestEntrySheetState extends State<LiveGuestEntrySheet> {
   Future<void> _openUpi() async {
     final PaymentSettings? s = _settings;
     final LiveGuestCheckout? c = _checkout;
-    if (s == null || c == null || !s.isConfigured) return;
+    if (s == null || c == null) {
+      if (mounted) {
+        showDialog<void>(
+          context: context,
+          builder: (BuildContext x) => AlertDialog(
+            title: const Text('The house could not reach its pay page'),
+            content: const Text(
+                'Close this sheet and open it again, or tap retry on the '
+                'page behind it. Nothing was charged and nothing was lost.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(x).pop(),
+                child: const Text('UNDERSTOOD'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+    if (!s.isConfigured) {
+      if (mounted) {
+        showDialog<void>(
+          context: context,
+          builder: (BuildContext x) => AlertDialog(
+            title: const Text('The pay door is being fitted'),
+            content: const Text(
+                'Guest places open for payment the day the house sets its '
+                'UPI id. Until then no money moves and nothing is missing '
+                'on your side - every paid door wakes in one update.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(x).pop(),
+                child: const Text('UNDERSTOOD'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
     final Uri uri = s.intentUri(
       amountInr: c.amountDueInr,
       note: 'Ivory guest place - ${widget.title}',
