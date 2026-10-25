@@ -239,6 +239,16 @@ class _HeartSheetState extends State<HeartSheet>
                 child: SparkleField(count: 14, seed: 3),
               ),
             ),
+            Positioned(
+              top: 2,
+              left: 2,
+              child: IconButton(
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back,
+                    color: IvoryColors.cream, size: 22),
+              ),
+            ),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
