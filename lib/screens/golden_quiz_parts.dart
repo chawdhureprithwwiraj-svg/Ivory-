@@ -170,34 +170,34 @@ class GoldenIntro extends StatelessWidget {
               children: <Widget>[
                 const Center(
                   child: Text(
-                    'THE RAPID FIRE ROUND\nREAD BEFORE YOU BEGIN',
+                    'FASTEN YOUR SEAT BELT\nTHE RAPID FIRE ROUND',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: GoldTones.shine,
-                      fontSize: 14,
+                      fontSize: 16.5,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 1.6,
+                      letterSpacing: 1.8,
                       height: 1.3,
                     ),
                   ),
                 ),
                 const SizedBox(height: 10),
                 for (final String line in <String>[
-                  '1. Ten questions come one after another. There is no rest and no interval between them.',
-                  '2. Each question has its own short clock. When a clock ends, the next question begins at once.',
-                  '3. The whole round happens AT ONE GO. If you leave this screen at any point - even for a moment - the attempt is lost and counts as missed.',
-                  '4. After a finished or missed attempt, the next attempt opens six hours later, as per the house rule.',
-                  '5. Inside the round there are no tickers and no ticker sounds. Nothing will disturb you.',
-                  'Sit comfortably, keep your time free, and begin only when you are ready to finish all ten.',
+                  '1. Ten questions come one after another, like ten quick knocks on the golden door. No rest, no interval - the whole round is one single sitting.',
+                  '2. Every question carries its own little clock of ${s.questionSeconds} seconds. When it runs out, the next question is already in your hands.',
+                  '3. The round happens AT ONE GO. If you leave this screen at any point - even for a moment - the attempt ends and counts as missed. The round loves company that stays.',
+                  '4. Missed or finished, the next attempt opens six hours later, as the house rule keeps it.',
+                  '5. Inside the round the house holds its breath for you: no tickers, no ticker sounds - nothing but you and the ten.',
+                  'Take a breath, keep your time free, and step in only when you are ready to see all ten through. A brainstorming sprint, not a storm - serious, yes; scary, never.',
                 ])
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
                       line,
                       style: TextStyle(
-                        color: IvoryColors.cream.withValues(alpha: 0.94),
-                        fontSize: 13.5,
-                        height: 1.45,
+                        color: IvoryColors.cream.withValues(alpha: 0.96),
+                        fontSize: 14,
+                        height: 1.5,
                       ),
                     ),
                   ),
