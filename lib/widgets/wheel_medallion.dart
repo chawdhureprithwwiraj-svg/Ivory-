@@ -22,7 +22,7 @@ class _WheelMedallionState extends State<WheelMedallion>
     with SingleTickerProviderStateMixin {
   late final AnimationController _t = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: widget.open ? 7 : 11))
+      duration: Duration(seconds: widget.open ? 7 : 11))
     ..repeat();
 
   @override
