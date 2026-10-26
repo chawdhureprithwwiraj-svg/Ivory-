@@ -159,7 +159,7 @@ class _WheelRoomState extends State<WheelRoom>
       _busy = false;
       return;
     }
-    final int seg = (r['seg'] as int? ?? 0).clamp(0, 11);
+    final int seg = (r['seg'] as int? ?? 0).clamp(0, 11).toInt();
     final double jitter = (math.Random().nextDouble() - 0.5) * 0.35;
     final double segCenter =
         -(_spinC.value * 0) - (seg * (6.283185307 / 12)) - (6.283185307 / 24);
