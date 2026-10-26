@@ -200,7 +200,7 @@ class _AdminLineLetterScreenState extends State<AdminLineLetterScreen> {
   );
 
   Widget _who() {
-    final String tier = '${_l['tier_name'] ?? 'tier'}';
+    final String tier = '${_l['tier_name'] ?? 'Forever member'}';
     final int before = (_l['letters_before'] as num?)?.toInt() ?? 0;
     final bool muted = _l['muted'] == true;
     return _card(
