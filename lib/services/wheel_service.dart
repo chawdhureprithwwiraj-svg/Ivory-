@@ -153,6 +153,25 @@ class WheelService {
     }
   }
 
+  Future<Map<String, dynamic>> giftMint() async {
+    try {
+      final dynamic r = await _db.rpc('wheel_gift_mint');
+      return Map<String, dynamic>.from(r as Map);
+    } catch (e) {
+      return <String, dynamic>{'ok': false};
+    }
+  }
+
+  Future<Map<String, dynamic>> giftClaim(String code) async {
+    try {
+      final dynamic r = await _db
+          .rpc('wheel_gift_claim', params: <String, dynamic>{'gcode': code});
+      return Map<String, dynamic>.from(r as Map);
+    } catch (e) {
+      return <String, dynamic>{'ok': false};
+    }
+  }
+
   void forget() {
     _stateCache = null;
     _stateUid = '';
