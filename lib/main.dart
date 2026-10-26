@@ -10,6 +10,7 @@ import 'services/push_service.dart';
 import 'theme/ivory_theme.dart';
 import 'services/ticker_service.dart';
 import 'widgets/ticker_host.dart';
+import 'widgets/wheel_host.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,7 +87,7 @@ class AuthGate extends StatelessWidget {
             snapshot.data?.session ?? Supabase.instance.client.auth.currentSession;
 
         if (session != null) {
-          return const MainShell();
+          return const WheelHost(child: MainShell());
         }
         // The language screen comes first, before sign-in and sign-up.
         return const LanguageGate(child: LoginScreen());
