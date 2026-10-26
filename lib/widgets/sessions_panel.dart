@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/ivory_profile.dart';
 import '../models/live_models.dart';
+import '../services/auth_service.dart';
 import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
 import 'wish_guide.dart';
@@ -32,11 +34,16 @@ class _SessionsCardState extends State<SessionsCard> {
   CallBalance? _video;
   CallBalance? _audio;
   bool _loading = true;
+  bool _admin = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    // CC.220 - in her own house no door says "not in your tier".
+    AuthService.instance.loadProfile().then((IvoryProfile? p) {
+      if (mounted && (p?.isAdmin ?? false)) setState(() => _admin = true);
+    });
   }
 
   Future<void> _load() async {
@@ -245,7 +252,12 @@ class _SessionsCardState extends State<SessionsCard> {
             ],
           ),
           const SizedBox(height: 10),
-          if (!has)
+          if (_admin)
+            Text(
+              'Included - the house keeps no clock on you.',
+              style: TextStyle(fontSize: 12.5, color: IvoryColors.gold),
+            )
+          else if (!has)
             Text(
               'Not in your tier',
               style: TextStyle(fontSize: 12.5, color: IvoryColors.textFaint),
