@@ -10,6 +10,7 @@ import '../theme/ivory_theme.dart';
 import '../widgets/candle_room.dart';
 import '../widgets/line_letter_card.dart';
 import '../widgets/line_seal.dart';
+import '../widgets/line_shelves.dart';
 
 /// ============================================================
 /// IVORY - THE PRIVATE LINE
@@ -43,6 +44,9 @@ class _LineScreenState extends State<LineScreen>
   bool _hadDraft = false;
   bool _share = false;
   PrizeCode? _prize;
+  Map<String, dynamic>? _free;
+  Map<String, dynamic>? _draw;
+  LineDaily? _daily;
 
   LineService get _svc => LineService.instance;
 
@@ -60,6 +64,15 @@ class _LineScreenState extends State<LineScreen>
     _svc.refresh(force: true).then((LineState? s) {
       if (s == null || !mounted) return;
       if (!s.paid) _loadPrize();
+      _svc.freeState().then((Map<String, dynamic>? m) {
+        if (mounted) setState(() => _free = m);
+      });
+      _svc.saturdayState().then((Map<String, dynamic>? m) {
+        if (mounted) setState(() => _draw = m);
+      });
+      _svc.dailyToday().then((LineDaily? d) {
+        if (mounted) setState(() => _daily = d);
+      });
       // Replies the member is looking at now count as seen.
       _seen = Timer(const Duration(milliseconds: 1500), () {
         for (final LineLetter l in s.letters) {
@@ -104,10 +117,24 @@ class _LineScreenState extends State<LineScreen>
     setState(() {});
   }
 
-  Future<void> _keep() async {
+  /// CC.219 - a Forever member seals straight into the Line.
+  Future<void> _sendFree() async {
+    final String body = _text.text.trim();
+    if (body.length < 3 || _busy) return;
     _focus.unfocus();
-    await _svc.saveDraft(_text.text);
-    _say('Held for you. Ivory has not seen it. It is ready to send the moment you join.');
+    setState(() => _busy = true);
+    final LineSendResult r = await _svc.queueJoin(body, share: _share);
+    if (!mounted) return;
+    if (r.ok) {
+      _text.clear();
+      await playLineSendAnimation(context);
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    _say(r.message);
+    _svc.freeState(force: true).then((Map<String, dynamic>? m) {
+      if (mounted) setState(() => _free = m);
+    });
   }
 
   Future<void> _send() async {
@@ -246,24 +273,26 @@ class _LineScreenState extends State<LineScreen>
               ),
             ),
           ),
-          if (paidCan)
-            Material(
-              type: MaterialType.transparency,
-              child: CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              controlAffinity: ListTileControlAffinity.leading,
-              activeColor: IvoryColors.emerald,
-              side: const BorderSide(color: IvoryColors.emeraldMid, width: 2),
-              checkColor: IvoryColors.emeraldWash,
-              value: _share,
-              onChanged: (bool? v) => setState(() => _share = v == true),
-              title: _note(
-                'Ivory may share this letter and her reply as the Letter of '
-                'the Day, without my name.',
-              ),
+          Material(
+            type: MaterialType.transparency,
+            child: CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            controlAffinity: ListTileControlAffinity.leading,
+            activeColor: IvoryColors.emerald,
+            side: const BorderSide(color: IvoryColors.emeraldMid, width: 2),
+            checkColor: IvoryColors.emeraldWash,
+            value: _share,
+            onChanged: (bool? v) => setState(() => _share = v == true),
+            title: _note(
+              paidCan
+                  ? 'Ivory may share this letter and her reply as the Letter '
+                      'of the Day, without my name.'
+                  : 'Ivory may share this letter and her reply as a Saturday '
+                      'Evening Letter, without my name.',
             ),
-            ),
+          ),
+          ),
           const SizedBox(height: 6),
           SizedBox(
             width: double.infinity,
@@ -277,10 +306,10 @@ class _LineScreenState extends State<LineScreen>
                 shadowColor: const Color(0x55FFC464),
                 elevation: 3,
               ),
-              onPressed: len < 3 || _busy ? null : (paidCan ? _send : _keep),
-              icon: Icon(paidCan ? Icons.mail_outline : Icons.bookmark_border),
+              onPressed: len < 3 || _busy ? null : (paidCan ? _send : _sendFree),
+              icon: const Icon(Icons.mail_outline),
               label: Text(
-                paidCan ? 'SEAL AND SEND' : 'KEEP IT FOR NOW',
+                paidCan ? 'SEAL AND SEND' : 'SEAL INTO THE LINE',
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.4,
@@ -291,8 +320,9 @@ class _LineScreenState extends State<LineScreen>
           if (!paidCan) ...<Widget>[
             const SizedBox(height: 10),
             _note(
-              'Kept on this phone only. Ivory has not seen it. It is ready to '
-              'send the moment you join.',
+              'Kept on this phone until you seal it. Sealed letters stand in '
+              'the Line even before you join - membership simply carries '
+              'yours to the front.',
             ),
           ],
         ],
@@ -303,8 +333,9 @@ class _LineScreenState extends State<LineScreen>
   Widget _intro(LineState s) {
     final String line;
     if (!s.paid) {
-      line = 'The Private Line is part of a paid membership. Write your letter '
-          'now; it is kept for you and is ready to send the moment you join.';
+      line = 'Seal a letter into the Line today. It stands in the queue even '
+          'before you join - and membership carries it to the front, where '
+          'every letter is answered.';
     } else {
       line = 'Every letter is read. Ivory answers as many as she can, in her '
           'own time.';
@@ -456,6 +487,13 @@ class _LineScreenState extends State<LineScreen>
                     ),
                   ),
                 ],
+                LineShelves(
+                  free: _free,
+                  draw: _draw,
+                  daily: _daily,
+                  onDraw: _drawNow,
+                  onJoin: _toMemberships,
+                ),
                 if (!s.paid) ...<Widget>[
                   const SizedBox(height: 14),
                   _join(s),
