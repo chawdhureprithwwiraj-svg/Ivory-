@@ -11,6 +11,8 @@ import '../services/code_service.dart';
 import '../services/payment_service.dart';
 import '../services/quiz_service.dart';
 import '../services/razorpay_service.dart';
+import '../services/wheel_service.dart';
+import '../widgets/wheel_purse_tile.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/checkout_cards.dart';
 import '../widgets/checkout_savings.dart';
@@ -58,6 +60,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _loadError;
   CodeQuote? _quote; // a discount code in force, never with a Knock-off
   bool _useCredit = true;
+  bool _usePurse = false;
+  int _purseInr = 0;
   int? get _cid => _useCredit ? widget.creditId : null;
 
   @override
@@ -106,12 +110,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  /// What the member actually pays: the price less a code or Knock-off.
-  int get _payInr =>
-      _quote?.payInr ??
-      (_cid == null
-          ? widget.priceInr
-          : (widget.priceInr - widget.creditInr).clamp(1, widget.priceInr).toInt());
+  /// What the member actually pays: price less a code, Knock-off or purse.
+  int get _payInr {
+    final int base = _quote?.payInr ??
+        (_cid == null
+            ? widget.priceInr
+            : (widget.priceInr - widget.creditInr)
+                .clamp(1, widget.priceInr)
+                .toInt());
+    return (base - (_usePurse ? _purseInr : 0)).clamp(1, widget.priceInr);
+  }
 
   String get _note =>
       '${_settings?.noteTemplate ?? 'Ivory'} - ${widget.tierName}';
@@ -200,6 +208,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           screenshotPath: path,
         );
       }
+      if (_usePurse && _purseInr > 0) {
+        await WheelService.instance.redeem(_purseInr, ref: widget.tierName);
+      }
       if (!mounted) return;
       setState(() {
         _submitting = false;
@@ -256,8 +267,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           onChanged: (CodeQuote? q, bool c) => setState(() {
                             _quote = q;
                             _useCredit = c;
+                            _usePurse = false;
+                            _purseInr = 0;
                           }),
                         ),
+                      const SizedBox(height: 16),
+                      WheelPurseTile(
+                          priceInr: widget.priceInr,
+                          blocked: _quote != null ||
+                              _cid != null ||
+                              _mode == 'razorpay',
+                          onChanged: (bool v, int p) => setState(() {
+                                _usePurse = v;
+                                _purseInr = v ? p : 0;
+                              })),
                       const SizedBox(height: 16),
                       if (_done)
                         CheckoutCards.submitted(context, widget.tierName)
