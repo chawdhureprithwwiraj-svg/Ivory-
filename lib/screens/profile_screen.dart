@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/ivory_profile.dart';
+import '../services/line_service.dart';
 import '../widgets/owner_house_card.dart';
 import 'legal_screen.dart';
 import '../models/payment.dart';
@@ -34,6 +35,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   IvoryProfile? _profile;
+  Map<String, dynamic>? _free;
   Membership? _membership;
   List<IvoryPayment> _payments = <IvoryPayment>[];
   bool _loading = true;
@@ -51,6 +53,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _error = null;
     });
     try {
+      LineService.instance.refresh();
+      LineService.instance.freeState().then((Map<String, dynamic>? m) {
+        if (mounted) setState(() => _free = m);
+      });
       final IvoryProfile? p = await AuthService.instance.loadProfile();
       await PaymentService.instance.expireOld();
       Membership? m;
@@ -262,6 +268,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
+              _wornLine(p),
               const SizedBox(height: 14),
 
               // ---- shortcuts ----
@@ -347,6 +354,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  /// CC.220 - THE WORN LINE: the profile wears the member's place
+  /// in the Line, so status is visible on the one screen members
+  /// show each other.
+  Widget _wornLine(IvoryProfile? p) {
+    final LineState? ls = LineService.instance.state.value;
+    if (ls == null) return const SizedBox.shrink();
+    String txt;
+    IconData ic = Icons.drafts_outlined;
+    if (p?.isAdmin ?? false) {
+      txt = 'The Line is yours to answer - every sealed letter waits on your desk.';
+      ic = Icons.mark_email_read_outlined;
+    } else if (ls.paid) {
+      txt = 'In the Line - every letter of yours is answered, in order.';
+      ic = Icons.mark_email_read_outlined;
+    } else if (_free != null && _free!['position'] != null) {
+      txt = 'Holds a sealed letter - number ${_free!['position']} in the Line.';
+      ic = Icons.mail_outline;
+    } else {
+      txt = 'The Line is open to you: seal a letter and stand in the queue.';
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        children: <Widget>[
+          Icon(ic, size: 16, color: IvoryColors.plum.withValues(alpha: 0.7)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              txt,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontStyle: FontStyle.italic,
+                color: IvoryColors.plum.withValues(alpha: 0.85),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
