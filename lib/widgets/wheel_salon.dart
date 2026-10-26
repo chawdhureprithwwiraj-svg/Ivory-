@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../services/wheel_service.dart';
 import 'wheel_fx.dart';
@@ -26,6 +27,9 @@ class _WheelSalonState extends State<WheelSalon> {
       if (mounted) setState(() => _s = m);
     });
   }
+
+  String _giftMsg = '';
+  final TextEditingController _code = TextEditingController();
 
   String _str(String k) => (_s[k] ?? '').toString();
   int _int(String k) => (_s[k] is int) ? _s[k] as int : 0;
@@ -134,6 +138,73 @@ class _WheelSalonState extends State<WheelSalon> {
                                         ))
                                     .toList(),
                               ),
+                      ),
+                      _card(
+                        'Gift-a-Spin',
+                        'Mint one waiting gift and send it to a friend; '
+                        'whoever carries the code home gains a Gilded Spin '
+                        '- and so do you, when they claim it.'
+                        '${_giftMsg.isEmpty ? '' : '\n$_giftMsg'}',
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () async {
+                                  final Map<String, dynamic> m =
+                                      await WheelService.instance.giftMint();
+                                  if (m['ok'] == true) {
+                                    setState(() => _giftMsg =
+                                        'Your code: ${m['code']}');
+                                    Share.share(
+                                        'A spin waits for you in Ivory\'s '
+                                        'Wheel of Fans. Enter my gift code '
+                                        '${m['code']} in the wheel salon - '
+                                        'the Gilded Hours are 9:07-11:07 and '
+                                        '2:07-4:07, and Sunday sunrise.');
+                                  } else {
+                                    setState(() =>
+                                        _giftMsg = 'The house said no.');
+                                  }
+                                },
+                                child: const Text('MINT & SHARE A SPIN'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: TextField(
+                                controller: _code,
+                                style: const TextStyle(
+                                    color: Color(0xFFF3E3C6)),
+                                decoration: const InputDecoration(
+                                  hintText: 'a gift code, WOF-…',
+                                  hintStyle:
+                                      TextStyle(color: Color(0x80F3E3C6)),
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final Map<String, dynamic> m = await WheelService
+                                    .instance
+                                    .giftClaim(_code.text.trim());
+                                setState(() => _giftMsg = m['ok'] == true
+                                    ? (m['note'] ?? 'Claimed.').toString()
+                                    : 'That code would not open - '
+                                        '${m['why']}.');
+                              },
+                              child: const Text('CLAIM'),
+                            ),
+                          ],
+                        ),
                       ),
                       if (_int('spins_today') > 0)
                         _card(
