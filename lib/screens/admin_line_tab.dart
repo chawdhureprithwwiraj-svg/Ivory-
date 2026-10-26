@@ -206,8 +206,8 @@ class _AdminLineTabState extends State<AdminLineTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Waiting: ${r['waiting_paid']} members\' letters at the front, '
-            '${r['waiting_free']} free letters in the board behind them.',
+            'Waiting: ${r['waiting_paid'] == 1 ? "1 member\'s letter" : "${r['waiting_paid']} members\' letters"} at the front, '
+            '${r['waiting_free'] == 1 ? "1 free letter" : "${r['waiting_free']} free letters"} in the board behind them.',
             style: small(true),
           ),
           const SizedBox(height: 10),
