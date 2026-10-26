@@ -169,7 +169,7 @@ class _WheelSalonState extends State<WheelSalon> {
     );
   }
 
-  Widget _card(String title, String body) {
+  Widget _card(String title, Object body) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -188,10 +188,11 @@ class _WheelSalonState extends State<WheelSalon> {
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.6)),
           const SizedBox(height: 8),
-          if (body.isNotEmpty)
+          if (body is String && body.isNotEmpty)
             Text(body,
                 style: const TextStyle(
                     color: Color(0xFFF3E3C6), fontSize: 14, height: 1.5)),
+          if (body is Widget) body,
         ],
       ),
     );
