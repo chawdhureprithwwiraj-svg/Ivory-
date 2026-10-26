@@ -83,6 +83,76 @@ class WheelService {
     }
   }
 
+  // ---------- the owner's desk (CC.224) ----------
+  Future<Map<String, dynamic>> desk() async {
+    try {
+      final dynamic r = await _db.rpc('wheel_admin_report');
+      return Map<String, dynamic>.from(r as Map);
+    } catch (e) {
+      return <String, dynamic>{};
+    }
+  }
+
+  Future<bool> wishDeliver(int id) async {
+    try {
+      final dynamic r = await _db
+          .rpc('wheel_wish_deliver', params: <String, dynamic>{'wid': id});
+      return (r as Map)['ok'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> weightsSet(List<Map<String, dynamic>> rows) async {
+    try {
+      final dynamic r = await _db
+          .rpc('wheel_weights_set', params: <String, dynamic>{'payload': rows});
+      return (r as Map)['ok'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> bankAdd(String kind, String title, String path) async {
+    try {
+      final dynamic r = await _db.rpc('wheel_bank_add',
+          params: <String, dynamic>{'kind': kind, 'title': title, 'path': path});
+      return (r as Map)['ok'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> bankSet(List<Map<String, dynamic>> rows) async {
+    try {
+      final dynamic r = await _db
+          .rpc('wheel_bank_set', params: <String, dynamic>{'payload': rows});
+      return (r as Map)['ok'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> bankDrop(int id, String kind) async {
+    try {
+      final dynamic r = await _db.rpc('wheel_bank_drop',
+          params: <String, dynamic>{'bid': id, 'kind': kind});
+      return (r as Map)['ok'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> windowSet(List<Map<String, dynamic>> rows) async {
+    try {
+      final dynamic r = await _db
+          .rpc('wheel_window_set', params: <String, dynamic>{'payload': rows});
+      return (r as Map)['ok'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   void forget() {
     _stateCache = null;
     _stateUid = '';
