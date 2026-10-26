@@ -183,7 +183,7 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
   /// rearrange is honest and simple: lift the tail of the list off, and
   /// set it back down in the new order. The members' rail follows at
   /// once, because it reads the same order the database keeps.
-  Future<void> _move(int id, int newPos) async {
+  Future<void> _move(int id, int newPos, {bool quiet = false}) async {
     if (_reordering) return;
     final List<int> old = List<int>.from(_order);
     if (!old.contains(id)) return;
@@ -205,7 +205,7 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
         await AdminService.instance.setFirstlist(s, true);
       }
       await _load();
-      _toast('The Firstlist stands in its new order.');
+      if (!quiet) _toast('The Firstlist stands in its new order.');
     } catch (e) {
       await _load();
       _toast(houseMessage(e), bad: true);
@@ -214,43 +214,157 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
     }
   }
 
-  Future<void> _moveDialog(int id, int pos) async {
-    final TextEditingController c = TextEditingController(
-      text: '${pos + 1}',
-    );
-    final int? n = await showDialog<int>(
+  /// CC.218 - THE ONE-SHOT REARRANGE: tap a place number for quick leaps
+  /// (make it 1st/2nd/3rd), a jump to any typed place, or a swap. One tap.
+  Future<void> _moveSheet(int id, int pos, String title) async {
+    final TextEditingController jump = TextEditingController();
+    final TextEditingController swap = TextEditingController();
+    String ord(int t) => t == 1 ? '1st' : t == 2 ? '2nd' : '3rd';
+    await showModalBottomSheet<void>(
       context: context,
-      builder: (BuildContext x) => AlertDialog(
-        backgroundColor: IvoryColors.surface,
-        title: const Text('Move to which place?',
-            style: TextStyle(color: IvoryColors.burgundy)),
-        content: TextField(
-          controller: c,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: 'Place 1 to ${_order.length}',
-            labelStyle: TextStyle(color: IvoryColors.textSoft),
-          ),
+      backgroundColor: IvoryColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      builder: (BuildContext x) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 18,
+          bottom: 20 + MediaQuery.of(x).viewInsets.bottom,
         ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(x).pop(),
-            style: TextButton.styleFrom(foregroundColor: IvoryColors.plum),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () {
-              final int v = int.tryParse(c.text.trim()) ?? 0;
-              Navigator.of(x).pop(v);
-            },
-            style: TextButton.styleFrom(foregroundColor: IvoryColors.gold),
-            child: const Text('MOVE'),
-          ),
-        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'PLACE ${pos + 1} OF ${_order.length}',
+              style: const TextStyle(
+                color: IvoryColors.gold,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2.2,
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: IvoryColors.burgundy,
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                for (int t = 1; t <= 3; t++)
+                  ElevatedButton(
+                    onPressed: pos == t - 1 || _reordering
+                        ? null
+                        : () {
+                            Navigator.of(x).pop();
+                            _move(id, t - 1);
+                          },
+                    style: _pill(IvoryColors.gold, IvoryColors.burgundy,
+                        disabled: IvoryColors.gold.withValues(alpha: 0.35)),
+                    child: Text('Make it ${ord(t)}'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: TextField(
+                    controller: jump,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      labelText: 'Jump to any place, 1 to ${_order.length}',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: _reordering
+                      ? null
+                      : () {
+                          final int v = int.tryParse(jump.text.trim()) ?? 0;
+                          if (v < 1 || v > _order.length) return;
+                          Navigator.of(x).pop();
+                          _move(id, v - 1);
+                        },
+                  style: _pill(IvoryColors.plum, IvoryColors.surface),
+                  child: const Text('JUMP'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: TextField(
+                    controller: swap,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      labelText: 'Swap places with place...',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: _reordering
+                      ? null
+                      : () {
+                          final int v = int.tryParse(swap.text.trim()) ?? 0;
+                          if (v < 1 || v > _order.length || v - 1 == pos) {
+                            return;
+                          }
+                          Navigator.of(x).pop();
+                          _swap(pos, v - 1);
+                        },
+                  style: _pill(IvoryColors.plum, IvoryColors.surface),
+                  child: const Text('SWAP'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'One tap is enough: "Make it 1st" leaps to the top from '
+              "anywhere. The members' rail follows at once.",
+              style: TextStyle(color: IvoryColors.textSoft, fontSize: 11.5),
+            ),
+          ],
+        ),
       ),
     );
-    if (n == null || n < 1 || n > _order.length) return;
-    await _move(id, n - 1);
+  }
+
+  ButtonStyle _pill(Color bg, Color fg, {Color? disabled}) =>
+      ElevatedButton.styleFrom(
+        backgroundColor: bg,
+        foregroundColor: fg,
+        disabledBackgroundColor: disabled,
+        borderRadius: BorderRadius.circular(20),
+      );
+
+  /// CC.218 - swap two places in one gesture: move A onto B, then B onto A.
+  Future<void> _swap(int aPos, int bPos) async {
+    if (aPos == bPos) return;
+    if (aPos < 0 || bPos < 0) return;
+    if (aPos >= _order.length || bPos >= _order.length) return;
+    final int idA = _order[aPos];
+    final int idB = _order[bPos];
+    await _move(idA, bPos, quiet: true);
+    final int nowB = _order.indexOf(idB);
+    if (nowB >= 0) await _move(idB, aPos);
   }
 
   Widget _row(Map<String, dynamic> p) {
@@ -258,6 +372,7 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
     final bool live = p['is_published'] == true;
     final bool pinned = _firstlist.contains(id);
     final int pos = _order.indexOf(id);
+    final String title = (p['title'] as String?) ?? 'Untitled';
     final int tier = ((p['tier_required'] as num?) ?? 0).toInt();
 
     // SPRINT 24i - a post sold on its own carries a price and a
@@ -329,7 +444,7 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
           // ---- Ivory's Firstlist: its true place on the shelf ----
           if (pinned && pos >= 0) ...<Widget>[
             GestureDetector(
-              onTap: _reordering ? null : () => _moveDialog(id, pos),
+              onTap: _reordering ? null : () => _moveSheet(id, pos, title),
               child: Container(
                 width: 26,
                 height: 26,
