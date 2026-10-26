@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/line_service.dart';
 import '../theme/ivory_theme.dart';
@@ -20,6 +21,7 @@ class LineShelves extends StatelessWidget {
   const LineShelves({
     super.key,
     required this.free,
+    required this.paid,
     required this.draw,
     required this.daily,
     required this.onDraw,
@@ -27,6 +29,11 @@ class LineShelves extends StatelessWidget {
   });
 
   final Map<String, dynamic>? free;
+
+  /// Paid members (and the owner) see only the Saturday shelf: the
+  /// stamps are a Forever member's road, and the front of the Line
+  /// already belongs to the crowned.
+  final bool paid;
   final Map<String, dynamic>? draw;
   final LineDaily? daily;
   final VoidCallback onDraw;
@@ -105,7 +112,7 @@ class LineShelves extends StatelessWidget {
   Widget build(BuildContext context) {
     final Map<String, dynamic>? f = free;
     final List<Widget> out = <Widget>[];
-    if (f != null && f['position'] != null) {
+    if (!paid && f != null && f['position'] != null) {
       int n(dynamic k) => (f[k] as num?)?.toInt() ?? 0;
       final int ahead = n('ahead');
       out.add(_heading('YOUR PLACE IN THE LINE'));
@@ -128,7 +135,7 @@ class LineShelves extends StatelessWidget {
         ],
       )));
     }
-    if (f != null && f['stamps'] != null) {
+    if (!paid && f != null && f['stamps'] != null) {
       final Map<String, dynamic> st = Map<String, dynamic>.from(
         f['stamps'] as Map? ?? <String, dynamic>{},
       );
@@ -182,6 +189,31 @@ class LineShelves extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2),
                 ),
               ),
+            ),
+          ],
+          if (f != null && f['invite_code'] != null) ...<Widget>[
+            const SizedBox(height: 12),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _note(
+                    'Your Invitation code: ${f['invite_code']} - 25% off your '
+                    'first season. It meets you at checkout and rests on '
+                    '${(f['invite_expires'] ?? '').toString().split('T').first}.',
+                    strong: true,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Copy the code',
+                  icon: const Icon(Icons.copy_outlined, size: 18),
+                  color: IvoryColors.emerald,
+                  onPressed: () {
+                    Clipboard.setData(
+                      ClipboardData(text: '${f['invite_code']}'),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
           const SizedBox(height: 10),
