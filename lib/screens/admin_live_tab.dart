@@ -1,488 +1,570 @@
-import '../services/line_service.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
-import '../core/ivory_errors.dart';
-import '../services/early_service.dart';
-import '../services/line_house_service.dart';
+import '../models/live_models.dart';
+import '../models/gift_surface.dart';
+import '../services/gift_service.dart';
+import '../services/admin_service.dart';
+import '../services/live_service.dart';
 import '../theme/ivory_theme.dart';
-import '../widgets/admin_stat_grid.dart';
-import 'admin_line_letter.dart';
-import 'admin_line_settings.dart';
+import '../widgets/admin_bits.dart';
+import '../widgets/admin_post_chips.dart';
+import '../widgets/admin_live_guest_fee.dart';
+import 'admin_live_beauty_preview.dart';
+import 'live_screen.dart';
 
-/// ============================================================
-/// ADMIN STUDIO - THE PRIVATE LINE
-///
-/// Three views: LETTERS (the queue, longest-waiting and head-start
-/// first; the held ones; the answered ones), SETTINGS (the switch,
-/// the numbers, tiers and rungs) and TEMPLATES (reply lines you can
-/// edit). A letter opens on its own screen to be read and answered.
-/// ============================================================
-class AdminLineTab extends StatefulWidget {
-  const AdminLineTab({
-    super.key,
-    this.previewData,
-    this.previewLetters,
-    this.previewTemplates,
-  });
+part 'admin_live_tab_beauty_part.dart';
 
-  /// Fixed answers to show without asking the database (previews, tests).
-  final Map<String, dynamic>? previewData;
-  final List<Map<String, dynamic>>? previewLetters;
-  final List<Map<String, dynamic>>? previewTemplates;
+/// Studio controls for Ivory's broadcast and its optional paid guest places.
+class AdminLiveTab extends StatefulWidget {
+  const AdminLiveTab({super.key});
 
   @override
-  State<AdminLineTab> createState() => _AdminLineTabState();
+  State<AdminLiveTab> createState() => _AdminLiveTabState();
 }
 
-class _AdminLineTabState extends State<AdminLineTab> {
-  final LineHouseService _svc = LineHouseService.instance;
-  Map<String, dynamic> _data = <String, dynamic>{};
-  List<Map<String, dynamic>> _letters = <Map<String, dynamic>>[];
-  List<Map<String, dynamic>> _templates = <Map<String, dynamic>>[];
-  String _view = 'letters';
-  String _filter = 'waiting';
-  bool _loading = true;
-  String? _error;
-  Map<String, dynamic>? _report;
+class _AdminLiveTabState extends State<AdminLiveTab> with _AdminLiveBeautyMixin {
+  final TextEditingController _title = TextEditingController();
+  final TextEditingController _subtitle = TextEditingController();
+  final TextEditingController _price = TextEditingController(text: '499');
+  final TextEditingController _guestPrice = TextEditingController(text: '0');
+
+  Set<int> _who = <int>{0, 1, 2, 3, 4};
+  bool _payPerView = false;
+  bool _busy = false;
+  String? _note;
+
+  List<LiveSession> _sessions = <LiveSession>[];
+  List<GiftSend> _gifts = <GiftSend>[];
+  Map<int, GiftNoteFlag> _noteFlags = <int, GiftNoteFlag>{};
+  Map<String, String> _giftSets = <String, String>{};
+  Timer? _clock;
+  List<Map<String, dynamic>> _tiers = <Map<String, dynamic>>[];
+
+  Future<void> _loadTiers() async {
+    try {
+      final List<Map<String, dynamic>> t =
+          await AdminService.instance.fetchAllTiers();
+      if (!mounted) return;
+      setState(() => _tiers = t
+          .where((Map<String, dynamic> e) => e['is_active'] == true)
+          .toList());
+    } catch (_) {
+      // The chips simply show Forever Members only.
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    if (widget.previewData != null) {
-      _data = widget.previewData!;
-      _letters = widget.previewLetters ?? <Map<String, dynamic>>[];
-      _templates = widget.previewTemplates ?? <Map<String, dynamic>>[];
-      _loading = false;
-      return;
-    }
     _load();
+    _loadTiers();
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _onAir != null) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _clock?.cancel();
+    _title.dispose();
+    _subtitle.dispose();
+    _price.dispose();
+    _guestPrice.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
-    LineService.instance.adminReport(force: true).then((Map<String, dynamic>? r) {
-      if (mounted) setState(() => _report = r);
+    try {
+      final List<LiveSession> rows =
+          await LiveService.instance.fetchSessions();
+      final List<GiftSend> gifts =
+          await LiveService.instance.listGiftSends();
+      final Map<String, String> sets =
+          await LiveService.instance.giftSurfaces();
+      final Map<int, GiftNoteFlag> flags =
+          await LiveService.instance.giftNoteFlags();
+      if (!mounted) return;
+      setState(() {
+        _sessions = rows;
+        _gifts = gifts;
+        _giftSets = sets;
+        _noteFlags = flags;
+      });
+    } catch (_) {}
+  }
+
+  LiveSession? get _onAir {
+    for (final LiveSession s in _sessions) {
+      if (s.isLive) return s;
+    }
+    return null;
+  }
+
+  Future<void> _goLive() async {
+    final int? guestFee = int.tryParse(_guestPrice.text.trim());
+    if (guestFee == null || guestFee < 0) {
+      setState(() => _note = 'Enter a guest fee of zero or more.');
+      return;
+    }
+    if (_title.text.trim().isEmpty) {
+      setState(() => _note = 'Give the broadcast a title first.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _note = null;
     });
-    if (widget.previewData != null) return;
+    int? startingId;
     try {
-      final Map<String, dynamic> d = await _svc.state();
-      final List<Map<String, dynamic>> q = await _svc.queue(_filter);
-      List<Map<String, dynamic>> t = _templates;
-      try {
-        t = await _svc.templates();
-      } catch (_) {}
-      if (!mounted) return;
-      setState(() {
-        _data = d;
-        _letters = q;
-        _templates = t;
-        _error = null;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = adminDetail(e);
-        _loading = false;
-      });
-    }
-  }
-
-  void _say(String m) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
-  }
-
-  Future<void> _openLetter(int id) async {
-    final bool? changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => AdminLineLetterScreen(id: id),
-      ),
-    );
-    if (changed == true) await _load();
-  }
-
-  Future<void> _editTemplate(Map<String, dynamic>? t) async {
-    final TextEditingController title =
-        TextEditingController(text: '${t?['title'] ?? ''}');
-    final TextEditingController body =
-        TextEditingController(text: '${t?['body'] ?? ''}');
-    final String? act = await showDialog<String>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Text(t == null ? 'New reply line' : 'Edit reply line'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              TextField(
-                controller: title,
-                decoration: const InputDecoration(labelText: 'Short title'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: body,
-                minLines: 4,
-                maxLines: 8,
-                decoration: const InputDecoration(labelText: 'The words'),
-              ),
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL'),
-          ),
-          if (t != null)
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, 'delete'),
-              child: const Text('DELETE'),
-            ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'save'),
-            child: const Text('SAVE'),
-          ),
-        ],
-      ),
-    );
-    if (act == null) return;
-    try {
-      if (act == 'delete') {
-        _say(await _svc.deleteTemplate((t!['id'] as num).toInt()));
-      } else {
-        _say(
-          await _svc.saveTemplate(
-            (t?['id'] as num?)?.toInt(),
-            title.text.trim(),
-            body.text.trim(),
-          ),
-        );
+      final List<int> allowedTiers = List<int>.from(_who)..sort();
+      final int id = await LiveService.instance.startLive(
+        title: _title.text.trim(),
+        subtitle: _subtitle.text.trim().isEmpty
+            ? null
+            : _subtitle.text.trim(),
+        access: 'tier',
+        minTier: _who.isEmpty ? 9 : _who.reduce((a, b) => a < b ? a : b),
+        priceInr: _payPerView ? (int.tryParse(_price.text.trim()) ?? 0) : 0,
+        allowedTiers: allowedTiers,
+        guestPriceInr: guestFee,
+      );
+      startingId = id;
+      if (!mounted) {
+        await LiveService.instance.abortLiveStart(id);
+        return;
       }
-      await _load();
+      setState(() => _busy = false);
+      await _open(
+        id,
+        _title.text.trim(),
+        guestPriceInr: guestFee,
+        guestRequestsOpen: guestFee > 0,
+      );
     } catch (e) {
-      _say(adminDetail(e));
+      if (startingId != null) {
+        unawaited(LiveService.instance.abortLiveStart(startingId));
+      }
+      if (!mounted) return;
+      final String raw = e.toString();
+      final bool migrationMissing = raw.contains('start_live_with_guests') ||
+          raw.contains('PGRST202');
+      setState(() {
+        _busy = false;
+        _note = migrationMissing
+            ? 'The paid-live database setup is not ready. No session or '
+                'notification was created. Apply the corrected CC.102 first.'
+            : raw.replaceFirst('Exception: ', '');
+      });
     }
   }
 
-  Future<void> _takeDown() async {
+  Future<void> _open(
+    int id,
+    String title, {
+    DateTime? startedAt,
+    int guestPriceInr = 0,
+    bool guestRequestsOpen = true,
+    bool hostVideoEnabled = true,
+  }) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => LiveScreen(
+          sessionId: id,
+          title: title,
+          mode: LiveMode.host,
+          startedAt: startedAt,
+          guestPriceInr: guestPriceInr,
+          guestRequestsOpen: guestRequestsOpen,
+          hostVideoEnabled: hostVideoEnabled,
+        ),
+      ),
+    );
+    _load();
+  }
+
+  Future<void> _end(LiveSession s) async {
+    setState(() => _busy = true);
     try {
-      _say(await _svc.clearDaily());
+      await LiveService.instance.endLive(s.id);
+      if (!mounted) return;
+      setState(() => _note = 'The broadcast has ended.');
     } catch (e) {
-      _say(adminDetail(e));
+      if (!mounted) return;
+      setState(() => _note = e.toString().replaceFirst('Exception: ', ''));
     }
+    setState(() => _busy = false);
+    _load();
   }
-
-  Widget _heading(String t) => Padding(
-    padding: const EdgeInsets.fromLTRB(2, 22, 2, 10),
-    child: Text(
-      t,
-      style: const TextStyle(
-        color: IvoryColors.plum,
-        fontSize: 11.5,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 2.4,
-      ),
-    ),
-  );
-
-  /// CC.220 - the steering wheel: draw history, the free board's
-  /// top ten with their carried numbers, and the stamp census.
-  /// Aggregates only - no bodies, no names.
-  Widget _reportCard(Map<String, dynamic> r) {
-    final List<dynamic> draws = r['draws'] as List? ?? <dynamic>[];
-    final List<dynamic> board = r['board'] as List? ?? <dynamic>[];
-    final Map<String, dynamic> st =
-        Map<String, dynamic>.from(r['stamps'] as Map? ?? <String, dynamic>{});
-    TextStyle small(bool bold) => TextStyle(
-      fontSize: 12.5,
-      height: 1.45,
-      color: IvoryColors.burgundy.withValues(alpha: bold ? 1 : 0.78),
-      fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
-    );
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: IvoryTheme.card(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Waiting: ${r['waiting_paid']} members\' letters at the front, '
-            '${r['waiting_free']} free letters in the board behind them.',
-            style: small(true),
-          ),
-          const SizedBox(height: 10),
-          Text('SATURDAY DRAWS', style: small(true)),
-          if (draws.isEmpty)
-            Text('No Saturday letter has been drawn yet.', style: small(false))
-          else
-            ...draws.map((dynamic d) => Text(
-              'Week of ${d['week_start']}: '
-              '${d['answered'] == true ? 'answered by Ivory' : 'with Ivory now'}',
-              style: small(false),
-            )),
-          const SizedBox(height: 10),
-          Text('THE FREE BOARD (TOP TEN)', style: small(true)),
-          if (board.isEmpty)
-            Text('No free letter stands in the Line yet.', style: small(false))
-          else
-            ...board.map((dynamic b) => Text(
-              '#${b['pos']} - carried by ${b['lit']} lit days, '
-              '${b['bell']} bell days, ${b['wait']} days of waiting',
-              style: small(false),
-            )),
-          const SizedBox(height: 10),
-          Text(
-            'Stamps across the house: Presence ${st['presence_n'] ?? 0} - '
-            'Ring ${st['ring_n'] ?? 0} - Voice ${st['voice_n'] ?? 0} - '
-            'Invitation ready ${st['invited_n'] ?? 0}.',
-            style: small(true),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _stat(String label, String value) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: IvoryTheme.card(),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          label.toUpperCase(),
-          style: const TextStyle(
-            color: IvoryColors.plum,
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: IvoryColors.burgundy,
-            fontFamily: IvoryTheme.displayFont,
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _viewChip(String key, String label) => ChoiceChip(
-    label: Text(label),
-    selected: _view == key,
-    selectedColor: IvoryColors.burgundy,
-    labelStyle: TextStyle(
-      color: _view == key ? IvoryColors.ivory : IvoryColors.burgundy,
-      fontWeight: FontWeight.w800,
-      letterSpacing: 1,
-    ),
-    onSelected: (_) => setState(() => _view = key),
-  );
-
-  Widget _filterChip(String key, String label) => ChoiceChip(
-    label: Text(label),
-    selected: _filter == key,
-    selectedColor: IvoryColors.plum,
-    labelStyle: TextStyle(
-      color: _filter == key ? IvoryColors.ivory : IvoryColors.plum,
-      fontWeight: FontWeight.w700,
-    ),
-    onSelected: (_) {
-      setState(() => _filter = key);
-      _load();
-    },
-  );
-
-  Widget _tile(Map<String, dynamic> l) {
-    final DateTime? t = DateTime.tryParse('${l['created_at']}')?.toLocal();
-    final String status = '${l['status']}';
-    final List<String> bits = <String>[
-      '${l['tier_name'] ?? 'tier'}',
-      'rung ${l['rung'] ?? 0}',
-      if (t != null) earlyClock(t),
-      if (status == 'read') 'read',
-      if (status == 'held') 'held: ${l['hold_reason'] ?? ''}',
-      if (l['muted'] == true) 'muted',
-      if (l['allow_share'] == true) 'may be shared',
-    ];
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: IvoryTheme.card(),
-      child: ListTile(
-        onTap: () => _openLetter((l['id'] as num).toInt()),
-        title: Text(
-          '${l['name']}',
-          style: const TextStyle(
-            color: IvoryColors.burgundy,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              bits.join('  \u00B7  '),
-              style: const TextStyle(color: IvoryColors.plum, fontSize: 12),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${l['preview'] ?? ''}',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: IvoryColors.plum),
-            ),
-          ],
-        ),
-        trailing: const Icon(Icons.chevron_right, color: IvoryColors.plum),
-      ),
-    );
-  }
-
-  Widget _lettersView() {
-    final String none = _filter == 'held'
-        ? 'Nothing is held for a look.'
-        : _filter == 'answered'
-            ? 'No letters answered yet.'
-            : 'No letters are waiting.';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          children: <Widget>[
-            _filterChip('waiting', 'WAITING'),
-            _filterChip('held', 'HELD'),
-            _filterChip('answered', 'ANSWERED'),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (_letters.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Text(
-              none,
-              style: const TextStyle(color: IvoryColors.plum),
-            ),
-          )
-        else
-          ..._letters.map(_tile),
-        if (_filter == 'waiting')
-          const Padding(
-            padding: EdgeInsets.only(top: 6),
-            child: Text(
-              'Order: the longest wait first, with a small head start for the '
-              'member\u2019s tier and rung. Opening a letter tells the member '
-              'it was read.',
-              style: TextStyle(color: IvoryColors.plum, fontSize: 12),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _templatesView() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      _heading('REPLY LINES (TAP TO EDIT)'),
-      ..._templates.map(
-        (Map<String, dynamic> t) => Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: IvoryTheme.card(),
-          child: ListTile(
-            onTap: () => _editTemplate(t),
-            title: Text(
-              '${t['title']}',
-              style: const TextStyle(
-                color: IvoryColors.burgundy,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            subtitle: Text(
-              '${t['body']}',
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: IvoryColors.plum),
-            ),
-            trailing: const Icon(Icons.edit_outlined, color: IvoryColors.plum),
-          ),
-        ),
-      ),
-      OutlinedButton.icon(
-        onPressed: () => _editTemplate(null),
-        icon: const Icon(Icons.add),
-        label: const Text('NEW REPLY LINE'),
-      ),
-      _heading('LETTER OF THE DAY'),
-      const Text(
-        'Share an answered letter from its own screen (only if the member '
-        'allowed it). It shows on every member\u2019s Home for two days, '
-        'never with a name.',
-        style: TextStyle(color: IvoryColors.plum),
-      ),
-      const SizedBox(height: 10),
-      OutlinedButton(
-        onPressed: _takeDown,
-        child: const Text('TAKE DOWN THE LETTER OF THE DAY'),
-      ),
-    ],
-  );
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Text(
-          _error!,
-          style: const TextStyle(color: IvoryColors.burgundy),
-        ),
-      );
-    }
-    final int clear = (_data['days_to_clear'] as num?)?.toInt() ?? 0;
+    final LiveSession? live = _onAir;
+
     return RefreshIndicator(
+      color: IvoryColors.amber,
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 40),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: <Widget>[
-          _heading('THE NUMBERS'),
-          AdminStatGrid(
+          if (live != null) _onAirCard(live) else _setupCard(),
+          const SizedBox(height: 22),
+          if (_gifts.isNotEmpty) ...<Widget>[
+            const AdminLabel('Gifts'),
+            ..._gifts.take(20).map(_giftRow),
+            const SizedBox(height: 18),
+          ],
+          if (_sessions.length > (live == null ? 0 : 1)) ...<Widget>[
+            const AdminLabel('Earlier broadcasts'),
+            ..._sessions
+                .where((LiveSession s) => !s.isLive)
+                .map(_historyRow),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _onAirCard(LiveSession s) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: IvoryColors.goldGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: IvoryTheme.softShadow(blur: 20, y: 7),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text(
+            'YOU ARE ON AIR',
+            style: TextStyle(
+              color: IvoryColors.burgundy,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.6,
+            ),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            s.title,
+            style: const TextStyle(
+              color: IvoryColors.burgundy,
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_elapsed(s)}  -  ${s.viewerCount} watching, only you',
+            style: TextStyle(
+              color: IvoryColors.burgundy.withValues(alpha: 0.78),
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
             children: <Widget>[
-              _stat('Waiting', '${_data['waiting'] ?? 0}'),
-              _stat('Held for a look', '${_data['held'] ?? 0}'),
-              _stat('Answered today', '${_data['answered_today'] ?? 0}'),
-              _stat('To clear the queue', clear <= 1 ? '1 day' : '$clear days'),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: IvoryColors.burgundy,
+                    foregroundColor: IvoryColors.cream,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                  ),
+                  onPressed: () => _open(
+                    s.id,
+                    s.title,
+                    startedAt: s.startedAt,
+                    guestPriceInr: s.guestPriceInr,
+                    guestRequestsOpen: s.guestRequestsOpen,
+                    hostVideoEnabled: s.hostVideoEnabled,
+                  ),
+                  icon: const Icon(Icons.videocam_rounded, size: 19),
+                  label: const Text('OPEN THE ROOM'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: IvoryColors.burgundy,
+                    side: const BorderSide(
+                        color: IvoryColors.burgundy, width: 1.4),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                  ),
+                  onPressed: _busy ? null : () => _end(s),
+                  child: const Text('END'),
+                ),
+              ),
             ],
           ),
-          if (_report != null) ...<Widget>[
-            _heading('THE SATURDAY DRAW & THE FREE BOARD'),
-            _reportCard(_report!),
-            const SizedBox(height: 14),
-          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _setupCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: IvoryTheme.card(highlighted: true),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const IvoryEyebrow('A broadcast, not a call',
+              icon: Icons.podcasts_rounded),
+          const SizedBox(height: 10),
+          Text(
+            'Everyone entitled may watch, nobody but you speaks, and they '
+            'take part by writing to you on screen.',
+            style: TextStyle(
+              fontSize: 13.5,
+              height: 1.5,
+              color: IvoryColors.textSoft,
+            ),
+          ),
+          const SizedBox(height: 18),
+          const AdminLabel('Title'),
+          TextField(
+            controller: _title,
+            decoration: const InputDecoration(
+              hintText: 'Tonight, only for you',
+            ),
+          ),
           const SizedBox(height: 14),
+          const AdminLabel('A line underneath (optional)'),
+          TextField(
+            controller: _subtitle,
+            decoration: const InputDecoration(
+              hintText: 'Stay as long as you like',
+            ),
+          ),
+          const SizedBox(height: 18),
+          const AdminLabel('Who may watch'),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: <Widget>[
-              _viewChip('letters', 'LETTERS'),
-              _viewChip('settings', 'SETTINGS'),
-              _viewChip('templates', 'REPLY LINES'),
+              ...audienceMixChips(
+                who: _who,
+                tiers: _tiers,
+                onChange: (Set<int> v) => setState(() => _who = v),
+              ),
+              AdminSelectChip(
+                label: 'Pay per view',
+                icon: Icons.currency_rupee_rounded,
+                selected: _payPerView,
+                onTap: () => setState(() => _payPerView = !_payPerView),
+              ),
             ],
           ),
-          if (_view == 'letters') _lettersView(),
-          if (_view == 'settings')
-            AdminLineSettings(data: _data, onSaved: _load),
-          if (_view == 'templates') _templatesView(),
+          const SizedBox(height: 8),
+          Text(
+            'Pick any mix - Forever Members, one tier, several tiers, or '
+            'nobody at all. Pay per view adds a paid way in for everyone '
+            'not picked.',
+            style: TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
+          ),
+          if (_payPerView) ...<Widget>[
+            const SizedBox(height: 16),
+            const AdminLabel('Price in rupees'),
+            TextField(
+              controller: _price,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(hintText: '499'),
+            ),
+          ],
+          const SizedBox(height: 14),
+          AdminLiveGuestFee(controller: _guestPrice),
+          if (_note != null) ...<Widget>[
+            const SizedBox(height: 14),
+            Text(
+              _note!,
+              style: TextStyle(fontSize: 13, color: IvoryColors.plum),
+            ),
+          ],
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _openBeautyPreview,
+            icon: const Icon(Icons.face_retouching_natural_rounded),
+            label: const Text('PREVIEW BEAUTY'),
+          ),
+          const SizedBox(height: 8),
+          IvoryGradientButton(
+            label: _busy ? 'GOING LIVE...' : 'GO LIVE NOW',
+            icon: Icons.sensors_rounded,
+            onPressed: _busy ? null : _goLive,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Everyone entitled is pushed the moment you tap this, and the '
+            'gold banner appears on their Home screen.',
+            style: TextStyle(fontSize: 12, color: IvoryColors.textFaint),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _setTag(String? surface) {
+    if (surface != 'post' && surface != 'live') {
+      return const SizedBox.shrink();
+    }
+    return GiftSurfaceTag(surface: GiftSurface.fromDb(surface), owner: true);
+  }
+
+  Widget _giftRow(GiftSend g) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(13),
+      decoration: IvoryTheme.card(highlighted: g.isPending),
+      child: Row(
+        children: <Widget>[
+          Text(g.emoji, style: const TextStyle(fontSize: 24)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        '${g.name} - \u20B9${g.amountInr}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: IvoryColors.burgundy,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    _setTag(_giftSets[g.name]),
+                  ],
+                ),
+                Text(
+                  '${g.sender ?? 'A member'}'
+                  '${g.utr == null ? ' - no reference yet' : ' - ' + g.utr!}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: IvoryColors.textFaint,
+                  ),
+                ),
+                if (g.note != null && g.note!.trim().isNotEmpty) ...<Widget>[
+                  Text(
+                    '"${g.note}"',
+                    style: TextStyle(
+                      fontSize: 12.3,
+                      fontStyle: FontStyle.italic,
+                      color: IvoryColors.textSoft,
+                    ),
+                  ),
+                  if (_noteFlags[g.id]?.postId != null)
+                    GestureDetector(
+                      onTap: () async {
+                        await LiveService.instance
+                            .setGiftNoteHidden(
+                                g.id, !(_noteFlags[g.id]?.hidden ?? false));
+                        _load();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 3, bottom: 1),
+                        child: Text(
+                          (_noteFlags[g.id]?.hidden ?? false)
+                              ? 'HIDDEN FROM THE POST - TAP TO SHOW'
+                              : 'HIDE THIS LINE FROM THE POST',
+                          style: TextStyle(
+                            fontSize: 10.2,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.7,
+                            color: (_noteFlags[g.id]?.hidden ?? false)
+                                ? IvoryColors.danger
+                                : IvoryColors.plum.withValues(alpha: 0.72),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
+          if (g.isPending)
+            TextButton(
+              onPressed: () async {
+                await LiveService.instance.confirmGift(g.id);
+                _load();
+              },
+              child: const Text('CONFIRM'),
+            )
+          else
+            Icon(
+              g.isConfirmed
+                  ? Icons.verified_rounded
+                  : Icons.block_rounded,
+              size: 19,
+              color: g.isConfirmed
+                  ? IvoryColors.gold
+                  : IvoryColors.textFaint,
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _elapsed(LiveSession s) {
+    final DateTime? start = s.startedAt;
+    if (start == null) return 'on air';
+    final Duration d = DateTime.now().difference(start);
+    final String h = d.inHours > 0 ? '${d.inHours}:' : '';
+    final String m = (d.inMinutes % 60)
+        .toString()
+        .padLeft(d.inHours > 0 ? 2 : 1, '0');
+    final String sec = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return 'on air $h$m:$sec';
+  }
+
+  Widget _historyRow(LiveSession s) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: IvoryTheme.card(),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.history_rounded,
+              size: 19, color: IvoryColors.textFaint),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  s.title,
+                  style: const TextStyle(
+                    color: IvoryColors.burgundy,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  s.status == 'ended' ? 'Ended' : 'Scheduled',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: IvoryColors.textFaint,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-// END OF FILE - lib/screens/admin_line_tab.dart
+// END OF FILE - lib/screens/admin_live_tab.dart
