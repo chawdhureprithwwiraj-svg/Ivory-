@@ -54,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
     try {
       LineService.instance.refresh();
-      LineService.instance.freeState().then((Map<String, dynamic>? m) {
+      LineService.instance.freeState(force: true).then((Map<String, dynamic>? m) {
         if (mounted) setState(() => _free = m);
       });
       final IvoryProfile? p = await AuthService.instance.loadProfile();
