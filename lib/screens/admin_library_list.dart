@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../core/ivory_errors.dart';
+import '../models/ivory_post.dart';
 import '../services/admin_service.dart';
+import '../services/content_service.dart';
 import '../theme/ivory_theme.dart';
 import 'admin_edit_post.dart';
 
@@ -29,6 +31,11 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
   /// Ids on Ivory's Firstlist. Read from the database on every load so
   /// the stars always show the truth, never a guess kept in the app.
   Set<int> _firstlist = <int>{};
+
+  /// The Firstlist in the very order the members see it, so every star
+  /// can wear its true number and the house can rearrange the shelf.
+  List<int> _order = <int>[];
+  bool _reordering = false;
   bool _loading = true;
 
   @override
@@ -56,8 +63,17 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
       } catch (_) {
         onList = <int>{};
       }
+      List<int> order = <int>[];
+      try {
+        final List<IvoryPost> fl =
+            await ContentService.instance.fetchFirstlist();
+        order = fl.map((IvoryPost p) => p.id).toList();
+      } catch (_) {
+        order = onList.toList();
+      }
       if (!mounted) return;
       _firstlist = onList;
+      _order = order;
       setState(() {
         _items = rows;
         _loading = false;
@@ -161,10 +177,87 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
     }
   }
 
+  /// Moves one post to a new place on the Firstlist.
+  ///
+  /// The database appends every newly starred post to the end, so a
+  /// rearrange is honest and simple: lift the tail of the list off, and
+  /// set it back down in the new order. The members' rail follows at
+  /// once, because it reads the same order the database keeps.
+  Future<void> _move(int id, int newPos) async {
+    if (_reordering) return;
+    final List<int> old = List<int>.from(_order);
+    if (!old.contains(id)) return;
+    final List<int> next = List<int>.from(old)..remove(id);
+    newPos = newPos.clamp(0, next.length);
+    next.insert(newPos, id);
+    int first = 0;
+    while (first < old.length && old[first] == next[first]) {
+      first++;
+    }
+    if (first >= old.length) return;
+    final List<int> suffix = next.sublist(first);
+    setState(() => _reordering = true);
+    try {
+      for (final int s in suffix) {
+        await AdminService.instance.setFirstlist(s, false);
+      }
+      for (final int s in suffix) {
+        await AdminService.instance.setFirstlist(s, true);
+      }
+      await _load();
+      _toast('The Firstlist stands in its new order.');
+    } catch (e) {
+      await _load();
+      _toast(houseMessage(e), bad: true);
+    } finally {
+      if (mounted) setState(() => _reordering = false);
+    }
+  }
+
+  Future<void> _moveDialog(int id, int pos) async {
+    final TextEditingController c = TextEditingController(
+      text: '${pos + 1}',
+    );
+    final int? n = await showDialog<int>(
+      context: context,
+      builder: (BuildContext x) => AlertDialog(
+        backgroundColor: IvoryColors.surface,
+        title: const Text('Move to which place?',
+            style: TextStyle(color: IvoryColors.burgundy)),
+        content: TextField(
+          controller: c,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: 'Place 1 to ${_order.length}',
+            labelStyle: TextStyle(color: IvoryColors.textSoft),
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(x).pop(),
+            style: TextButton.styleFrom(foregroundColor: IvoryColors.plum),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () {
+              final int v = int.tryParse(c.text.trim()) ?? 0;
+              Navigator.of(x).pop(v);
+            },
+            style: TextButton.styleFrom(foregroundColor: IvoryColors.gold),
+            child: const Text('MOVE'),
+          ),
+        ],
+      ),
+    );
+    if (n == null || n < 1 || n > _order.length) return;
+    await _move(id, n - 1);
+  }
+
   Widget _row(Map<String, dynamic> p) {
     final int id = ((p['id'] as num?) ?? 0).toInt();
     final bool live = p['is_published'] == true;
     final bool pinned = _firstlist.contains(id);
+    final int pos = _order.indexOf(id);
     final int tier = ((p['tier_required'] as num?) ?? 0).toInt();
 
     // SPRINT 24i - a post sold on its own carries a price and a
@@ -233,10 +326,63 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
             },
           ),
 
+          // ---- Ivory's Firstlist: its true place on the shelf ----
+          if (pinned && pos >= 0) ...<Widget>[
+            GestureDetector(
+              onTap: _reordering ? null : () => _moveDialog(id, pos),
+              child: Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: IvoryColors.gold,
+                ),
+                child: Text(
+                  '${pos + 1}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Earlier on the Firstlist',
+              visualDensity: VisualDensity.compact,
+              icon: Icon(Icons.keyboard_arrow_up,
+                  size: 22,
+                  color: pos > 0 && !_reordering
+                      ? IvoryColors.plum
+                      : IvoryColors.textFaint),
+              onPressed:
+                  pos > 0 && !_reordering ? () => _move(id, pos - 1) : null,
+            ),
+            IconButton(
+              tooltip: 'Later on the Firstlist',
+              visualDensity: VisualDensity.compact,
+              icon: Icon(Icons.keyboard_arrow_down,
+                  size: 22,
+                  color: pos >= 0 && pos < _order.length - 1 && !_reordering
+                      ? IvoryColors.plum
+                      : IvoryColors.textFaint),
+              onPressed: pos >= 0 && pos < _order.length - 1 && !_reordering
+                  ? () => _move(id, pos + 1)
+                  : null,
+            ),
+          ],
+          if (_reordering && pinned)
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+
           // ---- Ivory's Firstlist ----
           IconButton(
             tooltip: pinned
-                ? 'On Ivory\u2019s Firstlist'
+                ? 'On Ivory\u2019s Firstlist - place ${pos + 1}'
                 : 'Add to Ivory\u2019s Firstlist',
             visualDensity: VisualDensity.compact,
             icon: Icon(
