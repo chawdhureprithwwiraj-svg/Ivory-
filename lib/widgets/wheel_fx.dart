@@ -15,6 +15,7 @@ class WofSound {
   ];
   static final Map<String, VideoPlayerController> _c =
       <String, VideoPlayerController>{};
+  static final Set<String> _failed = <String>{};
   static bool _loading = false;
 
   /// Open the players two at a time, like the house sound bank, so the
@@ -49,10 +50,12 @@ class WofSound {
         await c.dispose();
       }
     }
+    _failed.add(n);
   }
 
   /// Play from the top; the recording's own tail does the fading.
   static void play(String n) {
+    if (_failed.contains(n)) return;
     final VideoPlayerController? c = _c[n];
     if (c == null || !c.value.isInitialized) {
       _open(n).then((_) => play(n));
