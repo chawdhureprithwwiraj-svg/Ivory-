@@ -31,6 +31,8 @@ class LineCard extends StatefulWidget {
 class _LineCardState extends State<LineCard> {
   LineService get _svc => LineService.instance;
 
+  Map<String, dynamic>? _free;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +40,9 @@ class _LineCardState extends State<LineCard> {
     _svc.draft.addListener(_changed);
     _svc.loadDraft();
     _svc.refresh();
+    _svc.freeState().then((Map<String, dynamic>? f) {
+      if (mounted) setState(() => _free = f);
+    });
   }
 
   @override
@@ -92,8 +97,8 @@ class _LineCardState extends State<LineCard> {
       return ('Your letters are resting', 'A new one frees up as the days pass.');
     }
     return draft
-        ? ('Your letter is kept for you', 'Ivory has not seen it. It is ready to send the moment you join.')
-        : ('Write to Ivory', 'Part of a paid membership. Write your letter now; it is ready to send the moment you join.');
+        ? ('Your letter is kept for you', 'Seal it into the Line today - it stands in the queue even before you join.')
+        : ('Write to Ivory', 'Seal a letter into the Line today. It stands in the queue even before you join - membership simply carries it to the front.');
   }
 
   @override
@@ -188,6 +193,29 @@ class _LineCardState extends State<LineCard> {
                         height: 1.35,
                       ),
                     ),
+                    if (!s.paid && _free != null && _free!['position'] != null) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Your letter stands at number ${_free!['position']} in the Line.',
+                        style: const TextStyle(
+                          color: IvoryColors.burgundy,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                    if (!s.paid) ...<Widget>[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Skip the Line: members read first - and more than one '
+                        'road lowers the price.',
+                        style: TextStyle(
+                          color: IvoryColors.burgundy.withValues(alpha: 0.75),
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                     if (s.answeredToday > 0) ...<Widget>[
                       const SizedBox(height: 8),
                       Text(
