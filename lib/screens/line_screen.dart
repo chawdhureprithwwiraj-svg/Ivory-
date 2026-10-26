@@ -503,6 +503,7 @@ class _LineScreenState extends State<LineScreen>
                 ],
                 LineShelves(
                   free: _free,
+                  paid: s.paid,
                   draw: _draw,
                   daily: _daily,
                   onDraw: _drawNow,
