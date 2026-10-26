@@ -99,7 +99,7 @@ class _LadderNextGiftState extends State<LadderNextGift> {
           border: Border.all(color: LadderTones.mint.withValues(alpha: 0.22)),
         ),
         child: SizedBox(
-          height: 96,
+          height: 120,
           child: Center(
             child: Text(
               _asked
@@ -134,8 +134,12 @@ class _LadderNextGiftState extends State<LadderNextGift> {
         ),
         border: Border.all(color: LadderTones.mint.withValues(alpha: 0.22)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: SizedBox(
+        // CC.216: one exact height for asking, empty and full alike -
+        // the last place the ladder could change height under a thumb.
+        height: 120,
+        child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Container(
             width: 46,
@@ -157,6 +161,7 @@ class _LadderNextGiftState extends State<LadderNextGift> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 const Text(
                   'YOUR NEXT GIFT',
@@ -170,6 +175,8 @@ class _LadderNextGiftState extends State<LadderNextGift> {
                 const SizedBox(height: 8),
                 Text(
                   'Climb to $rung and earn ${_what(g)} a membership.',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -183,6 +190,8 @@ class _LadderNextGiftState extends State<LadderNextGift> {
                   'It comes as a personal code'
                   '${days > 0 ? ' that lasts $days days' : ''}, for a '
                   'membership bought separately.',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: LadderTones.pearl,
                     fontSize: 12.5,
@@ -194,6 +203,7 @@ class _LadderNextGiftState extends State<LadderNextGift> {
           ),
         ],
       ),
+        ),
     );
   }
 }
