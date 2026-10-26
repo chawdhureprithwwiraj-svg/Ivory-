@@ -418,6 +418,20 @@ class _LineScreenState extends State<LineScreen>
     );
   }
 
+  /// CC.219 - pull the Saturday evening cord, then refresh the shelves.
+  Future<void> _drawNow() async {
+    final String? m = await _svc.saturdayDraw();
+    if (m != null) _say(m);
+    final Map<String, dynamic>? d = await _svc.saturdayState(force: true);
+    final LineDaily? dd = await _svc.dailyToday(force: true);
+    if (mounted) {
+      setState(() {
+        _draw = d;
+        _daily = dd;
+      });
+    }
+  }
+
   String _blocked(LineState s) {
     switch (s.whyNot) {
       case 'resting':
