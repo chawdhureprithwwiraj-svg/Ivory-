@@ -336,7 +336,7 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'One tap is enough: "Make it 1st" leaps to the top from '
               "anywhere. The members' rail follows at once.",
               style: TextStyle(color: IvoryColors.textSoft, fontSize: 11.5),
@@ -352,7 +352,9 @@ class _AdminLibraryListState extends State<AdminLibraryList> {
         backgroundColor: bg,
         foregroundColor: fg,
         disabledBackgroundColor: disabled,
-        borderRadius: BorderRadius.circular(20),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
       );
 
   /// CC.218 - swap two places in one gesture: move A onto B, then B onto A.
