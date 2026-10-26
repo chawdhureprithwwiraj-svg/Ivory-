@@ -245,16 +245,6 @@ class _HeartSheetState extends State<HeartSheet>
                 child: SparkleField(count: 14, seed: 3),
               ),
             ),
-            Positioned(
-              top: 2,
-              left: 2,
-              child: IconButton(
-                tooltip: 'Back',
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back,
-                    color: IvoryColors.cream, size: 22),
-              ),
-            ),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
@@ -331,6 +321,22 @@ class _HeartSheetState extends State<HeartSheet>
                 ),
               ),
             ],
+            // CC.217: painted LAST so it is hit-tested FIRST. The heart
+            // visual above carries its own tap-gesture across the whole
+            // top of the sheet; an arrow painted beneath it was swallowed
+            // by that gesture every single time - which is why the back
+            // arrow never answered, in any build, until now.
+            Positioned(
+              top: 2,
+              left: 2,
+              child: IconButton(
+                tooltip: 'Back',
+                onPressed: () =>
+                    Navigator.of(context, rootNavigator: true).pop(),
+                icon: const Icon(Icons.arrow_back,
+                    color: IvoryColors.cream, size: 24),
+              ),
+            ),
           ],
         ),
       ),
