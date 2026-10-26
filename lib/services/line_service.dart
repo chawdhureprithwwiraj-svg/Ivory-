@@ -381,6 +381,28 @@ class LineService {
     }
   }
 
+
+  DateTime? _repAt;
+  Map<String, dynamic>? _rep;
+
+  /// CC.220 - the steering wheel for the admin Line tab: draw
+  /// history, the free board's top ten, stamp counts. Aggregates
+  /// only - no bodies, no names. Cached five minutes.
+  Future<Map<String, dynamic>?> adminReport({bool force = false}) async {
+    final DateTime? at = _repAt;
+    if (!force && at != null && DateTime.now().difference(at).inMinutes < 5) {
+      return _rep;
+    }
+    try {
+      final dynamic r = await _db.rpc('line_admin_report');
+      _rep = r is Map ? Map<String, dynamic>.from(r) : null;
+      _repAt = DateTime.now();
+    } catch (_) {
+      _rep = null;
+    }
+    return _rep;
+  }
+
   // ---------------------------------------------------------------
   // The draft: kept on this phone only. Ivory has not seen it.
   // ---------------------------------------------------------------
