@@ -291,6 +291,96 @@ class LineService {
     } catch (_) {}
   }
 
+
+  // ---------------------------------------------------------------
+  // CC.219 - THE LINE ECONOMY: free letters enter the Line, the free
+  // queue ranks by devotion, stamps and the Saturday evening draw.
+  // Every call is kind when the house has not built its side yet.
+  // ---------------------------------------------------------------
+
+  /// Seals a Forever member's letter INTO the Line (no hard gate).
+  Future<LineSendResult> queueJoin(String body, {bool share = false}) async {
+    try {
+      final dynamic r = await _db.rpc(
+        'line_queue_join',
+        params: <String, dynamic>{'body_in': body, 'share_in': share},
+      );
+      final Map<String, dynamic> m = _map(r);
+      final bool ok = m['ok'] == true;
+      if (ok) {
+        await clearDraft();
+        await refresh(force: true);
+        await freeState(force: true);
+      }
+      return LineSendResult(
+        ok,
+        '${m['message'] ?? ''}',
+        false,
+      );
+    } catch (_) {
+      return const LineSendResult(
+        false,
+        'That did not go through. Your letter is still here. Please try again.',
+      );
+    }
+  }
+
+  Map<String, dynamic>? _free;
+  DateTime? _freeAt;
+
+  /// The member's place in the free queue, their stamps and the
+  /// Invitation. Null until the house's SQL spine exists or the
+  /// database cannot be reached - the screens then simply hide
+  /// those shelves. Cached for five minutes.
+  Future<Map<String, dynamic>?> freeState({bool force = false}) async {
+    final DateTime? at = _freeAt;
+    if (!force && at != null && DateTime.now().difference(at).inMinutes < 5) {
+      return _free;
+    }
+    try {
+      final dynamic r = await _db.rpc('line_free_state');
+      _free = r is Map ? Map<String, dynamic>.from(r) : null;
+      _freeAt = DateTime.now();
+    } catch (_) {
+      _free = null;
+    }
+    return _free;
+  }
+
+  DateTime? _drawAt;
+  Map<String, dynamic>? _draw;
+
+  /// This week's Saturday evening draw state: drawn or not, and who
+  /// was chosen (never a name). Cached for five minutes.
+  Future<Map<String, dynamic>?> saturdayState({bool force = false}) async {
+    final DateTime? at = _drawAt;
+    if (!force && at != null && DateTime.now().difference(at).inMinutes < 5) {
+      return _draw;
+    }
+    try {
+      final dynamic r = await _db.rpc('line_saturday_state');
+      _draw = r is Map ? Map<String, dynamic>.from(r) : null;
+      _drawAt = DateTime.now();
+    } catch (_) {
+      _draw = null;
+    }
+    return _draw;
+  }
+
+  /// Pulls the cord: draws this week's Saturday evening letter at
+  /// random. Any member present may pull it; luck alone chooses.
+  Future<String?> saturdayDraw() async {
+    try {
+      final dynamic r = await _db.rpc('line_saturday_draw');
+      final Map<String, dynamic> m = _map(r);
+      await saturdayState(force: true);
+      await dailyToday(force: true);
+      return '${m['message'] ?? ''}';
+    } catch (_) {
+      return 'The draw did not go through. Please try again.';
+    }
+  }
+
   // ---------------------------------------------------------------
   // The draft: kept on this phone only. Ivory has not seen it.
   // ---------------------------------------------------------------
