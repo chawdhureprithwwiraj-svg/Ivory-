@@ -266,17 +266,21 @@ class LineService {
 
   DateTime? _dailyAt;
   LineDaily? _daily;
+  String? _dailyUid;
 
   /// The Letter of the Day, or null. Cached for five minutes.
   Future<LineDaily?> dailyToday({bool force = false}) async {
+    final String uid = _uid;
     final DateTime? at = _dailyAt;
-    if (!force && at != null && DateTime.now().difference(at).inMinutes < 5) {
+    if (!force && _dailyUid == uid && at != null &&
+        DateTime.now().difference(at).inMinutes < 5) {
       return _daily;
     }
     try {
       final dynamic r = await _db.rpc('line_daily_today');
       _daily = r is Map ? LineDaily.fromMap(Map<String, dynamic>.from(r)) : null;
       _dailyAt = DateTime.now();
+      _dailyUid = uid;
     } catch (_) {}
     return _daily;
   }
@@ -327,20 +331,26 @@ class LineService {
 
   Map<String, dynamic>? _free;
   DateTime? _freeAt;
+  String? _freeUid;
 
   /// The member's place in the free queue, their stamps and the
   /// Invitation. Null until the house's SQL spine exists or the
   /// database cannot be reached - the screens then simply hide
   /// those shelves. Cached for five minutes.
+  String get _uid => '${_db.auth.currentUser?.id ?? ''}';
+
   Future<Map<String, dynamic>?> freeState({bool force = false}) async {
+    final String uid = _uid;
     final DateTime? at = _freeAt;
-    if (!force && at != null && DateTime.now().difference(at).inMinutes < 5) {
+    if (!force && _freeUid == uid && at != null &&
+        DateTime.now().difference(at).inMinutes < 5) {
       return _free;
     }
     try {
       final dynamic r = await _db.rpc('line_free_state');
       _free = r is Map ? Map<String, dynamic>.from(r) : null;
       _freeAt = DateTime.now();
+      _freeUid = uid;
     } catch (_) {
       _free = null;
     }
@@ -349,18 +359,22 @@ class LineService {
 
   DateTime? _drawAt;
   Map<String, dynamic>? _draw;
+  String? _drawUid;
 
   /// This week's Saturday evening draw state: drawn or not, and who
   /// was chosen (never a name). Cached for five minutes.
   Future<Map<String, dynamic>?> saturdayState({bool force = false}) async {
+    final String uid = _uid;
     final DateTime? at = _drawAt;
-    if (!force && at != null && DateTime.now().difference(at).inMinutes < 5) {
+    if (!force && _drawUid == uid && at != null &&
+        DateTime.now().difference(at).inMinutes < 5) {
       return _draw;
     }
     try {
       final dynamic r = await _db.rpc('line_saturday_state');
       _draw = r is Map ? Map<String, dynamic>.from(r) : null;
       _drawAt = DateTime.now();
+      _drawUid = uid;
     } catch (_) {
       _draw = null;
     }
@@ -384,19 +398,23 @@ class LineService {
 
   DateTime? _repAt;
   Map<String, dynamic>? _rep;
+  String? _repUid;
 
   /// CC.220 - the steering wheel for the admin Line tab: draw
   /// history, the free board's top ten, stamp counts. Aggregates
   /// only - no bodies, no names. Cached five minutes.
   Future<Map<String, dynamic>?> adminReport({bool force = false}) async {
+    final String uid = _uid;
     final DateTime? at = _repAt;
-    if (!force && at != null && DateTime.now().difference(at).inMinutes < 5) {
+    if (!force && _repUid == uid && at != null &&
+        DateTime.now().difference(at).inMinutes < 5) {
       return _rep;
     }
     try {
       final dynamic r = await _db.rpc('line_admin_report');
       _rep = r is Map ? Map<String, dynamic>.from(r) : null;
       _repAt = DateTime.now();
+      _repUid = uid;
     } catch (_) {
       _rep = null;
     }
