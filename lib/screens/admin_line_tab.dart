@@ -1,3 +1,4 @@
+import '../services/line_service.dart';
 import 'package:flutter/material.dart';
 
 import '../core/ivory_errors.dart';
@@ -42,6 +43,7 @@ class _AdminLineTabState extends State<AdminLineTab> {
   String _filter = 'waiting';
   bool _loading = true;
   String? _error;
+  Map<String, dynamic>? _report;
 
   @override
   void initState() {
@@ -57,6 +59,9 @@ class _AdminLineTabState extends State<AdminLineTab> {
   }
 
   Future<void> _load() async {
+    LineService.instance.adminReport(force: true).then((Map<String, dynamic>? r) {
+      if (mounted) setState(() => _report = r);
+    });
     if (widget.previewData != null) return;
     try {
       final Map<String, dynamic> d = await _svc.state();
@@ -179,6 +184,63 @@ class _AdminLineTabState extends State<AdminLineTab> {
       ),
     ),
   );
+
+  /// CC.220 - the steering wheel: draw history, the free board's
+  /// top ten with their carried numbers, and the stamp census.
+  /// Aggregates only - no bodies, no names.
+  Widget _reportCard(Map<String, dynamic> r) {
+    final List<dynamic> draws = r['draws'] as List? ?? <dynamic>[];
+    final List<dynamic> board = r['board'] as List? ?? <dynamic>[];
+    final Map<String, dynamic> st =
+        Map<String, dynamic>.from(r['stamps'] as Map? ?? <String, dynamic>{});
+    TextStyle small(bool bold) => TextStyle(
+      fontSize: 12.5,
+      height: 1.45,
+      color: IvoryColors.burgundy.withValues(alpha: bold ? 1 : 0.78),
+      fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+    );
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: IvoryTheme.card(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Waiting: ${r['waiting_paid']} members\' letters at the front, '
+            '${r['waiting_free']} free letters in the board behind them.',
+            style: small(true),
+          ),
+          const SizedBox(height: 10),
+          Text('SATURDAY DRAWS', style: small(true)),
+          if (draws.isEmpty)
+            Text('No Saturday letter has been drawn yet.', style: small(false))
+          else
+            ...draws.map((dynamic d) => Text(
+              'Week of ${d['week_start']}: '
+              '${d['answered'] == true ? 'answered by Ivory' : 'with Ivory now'}',
+              style: small(false),
+            )),
+          const SizedBox(height: 10),
+          Text('THE FREE BOARD (TOP TEN)', style: small(true)),
+          if (board.isEmpty)
+            Text('No free letter stands in the Line yet.', style: small(false))
+          else
+            ...board.map((dynamic b) => Text(
+              '#${b['pos']} - carried by ${b['lit']} lit days, '
+              '${b['bell']} bell days, ${b['wait']} days of waiting',
+              style: small(false),
+            )),
+          const SizedBox(height: 10),
+          Text(
+            'Stamps across the house: Presence ${st['presence_n'] ?? 0} - '
+            'Ring ${st['ring_n'] ?? 0} - Voice ${st['voice_n'] ?? 0} - '
+            'Invitation ready ${st['invited_n'] ?? 0}.',
+            style: small(true),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _stat(String label, String value) => Container(
     padding: const EdgeInsets.all(14),
@@ -399,6 +461,11 @@ class _AdminLineTabState extends State<AdminLineTab> {
               _stat('To clear the queue', clear <= 1 ? '1 day' : '$clear days'),
             ],
           ),
+          if (_report != null) ...<Widget>[
+            _heading('THE SATURDAY DRAW & THE FREE BOARD'),
+            _reportCard(_report!),
+            const SizedBox(height: 14),
+          ],
           const SizedBox(height: 14),
           Wrap(
             spacing: 8,
