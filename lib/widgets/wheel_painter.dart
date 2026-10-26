@@ -34,9 +34,9 @@ class WheelPainter extends CustomPainter {
           1);
     }
     final double k = 1 + t;
-    return Color.fromRGBO((c.red * k).round().clamp(0, 255),
-        (c.green * k).round().clamp(0, 255),
-        (c.blue * k).round().clamp(0, 255), 1);
+    return Color.fromRGBO((c.red * k).round().clamp(0, 255).toInt(),
+        (c.green * k).round().clamp(0, 255).toInt(),
+        (c.blue * k).round().clamp(0, 255).toInt(), 1);
   }
 
   @override
@@ -65,7 +65,6 @@ class WheelPainter extends CustomPainter {
             a0, arc, false)
         ..close();
       final Color base = s.color;
-      p.addRect(Rect.zero);
       final Paint fill = Paint()
         ..shader = RadialGradient(
           center: const Alignment(-0.15, -0.25),
