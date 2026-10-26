@@ -106,7 +106,7 @@ class LineShelves extends StatelessWidget {
     final Map<String, dynamic>? f = free;
     final List<Widget> out = <Widget>[];
     if (f != null && f['position'] != null) {
-      final int n(dynamic k) => (f[k] as num?)?.toInt() ?? 0;
+      int n(dynamic k) => (f[k] as num?)?.toInt() ?? 0;
       final int ahead = n('ahead');
       out.add(_heading('YOUR PLACE IN THE LINE'));
       out.add(_paper(Column(
