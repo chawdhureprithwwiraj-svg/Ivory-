@@ -292,8 +292,8 @@ class _WheelSalonState extends State<WheelSalon> {
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-              color: Color(0xFF4A0E17),
+          style: TextStyle(
+              color: const Color(0xFF4A0E17),
               fontSize: compact ? 13 : 14,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.6),
