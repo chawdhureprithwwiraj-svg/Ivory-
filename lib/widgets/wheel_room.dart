@@ -10,10 +10,12 @@ import 'wheel_salon.dart';
 /// The Wheel of Fans room.
 ///
 /// Inside the Gilded Hours, opened for the first time that window: the
-/// owner's film plays with its own sound (the feather, the hands, the
-/// light) — tap skips, the house never gates — then a burst of gold, the
-/// descent sound, and the wheel falls from the top of the sky onto its
-/// velvet. Outside the hours the room is the salon instead.
+/// owner's film plays with its own sound — tap skips, the house never
+/// gates — then a burst of gold, the descent sound, and the wheel falls
+/// from the top of the sky onto its velvet. At rest the wheel never
+/// sits: it turns slowly and regally under the living sky, names and
+/// rupees riding round like a court jewel. Outside the hours the room
+/// is the salon instead.
 class WheelRoom extends StatefulWidget {
   const WheelRoom({super.key, this.ceremony = false});
   final bool ceremony;
@@ -33,8 +35,7 @@ class WheelRoom extends StatefulWidget {
   State<WheelRoom> createState() => _WheelRoomState();
 }
 
-class _WheelRoomState extends State<WheelRoom>
-    with TickerProviderStateMixin {
+class _WheelRoomState extends State<WheelRoom> with TickerProviderStateMixin {
   String _phase = 'load'; // load film burst drop idle spin result
   VideoPlayerController? _film;
   Map<String, dynamic> _state = <String, dynamic>{};
@@ -48,6 +49,10 @@ class _WheelRoomState extends State<WheelRoom>
   late final AnimationController _shineC = AnimationController(
       vsync: this, duration: const Duration(seconds: 6))
     ..repeat();
+  // the regal idle turn: one full revolution every 44 seconds
+  late final AnimationController _idleC = AnimationController(
+      vsync: this, duration: const Duration(seconds: 44))
+    ..repeat();
   double _baseAngle = 0.0;
   double _targetAngle = 0.0;
   bool _useToken = false;
@@ -59,7 +64,7 @@ class _WheelRoomState extends State<WheelRoom>
     <dynamic>['₹7', 0xFFFF7A00, 'rupee'],
     <dynamic>['RESTS', 0xFFC0B7A6, 'rest'],
     <dynamic>['₹15', 0xFF00C853, 'rupee'],
-    <dynamic>['IMAGE', 0xFFC2185B, 'image'],
+    <dynamic>['IMAGE', 0xFF7C4DFF, 'image'],
     <dynamic>['₹21', 0xFFD50000, 'rupee'],
     <dynamic>['LETTER', 0xFFE91E63, 'letter'],
     <dynamic>['RESTS', 0xFFB0A692, 'rest'],
@@ -99,12 +104,15 @@ class _WheelRoomState extends State<WheelRoom>
     _fxC.addListener(() {
       if (mounted) setState(() {});
     });
+    _idleC.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   void _startFilm() {
     setState(() => _phase = 'film');
-    final VideoPlayerController c =
-        VideoPlayerController.asset('assets/wheels/opening_film_wheel_of_fans.mp4');
+    final VideoPlayerController c = VideoPlayerController.asset(
+        'assets/wheels/opening_film_wheel_of_fans.mp4');
     _film = c;
     c.initialize().then((_) {
       if (!mounted) return;
@@ -148,6 +156,7 @@ class _WheelRoomState extends State<WheelRoom>
     }
     if (_useToken && (st['tokens'] as int? ?? 0) < 1) _useToken = false;
     WofSound.play('spin');
+    _idleC.stop();
     setState(() => _phase = 'spin');
     final Map<String, dynamic> r =
         await WheelService.instance.spin(useToken: _useToken);
@@ -162,7 +171,7 @@ class _WheelRoomState extends State<WheelRoom>
     final int seg = (r['seg'] as int? ?? 0).clamp(0, 11).toInt();
     final double jitter = (math.Random().nextDouble() - 0.5) * 0.35;
     final double segCenter =
-        -(_spinC.value * 0) - (seg * (6.283185307 / 12)) - (6.283185307 / 24);
+        -(seg * (6.283185307 / 12)) - (6.283185307 / 24);
     _baseAngle = _currentAngle();
     _targetAngle = _baseAngle + 5 * 6.283185307 +
         (_norm(segCenter + jitter) - _norm(_baseAngle));
@@ -172,14 +181,15 @@ class _WheelRoomState extends State<WheelRoom>
   double _norm(double a) => a % 6.283185307;
 
   double _currentAngle() {
-    if (_phase == 'spin' || _spinC.value > 0) {
+    if (_phase == 'spin') {
       final double e = 1 - math.pow(1 - _spinC.value, 4).toDouble();
       return _baseAngle + (_targetAngle - _baseAngle) * e;
     }
-    return _targetAngle;
+    return _targetAngle + _idleC.value * 6.283185307;
   }
 
   void _land(Map<String, dynamic> r) {
+    _idleC.repeat(); // resumes from the frozen angle: no jump at the landing
     _prize = r;
     final Map<String, dynamic> p =
         Map<String, dynamic>.from(r['prize'] as Map? ?? <dynamic, dynamic>{});
@@ -210,6 +220,7 @@ class _WheelRoomState extends State<WheelRoom>
     _spinC.dispose();
     _fxC.dispose();
     _shineC.dispose();
+    _idleC.dispose();
     super.dispose();
   }
 
@@ -217,21 +228,12 @@ class _WheelRoomState extends State<WheelRoom>
   Widget build(BuildContext context) {
     if (_phase == 'salon') return const WheelSalon();
     return Material(
-      color: const Color(0xFF1E1B3A),
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[Color(0xFF1E1B3A), Color(0xFF4A0E17)],
-          ),
-        ),
-        child: Stack(
-          children: <Widget>[
-            const GoldDust(count: 22, color: Color(0x66E7B14C)),
-            SafeArea(child: _body()),
-          ],
-        ),
+      color: const Color(0xFF241033),
+      child: Stack(
+        children: <Widget>[
+          const WheelSky(dense: true),
+          SafeArea(child: _body()),
+        ],
       ),
     );
   }
@@ -245,49 +247,29 @@ class _WheelRoomState extends State<WheelRoom>
       return GestureDetector(
         onTap: _burst,
         child: Center(
-          child: (_film != null && _film!.value.isInitialized)
-              ? AspectRatio(
-                  aspectRatio: _film!.value.aspectRatio,
-                  child: VideoPlayer(_film!),
-                )
-              : Image.asset('assets/wheels/opening_poster.jpg',
-                  fit: BoxFit.cover),
+          child: AspectRatio(
+            aspectRatio: _film != null && _film!.value.isInitialized
+                ? _film!.value.aspectRatio
+                : 0.5625,
+            child: _film != null && _film!.value.isInitialized
+                ? VideoPlayer(_film!)
+                : const CircularProgressIndicator(
+                    color: Color(0xFFE7B14C)),
+          ),
         ),
       );
     }
-    final double dropY = _phase == 'burst'
-        ? -1.25
-        : (_phase == 'drop'
-            ? -1.25 + 1.25 * (1 - math.pow(1 - _drop.value, 3).toDouble())
-            : 0.0);
+    final double dropY = _phase == 'drop'
+        ? -1 + _drop.value
+        : (_phase == 'burst' ? -1 : 0);
     return Column(
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close, color: Color(0xFFE7B14C)),
-            ),
-            const Expanded(
-              child: Text(
-                'THE WHEEL OF FANS',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Color(0xFFFFE9B8),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2.6),
-              ),
-            ),
-            const SizedBox(width: 48),
-          ],
-        ),
+        WheelCrest(onClose: () => Navigator.pop(context)),
         Expanded(
           child: Stack(
             alignment: Alignment.center,
             children: <Widget>[
-              if (_phase == 'burst')
-                ConfettiBurst(t: 0.35, seed: 11),
+              if (_phase == 'burst') ConfettiBurst(t: 0.35, seed: 11),
               if (_phase == 'result' &&
                   (_prize['prize']?['kind'] == 'rupee' ||
                       _prize['prize']?['kind'] == 'choice')) ...<Widget>[
@@ -316,9 +298,8 @@ class _WheelRoomState extends State<WheelRoom>
                     'assets/wheels/wheel_feather.png',
                     height: 52,
                     fit: BoxFit.contain,
-                    errorBuilder:
-                        (BuildContext c, Object e, StackTrace? st) =>
-                            CustomPaint(
+                    errorBuilder: (BuildContext c, Object e, StackTrace? st) =>
+                        CustomPaint(
                       size: const Size(30, 34),
                       painter: _FeatherPointer(),
                     ),
@@ -340,7 +321,7 @@ class _WheelRoomState extends State<WheelRoom>
                     onPressed: () => Navigator.pop(context),
                     child: const Text('ENTER THE HOUSE',
                         style: TextStyle(
-                            color: Color(0xFFE7B14C), letterSpacing: 1.6)),
+                            color: Color(0xFFFFD98A), letterSpacing: 1.6)),
                   ),
                 ),
                 Expanded(
@@ -360,6 +341,7 @@ class _WheelRoomState extends State<WheelRoom>
 
   Widget _footer() {
     final int tokens = (_state['tokens'] as int? ?? 0);
+    final bool spinning = _phase == 'spin';
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 18),
       child: Column(
@@ -370,43 +352,54 @@ class _WheelRoomState extends State<WheelRoom>
               children: <Widget>[
                 Switch(
                   value: _useToken,
-                  onChanged: _phase == 'spin'
-                      ? null
-                      : (bool v) => setState(() => _useToken = v),
+                  onChanged: spinning ? null : (bool v) => setState(() => _useToken = v),
                   activeColor: const Color(0xFFE7B14C),
                 ),
-                const Text(
-                  'spend a Gilded Spin token (a rest becomes ₹3)',
-                  style: TextStyle(color: Color(0xFFF3E3C6), fontSize: 12.5),
+                const Flexible(
+                  child: Text(
+                    'spend a Gilded Spin token (a rest becomes ₹3)',
+                    style: TextStyle(color: Color(0xFFFFE9B8), fontSize: 12.5),
+                  ),
                 ),
               ],
             ),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _phase == 'spin' ? null : _doSpin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE7B14C),
-                foregroundColor: const Color(0xFF4A0E17),
+          Opacity(
+            opacity: spinning ? 0.6 : 1,
+            child: GestureDetector(
+              onTap: spinning ? null : _doSpin,
+              child: Container(
+                width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30)),
-                elevation: 8,
-              ),
-              child: Text(
-                _phase == 'spin' ? 'THE FEATHER DECIDES…' : 'SPIN',
-                style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 3),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: <Color>[Color(0xFFF0C060), Color(0xFFC98A2E)],
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: const Color(0xFF8A5E1C), width: 1.4),
+                  boxShadow: const <BoxShadow>[
+                    BoxShadow(
+                        color: Color(0x80E7B14C),
+                        blurRadius: 18,
+                        offset: Offset(0, 6)),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  spinning ? 'THE FEATHER DECIDES…' : 'SPIN',
+                  style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 3,
+                      color: Color(0xFF4A0E17)),
+                ),
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'purse ₹${_state['purse'] ?? 0} · streak ${_state['streak'] ?? 0} · '
-            'odds declared in the salon',
-            style: const TextStyle(color: Color(0xB3F3E3C6), fontSize: 12),
+            'fortunes declared in the salon',
+            style: const TextStyle(color: Color(0xCCFFE9B8), fontSize: 12),
           ),
         ],
       ),
@@ -460,7 +453,8 @@ class _WheelRoomState extends State<WheelRoom>
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFFE7B14C), width: 2),
           boxShadow: const <BoxShadow>[
-            BoxShadow(color: Color(0x80200A10), blurRadius: 26, offset: Offset(0, 10))
+            BoxShadow(
+                color: Color(0x80200A10), blurRadius: 26, offset: Offset(0, 10))
           ],
         ),
         child: Column(
@@ -504,16 +498,15 @@ class _WheelRoomState extends State<WheelRoom>
 }
 
 /// The pointer: a golden feather, painted — the owner's own feather art
-/// sits here in the release once uploaded; the painted stand-in keeps
-/// the shape honest until then.
+/// sits here in the release; the painted stand-in keeps the shape honest
+/// until then.
 class _FeatherPointer extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Path p = Path()
       ..moveTo(size.width / 2, size.height)
       ..quadraticBezierTo(0, size.height * 0.45, size.width / 2, 0)
-      ..quadraticBezierTo(size.width, size.height * 0.45,
-          size.width / 2, size.height);
+      ..quadraticBezierTo(size.width, size.height * 0.45, size.width / 2, size.height);
     final Paint f = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
