@@ -226,7 +226,7 @@ String _held(Map<String, dynamic> v) {
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
-            children: <Widget>['super', 'slow', 'sleeper'].map((String b) {
+            children: ['super', 'slow', 'sleeper'].map<Widget>((String b) {
               return GestureDetector(
                 onTap: () => _settle(b),
                 child: Container(
