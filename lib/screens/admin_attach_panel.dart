@@ -115,7 +115,7 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
   @override
   void didUpdateWidget(covariant AdminAttachPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.isPublished && !widget.isPublished && imageProvider == 'r2') {
+    if (oldWidget.isPublished && !widget.isPublished && imageProvider == 'r2pub') {
       imageProvider = 'b2';
     }
   }
@@ -273,9 +273,13 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
                 enabled: !widget.busy,
                 onChanged: (String v) => setState(() => imageProvider = v),
               ),
-            if (widget.type == 'video' || widget.type == 'audio')
+            if (widget.type != 'image')
               AdminStorageChoice(
-                title: 'VIDEO / VOICE STORAGE',
+                title: widget.type == 'video'
+                    ? 'VIDEO STORAGE'
+                    : widget.type == 'audio'
+                        ? 'VOICE STORAGE'
+                        : 'MEDIA STORAGE',
                 value: mediaProvider,
                 image: false,
                 enabled: !widget.busy,
@@ -361,17 +365,17 @@ class AdminAttachPanelState extends State<AdminAttachPanel>
                           onChanged: _refreshUsage,
                         ),
                   icon: const Icon(Icons.folder_open_outlined, size: 17),
-                  label: const Text('MANAGE R2 VAULT'),
+                  label: const Text('MANAGE THE VAULTS'),
                   style: TextButton.styleFrom(
                     foregroundColor: IvoryColors.burgundy,
                   ),
                 ),
               ),
-            if (widget.type == 'video' && mediaProvider == 'b2')
-              Text(
-                'The R2 manager lists R2 only. B2 files stay private; use Backblaze to inspect them.',
-                style: TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
-              ),
+            Text(
+              'The vault room lists both houses side by side - R2 and B2 - '
+              'with their counts and weights.',
+              style: TextStyle(fontSize: 11.5, color: IvoryColors.textFaint),
+            ),
             const SizedBox(height: 12),
             const AdminOrLine('or point at a link'),
             const SizedBox(height: 8),
