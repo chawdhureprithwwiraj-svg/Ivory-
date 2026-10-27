@@ -5,10 +5,11 @@ import 'package:video_player/video_player.dart';
 /// The Wheel of Fans — atmosphere and sound.
 ///
 /// Gold dust that falls and twinkles, confetti that bursts, coins that
-/// fly home to the purse, and the seven house sounds of the wheel. The
-/// sounds ride the same bench as the house sound bank: video_player on
-/// wav assets, so no new package ever enters the build. Every recording
-/// carries its own lingering tail; nothing ends on a beep.
+/// fly home to the purse, the dust ring that blooms where the wheel
+/// lands, and the seven house sounds of the wheel. The sounds ride the
+/// same bench as the house sound bank: video_player on wav assets, so no
+/// new package ever enters the build. Every recording carries its own
+/// lingering tail; nothing ends on a beep.
 class WofSound {
   static const List<String> names = <String>[
     'descent', 'spin', 'win', 'coin', 'rest', 'salon', 'petal'
@@ -141,7 +142,9 @@ class _DustPainter extends CustomPainter {
   bool shouldRepaint(_DustPainter o) => o.t != t;
 }
 
-/// A festival burst when the feather lands on a gift.
+/// A festival burst when the feather lands on a gift — and the living
+/// bridge when the film folds into light: [t] is 0..1 of the moment,
+/// driven by a controller so the burst MOVES (it once stood frozen).
 class ConfettiBurst extends StatelessWidget {
   const ConfettiBurst({super.key, required this.t, this.seed = 3});
   final double t; // 0..1 progress
@@ -174,24 +177,81 @@ class _ConfPainter extends CustomPainter {
     final Offset c = Offset(size.width / 2, size.height * 0.42);
     final math.Random rnd = math.Random(seed);
     final double fade = t < 0.75 ? 1.0 : (1 - t) / 0.25;
-    for (int i = 0; i < 46; i++) {
+    for (int i = 0; i < 64; i++) {
       final double a = rnd.nextDouble() * 6.283;
-      final double sp = 90 + rnd.nextDouble() * 260;
+      final double sp = 90 + rnd.nextDouble() * 300;
       final double x = c.dx + math.cos(a) * sp * t;
       final double y = c.dy + math.sin(a) * sp * t + 240 * t * t;
-      final double w = 3 + rnd.nextDouble() * 4;
+      final double w = 3 + rnd.nextDouble() * 5;
       final Paint p = Paint()
-        ..color = ConfettiBurst.hues[i % 6].withOpacity(0.85 * fade);
+        ..color = ConfettiBurst.hues[i % 6].withOpacity(0.9 * fade);
       canvas.save();
       canvas.translate(x, y);
       canvas.rotate(a + t * 7);
       canvas.drawRect(Rect.fromCenter(center: Offset.zero, width: w, height: w * 0.6), p);
       canvas.restore();
     }
+    // a gold heart of light opening at the centre of the burst
+    final Paint heart = Paint()
+      ..shader = RadialGradient(
+        colors: <Color>[
+          const Color(0xFFFFF3C9).withOpacity(0.55 * fade),
+          const Color(0xFFE7B14C).withOpacity(0),
+        ],
+      ).createShader(Rect.fromCircle(center: c, radius: 40 + 190 * t));
+    canvas.drawCircle(c, 40 + 190 * t, heart);
   }
 
   @override
   bool shouldRepaint(_ConfPainter o) => o.t != t;
+}
+
+/// The dust ring that blooms where the wheel lands: a gold shockwave
+/// with fourteen motes thrown out and falling back. [t] is 0..1 of the
+/// settle, so the ring opens exactly as the wheel squashes on its velvet.
+class DustRing extends StatelessWidget {
+  const DustRing({super.key, required this.t});
+  final double t; // 0..1 of the settle
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: CustomPaint(painter: _RingPainter(t), size: Size.infinite),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  _RingPainter(this.t);
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (t <= 0 || t >= 1) return;
+    final Offset c = Offset(size.width / 2, size.height / 2);
+    final double r = size.shortestSide / 2;
+    final double e = 1 - math.pow(1 - t, 3).toDouble();
+    final double fade = 1 - t;
+    final Paint ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1 + 3 * fade
+      ..color = const Color(0xFFE7B14C).withOpacity(0.45 * fade);
+    canvas.drawCircle(c, r * (0.62 + 0.72 * e), ring);
+    final math.Random rnd = math.Random(4);
+    for (int i = 0; i < 14; i++) {
+      final double a = rnd.nextDouble() * 6.283;
+      final double sp = r * (0.5 + rnd.nextDouble() * 0.7);
+      final Offset m = c +
+          Offset(math.cos(a) * sp * e,
+              math.sin(a) * sp * e * 0.55 + 60 * t * t);
+      final Paint p = Paint()
+        ..color = const Color(0xFFFFE9B8).withOpacity(0.7 * fade);
+      canvas.drawCircle(m, 1.4 + rnd.nextDouble() * 2.2, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter o) => o.t != t;
 }
 
 /// Five gold coins arcing from the wheel's hub to the purse corner —
