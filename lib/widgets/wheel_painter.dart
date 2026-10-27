@@ -325,7 +325,7 @@ class _SkyPainter extends CustomPainter {
         canvas.save();
         canvas.translate(x + wob, y);
         canvas.rotate(t * 3 + i);
-        canvas.drawEllipse(Offset.zero, 5.5, 2.6, p);
+        canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: 11, height: 5.2), p);
         canvas.restore();
       } else {
         canvas.drawCircle(Offset(x + wob * 0.5, y), 1.3 + 1.5 * tw, p);
