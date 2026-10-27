@@ -113,10 +113,18 @@ class WheelService {
     }
   }
 
-  Future<bool> bankAdd(String kind, String title, String path) async {
+  Future<bool> bankAdd(String kind, String title, String path,
+      {String? fname, int? bytes, String? mime}) async {
     try {
       final dynamic r = await _db.rpc('wheel_bank_add',
-          params: <String, dynamic>{'kind': kind, 'title': title, 'path': path});
+          params: <String, dynamic>{
+            'kind': kind,
+            'title': title,
+            'path': path,
+            'fname_in': fname,
+            'bytes_in': bytes,
+            'mime_in': mime
+          });
       return (r as Map)['ok'] == true;
     } catch (e) {
       return false;
