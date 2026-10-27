@@ -234,7 +234,7 @@ class _AdminDawnDeskState extends State<AdminDawnDesk> {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: <Widget>['super', 'slow', 'sleeper'].map((String b) {
+              children: ['super', 'slow', 'sleeper'].map<Widget>((String b) {
                 return GestureDetector(
                   onTap: _busy ? null : () => _settle(r, b),
                   child: Container(
