@@ -213,6 +213,114 @@ class EarlyService {
   }
 
   // ---------------------------------------------------------------
+  // The Dawn Door (CC.229): keyhole, streak, ranks, note, golden key.
+  // Quiet calls never throw; the admin hands do, so the desk can say why.
+  // ---------------------------------------------------------------
+
+  Future<Map<String, dynamic>> dawnReport() async {
+    try {
+      return _map(await _db.rpc('dawn_report'));
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  Future<Map<String, dynamic>> dawnTaskTurn() async {
+    try {
+      return _map(await _db.rpc('dawn_task_turn'));
+    } catch (_) {
+      return <String, dynamic>{'ok': false};
+    }
+  }
+
+  Future<Map<String, dynamic>> dawnPeek(int postId) async {
+    try {
+      return _map(await _db.rpc(
+        'dawn_peek',
+        params: <String, dynamic>{'post_in': postId},
+      ));
+    } catch (_) {
+      return <String, dynamic>{'ok': false};
+    }
+  }
+
+  Future<Map<String, dynamic>> dawnGolden(int postId) async {
+    try {
+      return _map(await _db.rpc(
+        'dawn_golden_use',
+        params: <String, dynamic>{'post_in': postId},
+      ));
+    } catch (_) {
+      return <String, dynamic>{'ok': false};
+    }
+  }
+
+  Future<Map<String, dynamic>> dawnScreen(int postId) async {
+    try {
+      return _map(await _db.rpc(
+        'dawn_screen',
+        params: <String, dynamic>{'post_in': postId},
+      ));
+    } catch (_) {
+      return <String, dynamic>{'ok': false};
+    }
+  }
+
+  Future<Map<String, dynamic>> dawnVerdict({
+    required int postId,
+    required String verdict,
+    required String note,
+    required String hype,
+  }) async {
+    try {
+      return _map(await _db.rpc(
+        'dawn_verdict',
+        params: <String, dynamic>{
+          'post_in': postId,
+          'verdict_in': verdict,
+          'note_in': note,
+          'hype_in': hype,
+        },
+      ));
+    } catch (_) {
+      return <String, dynamic>{'ok': false};
+    }
+  }
+
+  Future<void> dawnNoteTaken({
+    required int postId,
+    required String userId,
+    required bool taken,
+  }) async {
+    await _db.rpc(
+      'dawn_note_taken',
+      params: <String, dynamic>{
+        'post_in': postId,
+        'user_in': userId,
+        'taken_in': taken,
+      },
+    );
+  }
+
+  Future<void> dawnSettle({required int postId, required String band}) async {
+    await _db.rpc(
+      'dawn_settle',
+      params: <String, dynamic>{'post_in': postId, 'band_in': band},
+    );
+  }
+
+  Future<void> dawnNoteSet(String note) async {
+    await _db.rpc('dawn_note_set', params: <String, dynamic>{'note_in': note});
+  }
+
+  Future<void> dawnAdminSave({required int per, required int cap}) async {
+    await _db.rpc(
+      'dawn_admin_save',
+      params: <String, dynamic>{'per_in': per, 'cap_in': cap},
+    );
+  }
+
+  // ---------------------------------------------------------------
   // The house (Admin). These throw, so the screen can say why.
   // ---------------------------------------------------------------
 
