@@ -4,6 +4,7 @@ import '../core/ivory_errors.dart';
 import '../services/early_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/admin_stat_grid.dart';
+import 'admin_dawn_desk.dart';
 
 /// ============================================================
 /// ADMIN STUDIO - THE EARLY DOOR
@@ -323,6 +324,26 @@ class _AdminEarlyTabState extends State<AdminEarlyTab> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 40),
         children: <Widget>[
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => const AdminDawnDesk())),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
+                    colors: <Color>[Color(0xFF3E1570), Color(0xFF2A1650)]),
+                border: Border.all(color: const Color(0x88FFE9A8)),
+              ),
+              alignment: Alignment.center,
+              child: const Text('OPEN THE DAWN DESK',
+                  style: TextStyle(
+                      color: Color(0xFFFFE9A8),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2)),
+            ),
+          ),
           _heading('THE NUMBERS'),
           AdminStatGrid(
             children: <Widget>[
