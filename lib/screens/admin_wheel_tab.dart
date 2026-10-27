@@ -7,12 +7,11 @@ import '../services/b2_media_service.dart';
 import '../services/wheel_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/wheel_painter.dart';
+import 'wheel_bank_vault.dart';
 
-/// The WHEEL spoke of the owner's steering wheel (CC.224, royale pass
-/// CC.226): the living miniature; today; the odds dials (weights only -
-/// members see rupees, never percentages); the hours; the wish queue;
-/// the word bank; the voices and images she uploads, as many at once as
-/// she likes; the petals owed.
+/// The WHEEL spoke (CC.224/226/232): miniature, today, odds dials, the
+/// hours, wishes, word bank, the voice and image banks and their VAULT,
+/// petals owed.
 class AdminWheelTab extends StatefulWidget {
   const AdminWheelTab({super.key});
 
@@ -56,7 +55,7 @@ class _AdminWheelTabState extends State<AdminWheelTab>
     await _load();
     if (mounted) {
       setState(() => _busy = false);
-      _say(good ? ok : 'The desk refused that - try again.');
+      _say(good ? ok : 'The desk refused.');
     }
   }
 
@@ -65,6 +64,18 @@ class _AdminWheelTabState extends State<AdminWheelTab>
     return ListView(
       padding: const EdgeInsets.all(14),
       children: <Widget>[
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => const WheelBankVault())),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 14), padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0x88E7B14C))),
+            alignment: Alignment.center,
+            child: const Text('BANK VAULT',
+                style: TextStyle(fontWeight: FontWeight.w900)),
+          ),
+        ),
         if (_msg.isNotEmpty) _note(_msg),
         Center(
           child: AnimatedBuilder(
@@ -93,11 +104,11 @@ class _AdminWheelTabState extends State<AdminWheelTab>
           ),
         ),
         const Center(
-          child: Text('the wheel as members see it, turning at rest',
+          child: Text('the wheel as members see it',
               style: TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic)),
         ),
         _head('TODAY',
-            '${_d['today_spins'] ?? 0} turnings · ₹${_d['today_rupees'] ?? 0} given'),
+            '${_d['today_spins'] ?? 0} turns · ₹${_d['today_rupees'] ?? 0} given'),
         _odds(),
         _hours(),
         _wishes(),
@@ -135,14 +146,13 @@ class _AdminWheelTabState extends State<AdminWheelTab>
         ),
       );
 
-  // ---------- odds dials ----------
   Widget _odds() {
     final List<dynamic> ws = List<dynamic>.from(_list('weights'));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _head('ODDS DIALS',
-            'weights, not promises - higher rides oftener; members see rupees only'),
+            'weights, not promises; members see rupees only'),
         ...ws.map((dynamic w) => Row(
               children: <Widget>[
                 Expanded(
@@ -204,13 +214,12 @@ class _AdminWheelTabState extends State<AdminWheelTab>
           .toList()),
       'The dials are set.');
 
-  // ---------- the hours ----------
   Widget _hours() {
     final List<dynamic> ws = List<dynamic>.from(_list('windows'));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _head('THE HOURS', 'IST, server-locked; never a bell\'s minute'),
+        _head('THE HOURS', 'IST, server-locked'),
         ...ws.map((dynamic w) => Row(
               children: <Widget>[
                 Expanded(
@@ -276,13 +285,12 @@ class _AdminWheelTabState extends State<AdminWheelTab>
           .toList()),
       'The hours are set.');
 
-  // ---------- the wish queue ----------
   Widget _wishes() {
     final List<dynamic> ws = _list('open_wishes');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _head('THE WISH QUEUE', 'letters, moments and ticker names owed'),
+        _head('THE WISH QUEUE', 'letters, moments, ticker names'),
         if (ws.isEmpty) const Text('Nothing owed. The house is square.'),
         ...ws.map((dynamic w) {
           final int age = (w['age'] as int?) ?? 0;
@@ -313,19 +321,18 @@ class _AdminWheelTabState extends State<AdminWheelTab>
     );
   }
 
-  // ---------- the word bank ----------
   Widget _words() {
     final List<dynamic> ws = _list('words');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _head('THE WORD BANK', 'reword, cull or grow; the wheel delivers'),
+        _head('THE WORD BANK', 'reword, cull or grow'),
         ...ws.map((dynamic w) => ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
               title: Text('${w['word']} · ${w['line']}',
                   style: const TextStyle(fontSize: 12.5)),
-              subtitle: Text('given ${w['uses']} time(s)',
+              subtitle: Text('given ${w['uses']}',
                   style: const TextStyle(fontSize: 11)),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -406,19 +413,18 @@ class _AdminWheelTabState extends State<AdminWheelTab>
     );
   }
 
-  // ---------- voices and images ----------
   Widget _media(String title, String kind, bool audio) {
     final List<dynamic> ws = _list(audio ? 'voices' : 'images');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _head(title, 'uploaded once, delivered by the wheel at its own time'),
+        _head(title, 'uploaded once, delivered in its own time'),
         ...ws.map((dynamic w) => ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
               title: Text('${w['title']}',
                   style: const TextStyle(fontSize: 12.5)),
-              subtitle: Text('given ${w['uses']} time(s)',
+              subtitle: Text('given ${w['uses']}',
                   style: const TextStyle(fontSize: 11)),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -451,7 +457,7 @@ class _AdminWheelTabState extends State<AdminWheelTab>
           child: Text(audio ? 'UPLOAD A VOICE' : 'UPLOAD AN IMAGE',
               style: const TextStyle(fontWeight: FontWeight.w800)),
         ),
-        const Text('pick as many as you like - the desk carries them one by one',
+        const Text('pick as many as you like',
             style: TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic)),
       ],
     );
@@ -492,7 +498,7 @@ class _AdminWheelTabState extends State<AdminWheelTab>
           continue;
         }
         setState(() => _msg =
-            'Carrying ${done + 1} of ${xs.length}: ${x.name} - keep open.');
+            'Carrying ${done + 1}/${xs.length}: ${x.name}');
         final String url = await B2MediaService.instance.uploadBytes(
           bytes: bytes,
           name: x.name,
@@ -513,28 +519,27 @@ class _AdminWheelTabState extends State<AdminWheelTab>
         setState(() {
           _busy = false;
           _msg = failed == 0
-              ? '$done banked. The wheel will deliver them in their own time.'
-              : '$done banked, $failed refused - try smaller files.';
+              ? '$done banked.'
+              : '$done banked, $failed refused.';
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _busy = false;
-          _msg = 'The upload failed - try smaller files.';
+          _msg = 'The upload failed.';
         });
       }
     }
   }
 
-  // ---------- petals owed ----------
   Widget _petals() {
     final List<dynamic> ps = _list('petals_owed');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _head('PETALS OWED',
-            'unspent fortunes bloomed; place them from the REWARDS spoke'),
+            'unspent fortunes; place them from REWARDS'),
         if (ps.isEmpty) const Text('No petals owed.'),
         ...ps.map((dynamic p) => ListTile(
               dense: true,
