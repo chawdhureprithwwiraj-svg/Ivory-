@@ -1,20 +1,18 @@
+import 'dart:typed_data';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
-import '../models/media_ref.dart';
-import '../services/admin_service.dart';
 import '../services/b2_media_service.dart';
 import '../services/wheel_service.dart';
 import '../theme/ivory_theme.dart';
+import '../widgets/wheel_painter.dart';
 
-/// The WHEEL spoke of the owner's steering wheel (CC.224).
-///
-/// Six faces, one scroll: today's turnings; the odds dials (every weight
-/// tunable live, no rebuild); the hours (open and close from the desk,
-/// IST-locked server-side); the wish queue with its promise clocks (amber
-/// at day four, ruby at day six); the banks - thirty house words she may
-/// reword, cull or grow, and the voices and images she uploads, delivered
-/// automatically by the wheel at their own time; and the laurel petals
-/// owed, to be placed from the REWARDS spoke.
+/// The WHEEL spoke of the owner's steering wheel (CC.224, royale pass
+/// CC.226): the living miniature; today; the odds dials (weights only -
+/// members see rupees, never percentages); the hours; the wish queue;
+/// the word bank; the voices and images she uploads, as many at once as
+/// she likes; the petals owed.
 class AdminWheelTab extends StatefulWidget {
   const AdminWheelTab({super.key});
 
@@ -22,15 +20,25 @@ class AdminWheelTab extends StatefulWidget {
   State<AdminWheelTab> createState() => _AdminWheelTabState();
 }
 
-class _AdminWheelTabState extends State<AdminWheelTab> {
+class _AdminWheelTabState extends State<AdminWheelTab>
+    with SingleTickerProviderStateMixin {
   Map<String, dynamic> _d = <String, dynamic>{};
   bool _busy = false;
   String _msg = '';
+  late final AnimationController _t = AnimationController(
+      vsync: this, duration: const Duration(seconds: 24))
+    ..repeat();
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _t.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -58,6 +66,36 @@ class _AdminWheelTabState extends State<AdminWheelTab> {
       padding: const EdgeInsets.all(14),
       children: <Widget>[
         if (_msg.isNotEmpty) _note(_msg),
+        Center(
+          child: AnimatedBuilder(
+            animation: _t,
+            builder: (BuildContext c, Widget? _) => CustomPaint(
+              size: const Size(104, 104),
+              painter: WheelPainter(
+                segs: const <WheelSeg>[
+                  WheelSeg('₹3', Color(0xFFFFB300), 'rupee'),
+                  WheelSeg('WORD', Color(0xFFFF4081), 'word'),
+                  WheelSeg('₹7', Color(0xFFFF7A00), 'rupee'),
+                  WheelSeg('RESTS', Color(0xFFC0B7A6), 'rest'),
+                  WheelSeg('₹15', Color(0xFF00C853), 'rupee'),
+                  WheelSeg('IMAGE', Color(0xFF7C4DFF), 'image'),
+                  WheelSeg('₹21', Color(0xFFD50000), 'rupee'),
+                  WheelSeg('LETTER', Color(0xFFE91E63), 'letter'),
+                  WheelSeg('RESTS', Color(0xFFB0A692), 'rest'),
+                  WheelSeg('VOICE', Color(0xFFAD1457), 'voice'),
+                  WheelSeg('CHOICE', Color(0xFFE7B14C), 'choice'),
+                  WheelSeg('MOMENT', Color(0xFFFF6E40), 'moment'),
+                ],
+                angle: _t.value * 6.283185307,
+                shine: _t.value,
+              ),
+            ),
+          ),
+        ),
+        const Center(
+          child: Text('the wheel as members see it, turning at rest',
+              style: TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic)),
+        ),
         _head('TODAY',
             '${_d['today_spins'] ?? 0} turnings · ₹${_d['today_rupees'] ?? 0} given'),
         _odds(),
@@ -100,29 +138,32 @@ class _AdminWheelTabState extends State<AdminWheelTab> {
   // ---------- odds dials ----------
   Widget _odds() {
     final List<dynamic> ws = List<dynamic>.from(_list('weights'));
-    final int total = ws.fold<int>(
-        0, (int a, dynamic w) => a + ((w['weight'] as int?) ?? 0));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _head('ODDS DIALS', 'declared on the member\'s salon; tune live'),
+        _head('ODDS DIALS',
+            'weights, not promises - higher rides oftener; members see rupees only'),
         ...ws.map((dynamic w) => Row(
               children: <Widget>[
-                SizedBox(
-                  width: 118,
+                Expanded(
                   child: Text('${w['label']}',
                       style: const TextStyle(fontSize: 12.5)),
                 ),
-                Text('${_pct(w, total)}%',
-                    style: const TextStyle(
-                        fontSize: 12.5, fontWeight: FontWeight.w700)),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   onPressed: _busy ? null : () => _bump(w, -10),
                   icon: const Icon(Icons.remove, size: 18),
                 ),
-                Text('${w['weight']}',
-                    style: const TextStyle(fontSize: 12.5)),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(8, 3, 8, 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0x147A1626),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('${w['weight']}',
+                      style: const TextStyle(
+                          fontSize: 12.5, fontWeight: FontWeight.w800)),
+                ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   onPressed: _busy ? null : () => _bump(w, 10),
@@ -146,9 +187,6 @@ class _AdminWheelTabState extends State<AdminWheelTab> {
       ],
     );
   }
-
-  int _pct(dynamic w, int total) =>
-      total == 0 ? 0 : (100 * ((w['weight'] as int?) ?? 0) ~/ total);
 
   void _bump(dynamic w, int d) {
     final int v = ((w['weight'] as int?) ?? 0) + d;
@@ -248,20 +286,25 @@ class _AdminWheelTabState extends State<AdminWheelTab> {
         if (ws.isEmpty) const Text('Nothing owed. The house is square.'),
         ...ws.map((dynamic w) {
           final int age = (w['age'] as int?) ?? 0;
-          final Color c =
-              age >= 6 ? const Color(0xFFD50000) : age >= 4 ? const Color(0xFFFF7A00) : IvoryColors.plum;
+          final Color c = age >= 6
+              ? const Color(0xFFD50000)
+              : age >= 4
+                  ? const Color(0xFFFF7A00)
+                  : IvoryColors.plum;
           return ListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
             title: Text('${w['kind']} · due ${w['by']}',
-                style: TextStyle(fontSize: 13, color: c, fontWeight: FontWeight.w700)),
+                style:
+                    TextStyle(fontSize: 13, color: c, fontWeight: FontWeight.w700)),
             subtitle: Text('member ${'${w['uid']}'.substring(0, 8)} · day $age',
                 style: const TextStyle(fontSize: 12)),
             trailing: TextButton(
               onPressed: _busy
                   ? null
                   : () => _after(WheelService.instance
-                      .wishDeliver((w['id'] as num).toInt()), 'Delivered. The queue shortens.'),
+                      .wishDeliver((w['id'] as num).toInt()),
+                      'Delivered. The queue shortens.'),
               child: const Text('DELIVERED'),
             ),
           );
@@ -304,7 +347,7 @@ class _AdminWheelTabState extends State<AdminWheelTab> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 18),
-                    onPressed: () => _editWord(w),
+                    onPressed: () => _wordDialog(w: w),
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline, size: 18),
@@ -315,55 +358,22 @@ class _AdminWheelTabState extends State<AdminWheelTab> {
               ),
             )),
         TextButton(
-          onPressed: _addWord,
+          onPressed: () => _wordDialog(),
           child: const Text('ADD A WORD'),
         ),
       ],
     );
   }
 
-  Future<void> _editWord(dynamic w) async {
+  Future<void> _wordDialog({dynamic w}) async {
     final TextEditingController a =
-        TextEditingController(text: '${w['word']}');
-    final TextEditingController b = TextEditingController(text: '${w['line']}');
+        TextEditingController(text: w == null ? '' : '${w['word']}');
+    final TextEditingController b =
+        TextEditingController(text: w == null ? '' : '${w['line']}');
     await showDialog<void>(
       context: context,
       builder: (BuildContext c) => AlertDialog(
-        title: const Text('REWORD'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          TextField(controller: a, decoration: const InputDecoration(labelText: 'word')),
-          TextField(controller: b, decoration: const InputDecoration(labelText: 'line')),
-        ]),
-        actions: <Widget>[
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('CANCEL')),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(c);
-              _after(
-                  WheelService.instance.bankSet(<Map<String, dynamic>>[
-                    <String, dynamic>{
-                      'id': w['id'],
-                      'kind': 'word',
-                      'word': a.text.trim(),
-                      'line': b.text.trim()
-                    }
-                  ]),
-                  'Reworded.');
-            },
-            child: const Text('SAVE'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _addWord() async {
-    final TextEditingController a = TextEditingController();
-    final TextEditingController b = TextEditingController();
-    await showDialog<void>(
-      context: context,
-      builder: (BuildContext c) => AlertDialog(
-        title: const Text('A NEW WORD'),
+        title: Text(w == null ? 'A NEW WORD' : 'REWORD'),
         content: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
           TextField(controller: a, decoration: const InputDecoration(labelText: 'word')),
           TextField(controller: b, decoration: const InputDecoration(labelText: 'its line')),
@@ -373,10 +383,23 @@ class _AdminWheelTabState extends State<AdminWheelTab> {
           TextButton(
             onPressed: () {
               Navigator.pop(c);
-              _after(WheelService.instance
-                  .bankAdd('word', a.text.trim(), b.text.trim()), 'The bank grows.');
+              if (w == null) {
+                _after(WheelService.instance
+                    .bankAdd('word', a.text.trim(), b.text.trim()), 'The bank grows.');
+              } else {
+                _after(
+                    WheelService.instance.bankSet(<Map<String, dynamic>>[
+                      <String, dynamic>{
+                        'id': w['id'],
+                        'kind': 'word',
+                        'word': a.text.trim(),
+                        'line': b.text.trim()
+                      }
+                    ]),
+                    'Reworded.');
+              }
             },
-            child: const Text('ADD'),
+            child: const Text('SAVE'),
           ),
         ],
       ),
@@ -425,41 +448,80 @@ class _AdminWheelTabState extends State<AdminWheelTab> {
             )),
         TextButton(
           onPressed: _busy ? null : () => _upload(kind, audio),
-          child: Text('UPLOAD A ${audio ? 'VOICE' : 'IMAGE'}'),
+          child: Text(audio ? 'UPLOAD A VOICE' : 'UPLOAD AN IMAGE',
+              style: const TextStyle(fontWeight: FontWeight.w800)),
         ),
+        const Text('pick as many as you like - the desk carries them one by one',
+            style: TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic)),
       ],
     );
   }
 
   Future<void> _upload(String kind, bool audio) async {
-    final String title = audio ? 'A voice from Ivory' : 'An image from Ivory';
     setState(() {
       _busy = true;
-      _msg = 'Picking your file…';
+      _msg = 'Picking your files…';
     });
     try {
-      final PickedMedia? f =
-          await AdminService.instance.pickFile(audioOnly: audio);
-      if (f == null) {
+      final List<XFile> xs = await openFiles(
+        acceptedTypeGroups: <XTypeGroup>[
+          audio
+              ? const XTypeGroup(
+                  label: 'Audio',
+                  extensions: <String>['mp3', 'm4a', 'aac', 'wav', 'ogg', 'opus', 'flac'],
+                  mimeTypes: <String>['audio/*'])
+              : const XTypeGroup(
+                  label: 'Images',
+                  extensions: <String>['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic'],
+                  mimeTypes: <String>['image/*']),
+        ],
+      );
+      if (xs.isEmpty) {
         setState(() {
           _busy = false;
           _msg = '';
         });
         return;
       }
-      setState(() => _msg = 'Carrying to the vault… keep open.');
-      final String url = await B2MediaService.instance.uploadBytes(
-        bytes: f.bytes,
-        name: f.name,
-        kind: audio ? 'audio' : 'image',
-      );
-      await _after(WheelService.instance.bankAdd(kind, title, url),
-          'Banked. The wheel will deliver it in its own time.');
+      int done = 0;
+      int failed = 0;
+      for (final XFile x in xs) {
+        final Uint8List bytes = await x.readAsBytes();
+        if (bytes.isEmpty) {
+          failed++;
+          continue;
+        }
+        setState(() => _msg =
+            'Carrying ${done + 1} of ${xs.length}: ${x.name} - keep open.');
+        final String url = await B2MediaService.instance.uploadBytes(
+          bytes: bytes,
+          name: x.name,
+          kind: audio ? 'audio' : 'image',
+        );
+        final bool ok = await WheelService.instance.bankAdd(
+            kind,
+            audio ? 'A voice from Ivory' : 'An image from Ivory',
+            url);
+        if (ok) {
+          done++;
+        } else {
+          failed++;
+        }
+      }
+      await _load();
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _msg = failed == 0
+              ? '$done banked. The wheel will deliver them in their own time.'
+              : '$done banked, $failed refused - try smaller files.';
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
           _busy = false;
-          _msg = 'The upload failed - try a smaller file.';
+          _msg = 'The upload failed - try smaller files.';
         });
       }
     }
