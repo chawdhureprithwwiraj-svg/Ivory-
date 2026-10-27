@@ -4,9 +4,11 @@ import '../services/b2_media_service.dart';
 import '../services/vault_service.dart';
 import 'admin_attach_panel.dart';
 
-/// Upload routes: post photos/covers use private B2 by default; published
-/// R2 images are public by URL. Video/voice use a private R2/B2 choice.
-/// Draft photos/covers never use public R2. Profile/payment files are untouched.
+/// Upload routes (CC.233): every slot honours the visible R2/B2 choice.
+/// Images and covers: B2 private, R2 private, or - published only - R2
+/// public by URL. Video/voice: private R2 or B2, choice required. Other
+/// types follow the media choice, defaulting to R2 as before. Drafts
+/// never go public R2. Profile/payment files are untouched.
 class ResolvedMedia {
   const ResolvedMedia({
     this.ref,
@@ -25,6 +27,7 @@ MediaSource _source(String storage) {
     case 'b2':
       return MediaSource.b2;
     case 'r2':
+    case 'r2pub':
       return MediaSource.r2;
     default:
       return MediaSource.supabase;
@@ -46,8 +49,12 @@ Future<ResolvedMedia> resolvePublishMedia({
     throw StateError('Choose R2 or B2 storage before uploading this file.');
   }
   final String desiredMedia = type == 'image'
-      ? (imageChoice == 'r2' && isPublished ? 'r2' : 'b2')
-      : ((type == 'audio' || type == 'video') ? (mediaChoice ?? '') : 'r2');
+      ? (imageChoice == 'r2pub' && isPublished
+          ? 'r2pub'
+          : (imageChoice == 'r2' ? 'r2' : 'b2'))
+      : ((type == 'audio' || type == 'video')
+          ? (mediaChoice ?? '')
+          : (mediaChoice ?? 'r2'));
 
   String? mediaRef = at?.uploadedUrl;
   String? mediaStorage = at?.uploadedSource;
@@ -83,7 +90,15 @@ Future<ResolvedMedia> resolvePublishMedia({
   if (at != null && at.picked != null && mediaRef == null) {
     final PickedMedia file = at.picked!;
     if (type == 'image') {
-      if (desiredMedia == 'b2') {
+      if (desiredMedia == 'r2') {
+        onStatus('Saving private R2 photo...');
+        mediaRef = await VaultService.instance.uploadBytes(
+          bytes: file.bytes,
+          name: file.name,
+          onProgress: (double p) =>
+              onStatus('Private R2 ${(p * 100).round()}% - keep open'),
+        );
+      } else if (desiredMedia == 'b2') {
         onStatus('Saving private B2 photo...');
         mediaRef = await B2MediaService.instance.uploadBytes(
           bytes: file.bytes,
@@ -92,7 +107,7 @@ Future<ResolvedMedia> resolvePublishMedia({
           onProgress: (double p) =>
               onStatus('Private B2 ${(p * 100).round()}% - keep open'),
         );
-      } else if (desiredMedia == 'r2') {
+      } else if (desiredMedia == 'r2pub') {
         onStatus('Preparing published photo for public R2...');
         mediaRef = await VaultService.instance.uploadPublicImageBytes(
           bytes: file.bytes,
@@ -140,7 +155,9 @@ Future<ResolvedMedia> resolvePublishMedia({
     mediaRef = parsed.ref;
   }
 
-  final String desiredThumb = imageChoice == 'r2' && isPublished ? 'r2' : 'b2';
+  final String desiredThumb = imageChoice == 'r2pub' && isPublished
+      ? 'r2pub'
+      : (imageChoice == 'r2' ? 'r2' : 'b2');
   String? thumbRef = at?.uploadedThumbUrl;
   String? thumbStorage = at?.uploadedThumbSource;
   if (at != null &&
@@ -150,7 +167,15 @@ Future<ResolvedMedia> resolvePublishMedia({
     thumbRef = null;
   }
   if (at != null && at.thumb != null && thumbRef == null) {
-    if (desiredThumb == 'b2') {
+    if (desiredThumb == 'r2') {
+      onStatus('Saving private R2 cover...');
+      thumbRef = await VaultService.instance.uploadBytes(
+        bytes: at.thumb!.bytes,
+        name: at.thumb!.name,
+        onProgress: (double p) =>
+            onStatus('Private R2 cover ${(p * 100).round()}% - keep open'),
+      );
+    } else if (desiredThumb == 'b2') {
       onStatus('Saving private B2 cover...');
       thumbRef = await B2MediaService.instance.uploadBytes(
         bytes: at.thumb!.bytes,
@@ -159,7 +184,7 @@ Future<ResolvedMedia> resolvePublishMedia({
         onProgress: (double p) =>
             onStatus('Private B2 cover ${(p * 100).round()}% - keep open'),
       );
-    } else if (desiredThumb == 'r2') {
+    } else if (desiredThumb == 'r2pub') {
       onStatus('Preparing public R2 cover...');
       thumbRef = await VaultService.instance.uploadPublicImageBytes(
         bytes: at.thumb!.bytes,
