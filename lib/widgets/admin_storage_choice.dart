@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../theme/ivory_theme.dart';
 
-/// A visible, explicit provider selector for post media. Draft images can
-/// only use private B2; public R2 is offered only for published images.
+/// A visible, explicit provider selector for post media (CC.233). Every
+/// slot now offers both houses: B2 private and R2 private always; the
+/// public R2 image option joins only once the post is published, so a
+/// draft never leaks - the house law stands, but the choice is visible.
 class AdminStorageChoice extends StatelessWidget {
   const AdminStorageChoice({
     super.key,
@@ -27,9 +29,10 @@ class AdminStorageChoice extends StatelessWidget {
     final List<MapEntry<String, String>> options = image
         ? <MapEntry<String, String>>[
             const MapEntry<String, String>('b2', 'B2 - private (default)'),
+            const MapEntry<String, String>('r2', 'R2 - private'),
             if (allowPublicR2)
               const MapEntry<String, String>(
-                'r2',
+                'r2pub',
                 'R2 - public to anyone with the link',
               ),
           ]
@@ -37,12 +40,11 @@ class AdminStorageChoice extends StatelessWidget {
             const MapEntry<String, String>('r2', 'R2 - private'),
             const MapEntry<String, String>('b2', 'B2 - private'),
           ];
-    final String? selectedValue =
-        image && !allowPublicR2 ? 'b2' : value;
+    final String? selectedValue = value ?? 'b2';
     final String helper = image
         ? (allowPublicR2
-              ? 'B2 stays private by default. R2 images are public to anyone with the URL.'
-              : 'Draft photos and covers stay private in B2. Public R2 is unavailable until the post is published.')
+              ? 'Both houses stay private by default. Public R2 images are public to anyone with the URL.'
+              : 'Draft photos and covers stay private - B2 or R2, your pick. Public R2 joins when the post is published.')
         : 'Choose R2 or B2 for this upload. Both are private; frequent B2 downloads can exceed its free allowance.';
 
     return Padding(
