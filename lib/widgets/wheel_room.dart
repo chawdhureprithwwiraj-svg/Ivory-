@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../services/wheel_service.dart';
+import 'wheel_crown.dart';
 import 'wheel_fx.dart';
 import 'wheel_painter.dart';
 import 'wheel_salon.dart';
@@ -10,11 +11,16 @@ import 'wheel_salon.dart';
 /// The Wheel of Fans room.
 ///
 /// Inside the Gilded Hours, opened for the first time that window: the
-/// owner's film plays with its own sound — tap skips, the house never
-/// gates — then a burst of gold, the descent sound, and the wheel falls
-/// from the top of the sky onto its velvet. At rest the wheel never
-/// sits: it turns slowly and regally under the living sky, names and
-/// rupees riding round like a court jewel. Outside the hours the room
+/// owner's film rises out of black in a gold-framed window, its voice
+/// entering a beat after its picture so sound never runs ahead; tap
+/// skips, the house never gates. Then the film folds into a point of
+/// light while a gold burst blooms (moving, never frozen), and the wheel
+/// falls from the sky with real weight — fast fall, a squash on its
+/// velvet, a dust ring and a tremor — the descent sound riding impact. At rest the wheel never sits: it turns slowly and
+/// regally under the living sky, the golden feather breathing at its
+/// notch. When the fortune is declared the wheel freezes on its winner,
+/// the feather leans to it and glows, the winning segment gilds, and the
+/// jewel card rises at the foot of the sky. Outside the hours the room
 /// is the salon instead.
 class WheelRoom extends StatefulWidget {
   const WheelRoom({super.key, this.ceremony = false});
@@ -40,12 +46,17 @@ class _WheelRoomState extends State<WheelRoom> with TickerProviderStateMixin {
   VideoPlayerController? _film;
   Map<String, dynamic> _state = <String, dynamic>{};
   Map<String, dynamic> _prize = <String, dynamic>{};
+  int _landSeg = -1;
   late final AnimationController _drop = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1150));
+      vsync: this, duration: const Duration(milliseconds: 1400));
   late final AnimationController _spinC = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 4600));
   late final AnimationController _fxC = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 1600));
+  late final AnimationController _burstC = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 700));
+  late final AnimationController _filmFade = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 500));
   late final AnimationController _shineC = AnimationController(
       vsync: this, duration: const Duration(seconds: 6))
     ..repeat();
@@ -95,18 +106,13 @@ class _WheelRoomState extends State<WheelRoom> with TickerProviderStateMixin {
         setState(() => _phase = 'idle');
       }
     });
-    _spinC.addListener(() {
-      if (mounted) setState(() {});
-    });
-    _drop.addListener(() {
-      if (mounted) setState(() {});
-    });
-    _fxC.addListener(() {
-      if (mounted) setState(() {});
-    });
-    _idleC.addListener(() {
-      if (mounted) setState(() {});
-    });
+    for (final AnimationController c in <AnimationController>[
+      _spinC, _drop, _fxC, _idleC, _burstC
+    ]) {
+      c.addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   void _startFilm() {
@@ -116,8 +122,13 @@ class _WheelRoomState extends State<WheelRoom> with TickerProviderStateMixin {
     _film = c;
     c.initialize().then((_) {
       if (!mounted) return;
-      c.setVolume(1.0);
+      // the voice enters a beat after the picture: sound never leads
+      c.setVolume(0.0);
       c.play();
+      _filmFade.forward();
+      Future<void>.delayed(const Duration(milliseconds: 250), () {
+        if (mounted && _phase == 'film') c.setVolume(1.0);
+      });
       c.addListener(() {
         if (c.value.position >= c.value.duration &&
             _phase == 'film' &&
@@ -134,11 +145,10 @@ class _WheelRoomState extends State<WheelRoom> with TickerProviderStateMixin {
     _film?.pause();
     WofSound.play('descent');
     setState(() => _phase = 'burst');
-    Future<void>.delayed(const Duration(milliseconds: 500), () {
+    _burstC.forward(from: 0).then((_) {
       if (!mounted) return;
       setState(() => _phase = 'drop');
-      _drop.forward();
-      Future<void>.delayed(const Duration(milliseconds: 1200), () {
+      _drop.forward(from: 0).then((_) {
         if (mounted) setState(() => _phase = 'idle');
       });
     });
@@ -157,7 +167,10 @@ class _WheelRoomState extends State<WheelRoom> with TickerProviderStateMixin {
     if (_useToken && (st['tokens'] as int? ?? 0) < 1) _useToken = false;
     WofSound.play('spin');
     _idleC.stop();
-    setState(() => _phase = 'spin');
+    setState(() {
+      _phase = 'spin';
+      _landSeg = -1;
+    });
     final Map<String, dynamic> r =
         await WheelService.instance.spin(useToken: _useToken);
     if (r['ok'] != true) {
@@ -189,7 +202,9 @@ class _WheelRoomState extends State<WheelRoom> with TickerProviderStateMixin {
   }
 
   void _land(Map<String, dynamic> r) {
-    _idleC.repeat(); // resumes from the frozen angle: no jump at the landing
+    // the wheel freezes on its winner: the verdict stays readable
+    _idleC.stop();
+    _landSeg = (r['seg'] as int? ?? 0).clamp(0, 11).toInt();
     _prize = r;
     final Map<String, dynamic> p =
         Map<String, dynamic>.from(r['prize'] as Map? ?? <dynamic, dynamic>{});
@@ -213,12 +228,22 @@ class _WheelRoomState extends State<WheelRoom> with TickerProviderStateMixin {
     _busy = false;
   }
 
+  double _eic(double t) => t * t * t;
+
+  double get _lean {
+    if (_landSeg < 0) return 0;
+    final double a = (_landSeg * 30 + 15) * math.pi / 180;
+    return math.sin(a);
+  }
+
   @override
   void dispose() {
     _film?.dispose();
     _drop.dispose();
     _spinC.dispose();
     _fxC.dispose();
+    _burstC.dispose();
+    _filmFade.dispose();
     _shineC.dispose();
     _idleC.dispose();
     super.dispose();
@@ -238,104 +263,213 @@ class _WheelRoomState extends State<WheelRoom> with TickerProviderStateMixin {
     );
   }
 
+  /// The film window: black base, gold hairline frame, curtains above
+  /// and below, and a fade up out of the dark.
+  Widget _filmView() {
+    final bool ready = _film != null && _film!.value.isInitialized;
+    return Stack(
+      children: <Widget>[
+        Container(color: const Color(0xFF0B0610)),
+        Center(
+          child: AspectRatio(
+            aspectRatio: ready ? _film!.value.aspectRatio : 0.5625,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                      color: const Color(0x66E7B14C), width: 1.2),
+                ),
+                child: ready
+                    ? FadeTransition(
+                        opacity: _filmFade, child: VideoPlayer(_film!))
+                    : const Center(
+                        child: CircularProgressIndicator(
+                            color: Color(0xFFE7B14C))),
+              ),
+            ),
+          ),
+        ),
+        IgnorePointer(
+          child: Container(
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  Color(0xCC0B0610),
+                  Color(0x000B0610),
+                  Color(0x000B0610),
+                  Color(0xCC0B0610),
+                ],
+                stops: <double>[0, 0.22, 0.78, 1],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _body() {
     if (_phase == 'load') {
       return const Center(
           child: CircularProgressIndicator(color: Color(0xFFE7B14C)));
     }
     if (_phase == 'film') {
-      return GestureDetector(
-        onTap: _burst,
-        child: Center(
-          child: AspectRatio(
-            aspectRatio: _film != null && _film!.value.isInitialized
-                ? _film!.value.aspectRatio
-                : 0.5625,
-            child: _film != null && _film!.value.isInitialized
-                ? VideoPlayer(_film!)
-                : const CircularProgressIndicator(
-                    color: Color(0xFFE7B14C)),
-          ),
-        ),
-      );
+      return GestureDetector(onTap: _burst, child: _filmView());
     }
+    final double v = _drop.value;
+    final double fall = v < 0.6 ? _eic(v / 0.6) : 1.0;
+    final double settle = v <= 0.6 ? 0.0 : (v - 0.6) / 0.4;
+    final double bv = _burstC.value;
     final double dropY = _phase == 'drop'
-        ? -1 + _drop.value
-        : (_phase == 'burst' ? -1 : 0);
+        ? -1.15 + 1.15 * fall
+        : (_phase == 'burst' ? -1.15 : 0);
+    final double squash =
+        _phase == 'drop' ? math.sin(3.14159 * settle) * 0.05 * (1 - settle) : 0;
+    final double shakeX =
+        _phase == 'drop' ? math.sin(settle * 36) * 3 * (1 - settle) : 0;
+    final double h = MediaQuery.of(context).size.height;
     return Column(
       children: <Widget>[
         WheelCrest(onClose: () => Navigator.pop(context)),
         Expanded(
-          child: Stack(
-            alignment: Alignment.center,
-            children: <Widget>[
-              if (_phase == 'burst') ConfettiBurst(t: 0.35, seed: 11),
-              if (_phase == 'result' &&
-                  (_prize['prize']?['kind'] == 'rupee' ||
-                      _prize['prize']?['kind'] == 'choice')) ...<Widget>[
-                ConfettiBurst(t: _fxC.value, seed: 5),
-                CoinFlight(t: _fxC.value),
-              ],
-              Transform.translate(
-                offset: Offset(0, dropY * MediaQuery.of(context).size.height),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: CustomPaint(
-                    painter: WheelPainter(
-                      segs: _wheelSegs,
-                      angle: _currentAngle(),
-                      shine: _shineC.value,
+          child: LayoutBuilder(
+            builder: (BuildContext c, BoxConstraints con) {
+              final double side = math.min(con.maxWidth, con.maxHeight);
+              final double top = (con.maxHeight - side) / 2;
+              return Stack(
+                alignment: Alignment.center,
+                children: <Widget>[
+                  if (_phase == 'burst') ...<Widget>[
+                    Opacity(
+                      opacity: (1 - bv).clamp(0.0, 1.0),
+                      child: Transform.scale(
+                        scale: 1 - 0.45 * bv,
+                        child: _filmView(),
+                      ),
+                    ),
+                    ConfettiBurst(t: bv, seed: 11),
+                    DustRing(t: bv),
+                  ],
+                  if (_phase == 'result' &&
+                      (_prize['prize']?['kind'] == 'rupee' ||
+                          _prize['prize']?['kind'] == 'choice')) ...<Widget>[
+                    ConfettiBurst(t: _fxC.value, seed: 5),
+                    CoinFlight(t: _fxC.value),
+                  ],
+                  Transform.translate(
+                    offset: Offset(shakeX, dropY * h),
+                    child: Transform.scale(
+                      scaleX: 1 + squash,
+                      scaleY: 1 - squash,
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: CustomPaint(
+                          painter: WheelPainter(
+                            segs: _wheelSegs,
+                            angle: _currentAngle(),
+                            shine: _shineC.value,
+                            highlight:
+                                _phase == 'result' ? _landSeg : -1,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              // the golden feather pointer, seated at the top notch
-              Positioned(
-                top: 2,
-                child: Transform.rotate(
-                  angle: 3.14159,
-                  child: Image.asset(
-                    'assets/wheels/wheel_feather.png',
-                    height: 52,
-                    fit: BoxFit.contain,
-                    errorBuilder: (BuildContext c, Object e, StackTrace? st) =>
-                        CustomPaint(
-                      size: const Size(30, 34),
-                      painter: _FeatherPointer(),
+                  if (_phase == 'drop' && settle > 0) DustRing(t: settle),
+                  // the living feather, seated at the wheel's top notch
+                  Positioned(
+                    top: top - 34,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: LivingFeather(
+                        mode: _phase == 'spin'
+                            ? 'spin'
+                            : (_phase == 'result' ? 'land' : 'idle'),
+                        lean: _lean,
+                        size: 64,
+                      ),
                     ),
                   ),
-                ),
-              ),
-              if (_phase == 'result') _resultCard(),
-            ],
+                  if (_phase == 'result')
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: AnimatedBuilder(
+                        animation: _fxC,
+                        builder: (BuildContext c, Widget? w) {
+                          final double dy =
+                              (1 - math.min(1, _fxC.value * 2.5)) * 90;
+                          return Transform.translate(
+                              offset: Offset(0, dy), child: w);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
+                          child: FortuneCard.fromPrize(_prize),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
         if (_phase == 'idle' || _phase == 'spin') _footer(),
-        if (_phase == 'result')
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 18),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('ENTER THE HOUSE',
-                        style: TextStyle(
-                            color: Color(0xFFFFD98A), letterSpacing: 1.6)),
+        if (_phase == 'result') _resultRow(),
+      ],
+    );
+  }
+
+  Widget _resultRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 18),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: <Color>[Color(0xFFF0C060), Color(0xFFC98A2E)],
                   ),
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: const Color(0xFF8A5E1C), width: 1.2),
                 ),
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => setState(() => _phase = 'salon'),
-                    child: const Text('MY PURSE',
-                        style: TextStyle(
-                            color: Color(0xFFF3E3C6), letterSpacing: 1.6)),
-                  ),
-                ),
-              ],
+                alignment: Alignment.center,
+                child: const Text('ENTER THE HOUSE',
+                    style: TextStyle(
+                        color: Color(0xFF4A0E17),
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.6)),
+              ),
             ),
           ),
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _phase = 'salon'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: const Color(0xFFE7B14C), width: 1.4),
+                ),
+                alignment: Alignment.center,
+                child: const Text('MY PURSE',
+                    style: TextStyle(
+                        color: Color(0xFFFFD98A),
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.6)),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -406,123 +540,6 @@ class _WheelRoomState extends State<WheelRoom> with TickerProviderStateMixin {
     );
   }
 
-  Widget _resultCard() {
-    final Map<String, dynamic> p = Map<String, dynamic>.from(
-        _prize['prize'] as Map? ?? <dynamic, dynamic>{});
-    final String kind = (p['kind'] ?? '').toString();
-    String title = 'THE FEATHER RESTS';
-    String body =
-        'Nothing this turn — and nothing lost. She returns at the next '
-        'Gilded Hour.';
-    if (kind == 'rupee') {
-      title = '${p['value']} RUPEES TO YOUR PURSE';
-      body = 'Your Fortune Purse now holds ₹${_prize['purse']}.';
-    } else if (kind == 'word') {
-      title = 'A WORD FROM IVORY';
-      body = '“${p['word']}” — ${p['line']}';
-    } else if (kind == 'image') {
-      title = 'AN IMAGE FROM IVORY';
-      body = '“${p['title']}” is yours; find it in your inbox.';
-    } else if (kind == 'voice') {
-      title = 'A VOICE FROM IVORY';
-      body = '“${p['title']}” is yours; find it in your inbox.';
-    } else if (kind == 'letter') {
-      title = 'A LETTER FROM IVORY';
-      body = 'Ivory writes first this time. It reaches you within seven '
-          'days — the house keeps its promises on a clock.';
-    } else if (kind == 'moment') {
-      title = 'A MOMENT FROM IVORY';
-      body = 'A live moment with your name on it, within seven days.';
-    } else if (kind == 'choice') {
-      final String got = (p['got'] ?? '').toString();
-      title = "THE FEATHER'S CHOICE";
-      body = got == 'token'
-          ? 'A Gilded Spin token joins your purse.'
-          : got == 'rupee'
-              ? 'Eleven rupees, chosen by the house itself.'
-              : 'Your name rides the ticker — with Ivory\'s nod.';
-    }
-    final String note = (_prize['note'] ?? '').toString();
-    final int petals = (_prize['petals'] as int? ?? 0);
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.all(34),
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          color: const Color(0xF2FFF6E5),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE7B14C), width: 2),
-          boxShadow: const <BoxShadow>[
-            BoxShadow(
-                color: Color(0x80200A10), blurRadius: 26, offset: Offset(0, 10))
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Color(0xFF4A0E17),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.4)),
-            const SizedBox(height: 10),
-            Text(body,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Color(0xFF3A2318), fontSize: 14, height: 1.5)),
-            if (note.isNotEmpty) ...<Widget>[
-              const SizedBox(height: 8),
-              Text(note,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Color(0xFF8A5E1C),
-                      fontSize: 12.5,
-                      fontStyle: FontStyle.italic)),
-            ],
-            if (petals > 0) ...<Widget>[
-              const SizedBox(height: 8),
-              Text(
-                  'Your unspent fortune bloomed into $petals laurel petal(s) '
-                  'owed to you.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Color(0xFF8A5E1C), fontSize: 12.5)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The pointer: a golden feather, painted — the owner's own feather art
-/// sits here in the release; the painted stand-in keeps the shape honest
-/// until then.
-class _FeatherPointer extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Path p = Path()
-      ..moveTo(size.width / 2, size.height)
-      ..quadraticBezierTo(0, size.height * 0.45, size.width / 2, 0)
-      ..quadraticBezierTo(size.width, size.height * 0.45, size.width / 2, size.height);
-    final Paint f = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: <Color>[Color(0xFFF6D98A), Color(0xFFB9822B)],
-      ).createShader(Offset.zero & size);
-    canvas.drawPath(p, f);
-    final Paint spine = Paint()
-      ..color = const Color(0xFF7A5216)
-      ..strokeWidth = 1.2;
-    canvas.drawLine(Offset(size.width / 2, 2),
-        Offset(size.width / 2, size.height - 2), spine);
-  }
-
-  @override
-  bool shouldRepaint(_FeatherPointer o) => false;
 }
 
 // END OF FILE - lib/widgets/wheel_room.dart
