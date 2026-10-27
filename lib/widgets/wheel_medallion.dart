@@ -5,10 +5,12 @@ import 'wheel_fx.dart';
 import 'wheel_painter.dart';
 
 /// The floating Wheel of Fans medallion — present at every hour on every
-/// member screen, never a gate. In the Gilded Hours it breathes, turns
-/// slowly and sprinkles gold dust; outside them it rests warm and quiet,
-/// a promise of the hour to come. Tap opens the wheel room (the ceremony
-/// inside the hours, the salon outside them).
+/// member screen, never a gate. It is a true miniature of the wheel:
+/// jewel studs and cast gold, no labels, turning slowly and regally at
+/// all hours (faster and dusted with gold inside the Gilded Hours), set
+/// in a cream halo ring so it reads as a sealed court button wherever
+/// it floats. Tap opens the wheel room (the ceremony inside the hours,
+/// the salon outside them).
 class WheelMedallion extends StatefulWidget {
   const WheelMedallion({super.key, required this.open, required this.onTap});
   final bool open;
@@ -43,12 +45,12 @@ class _WheelMedallionState extends State<WheelMedallion>
           animation: _t,
           builder: (BuildContext context, Widget? _) {
             final double breath =
-                1.0 + (open ? 0.055 : 0.022) * math.sin(_t.value * 6.283);
+                1.0 + (open ? 0.05 : 0.02) * math.sin(_t.value * 6.283);
             return Stack(
               clipBehavior: Clip.none,
               children: <Widget>[
                 if (open)
-                  Positioned(
+                  const Positioned(
                     left: -26,
                     top: -30,
                     right: -26,
@@ -58,29 +60,19 @@ class _WheelMedallionState extends State<WheelMedallion>
                 Transform.scale(
                   scale: breath,
                   child: Container(
-                    width: 62,
-                    height: 62,
+                    width: 60,
+                    height: 60,
+                    padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        center: const Alignment(-0.3, -0.35),
-                        colors: open
-                            ? const <Color>[
-                                Color(0xFFFFF3D0),
-                                Color(0xFFE7B14C),
-                                Color(0xFF8A5E1C)
-                              ]
-                            : const <Color>[
-                                Color(0xFFF3E4C2),
-                                Color(0xFFC9A05A),
-                                Color(0xFF7A5216)
-                              ],
-                      ),
+                      color: const Color(0xFFFFF6E5),
+                      border: Border.all(
+                          color: const Color(0xFFE7B14C), width: 1.6),
                       boxShadow: <BoxShadow>[
                         BoxShadow(
                           color: const Color(0xFFE7B14C)
-                              .withOpacity(open ? 0.55 : 0.22),
-                          blurRadius: open ? 22 : 10,
+                              .withOpacity(open ? 0.60 : 0.30),
+                          blurRadius: open ? 22 : 12,
                           spreadRadius: open ? 3 : 1,
                         ),
                         const BoxShadow(
@@ -92,22 +84,23 @@ class _WheelMedallionState extends State<WheelMedallion>
                     child: CustomPaint(
                       painter: WheelPainter(
                         segs: const <WheelSeg>[
-                          WheelSeg('₹3', Color(0xFFFFB300), 'rupee'),
+                          WheelSeg('', Color(0xFFFFB300), 'rupee'),
                           WheelSeg('', Color(0xFFFF4081), 'word'),
-                          WheelSeg('₹7', Color(0xFFFF7A00), 'rupee'),
-                          WheelSeg('', Color(0xFFC0B7A6), 'rest'),
-                          WheelSeg('₹15', Color(0xFF00C853), 'rupee'),
-                          WheelSeg('', Color(0xFFC2185B), 'image'),
-                          WheelSeg('₹21', Color(0xFFD50000), 'rupee'),
+                          WheelSeg('', Color(0xFFFF7A00), 'rupee'),
+                          WheelSeg('', Color(0xFF00BFA5), 'rest'),
+                          WheelSeg('', Color(0xFF00C853), 'rupee'),
+                          WheelSeg('', Color(0xFF7C4DFF), 'image'),
+                          WheelSeg('', Color(0xFFD50000), 'rupee'),
                           WheelSeg('', Color(0xFFE91E63), 'letter'),
-                          WheelSeg('', Color(0xFFB0A692), 'rest'),
+                          WheelSeg('', Color(0xFF00BFA5), 'rest'),
                           WheelSeg('', Color(0xFFAD1457), 'voice'),
                           WheelSeg('', Color(0xFFE7B14C), 'choice'),
                           WheelSeg('', Color(0xFFFF6E40), 'moment'),
                         ],
-                        angle: _t.value * (open ? 1.4 : 0.35),
+                        angle: _t.value * (open ? 1.6 : 0.55),
                         shine: _t.value,
                         dim: !open,
+                        mini: true,
                       ),
                     ),
                   ),
