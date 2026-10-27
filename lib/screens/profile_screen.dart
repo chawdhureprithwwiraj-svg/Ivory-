@@ -17,6 +17,7 @@ import '../widgets/member_pulse.dart';
 import '../widgets/premium_badge.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/profile_photo_editor.dart';
+import '../widgets/dawn_house.dart';
 import '../widgets/profile_folio_card.dart';
 import '../widgets/profile_treasures_card.dart';
 import '../widgets/language_row.dart';
@@ -183,8 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     Divider(color: IvoryColors.hairline, height: 30),
-                    // Members see who they are. The technical diagnostics
-                    // below are for the administrator only.
+                    // Members see who they are; diagnostics are admin-only.
                     _line(Icons.alternate_email, IvoryColors.plum,
                         AuthService.instance.currentUser?.email ??
                             'Signed in privately'),
@@ -213,6 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 18),
 
+              const ProfileDawnChip(),
               // ---- membership ----
               // Owner: her house, not a shop. Paid: the Vault. Forever cream.
               if (p?.isAdmin ?? false)
@@ -277,8 +278,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _row(Icons.auto_awesome, 'Your wishes',
                     () => widget.onOpenTab?.call('wish'))
               else
-                // Its row arrives a moment after the page; the space
-                // is kept for it so the scroll never jumps.
+                // Its row arrives late; the space keeps the scroll still.
                 ConstrainedBox(
                   constraints: const BoxConstraints(minHeight: 76),
                   child: ProfileWishShortcut(
@@ -358,9 +358,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// CC.220 - THE WORN LINE: the profile wears the member's place
-  /// in the Line, so status is visible on the one screen members
-  /// show each other.
+  /// CC.220 - THE WORN LINE: the profile wears the member's Line place.
   Widget _wornLine(IvoryProfile? p) {
     final LineState? ls = LineService.instance.state.value;
     if (ls == null) return const SizedBox.shrink();
