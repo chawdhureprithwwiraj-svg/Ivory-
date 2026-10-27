@@ -6,13 +6,21 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/ivory_errors.dart';
 import '../models/ivory_post.dart';
 import '../services/early_service.dart';
-import '../theme/ivory_theme.dart';
+import '../widgets/dawn_key.dart';
+import 'dawn_screening.dart';
 import '../widgets/lane_law.dart';
-import '../widgets/early_door_view.dart';
 import '../widgets/post_actions.dart';
 
-/// Opens the Early Door sheet: the door, what it gives this member,
-/// what each rung gives, and what is waiting.
+/// ============================================================
+/// IVORY - THE EARLY DOOR SHEET, AWAKENED (CC.229)
+///
+/// The Dawn Door: the sky of first light behind, the member's own brass
+/// key and Dawn Circle rank at the top, the Dawn Note from Ivory, the
+/// keyhole that turns once a day for a finished task, the held stories
+/// with their countdowns and golden keys, the streak ladder, and the one
+/// quiet band that carries devotion to the premium tiers. The old read
+/// flow, the lane law and the push switch stand exactly as proven.
+/// ============================================================
 Future<void> showEarlyDoorSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
@@ -21,17 +29,6 @@ Future<void> showEarlyDoorSheet(BuildContext context) {
     builder: (_) => const _EarlyDoorSheet(),
   );
 }
-
-const Color _wash = IvoryColors.emeraldWash;
-
-BoxDecoration _sheetBack() => const BoxDecoration(
-  gradient: LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: <Color>[IvoryColors.emeraldMid, IvoryColors.emerald],
-  ),
-  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-);
 
 class _EarlyDoorSheet extends StatefulWidget {
   const _EarlyDoorSheet();
@@ -43,17 +40,23 @@ class _EarlyDoorSheet extends StatefulWidget {
 class _EarlyDoorSheetState extends State<_EarlyDoorSheet> {
   Timer? _tick;
   bool _busy = false;
+  Map<String, dynamic> _d = <String, dynamic>{};
+  final Map<int, String> _peeks = <int, String>{};
 
   @override
   void initState() {
     super.initState();
     EarlyService.instance.state.addListener(_changed);
     EarlyService.instance.refresh(force: true);
+    _dawn();
     // CC.215: while the early door is open the ribbon lane waits, so
     // the new back arrow is never covered mid-crossing.
     LaneLaw.topBusy.value = true;
     _tick = Timer.periodic(const Duration(seconds: 20), (Timer _) {
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+        _dawn();
+      }
     });
   }
 
@@ -69,10 +72,18 @@ class _EarlyDoorSheetState extends State<_EarlyDoorSheet> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _dawn() async {
+    final Map<String, dynamic> m = await EarlyService.instance.dawnReport();
+    if (mounted) setState(() => _d = m);
+  }
+
   void _say(String m) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
   }
+
+  int _int(String k) => (_d[k] is int) ? _d[k] as int : 0;
+  String _str(String k) => (_d[k] ?? '').toString();
 
   Future<void> _push(bool on) async {
     setState(() => _busy = true);
@@ -82,6 +93,66 @@ class _EarlyDoorSheetState extends State<_EarlyDoorSheet> {
       _say(houseMessage(e));
     }
     if (mounted) setState(() => _busy = false);
+  }
+
+  Future<void> _turn() async {
+    setState(() => _busy = true);
+    final Map<String, dynamic> m = await EarlyService.instance.dawnTaskTurn();
+    if (mounted) setState(() => _busy = false);
+    if (m['ok'] == true) {
+      _say('The keyhole is turned. One peek is yours today.');
+      await _dawn();
+    } else {
+      _say('${m['why']}');
+    }
+  }
+
+  Future<void> _peek(EarlyPost p) async {
+    setState(() => _busy = true);
+    final Map<String, dynamic> m = await EarlyService.instance.dawnPeek(p.id);
+    if (mounted) setState(() => _busy = false);
+    if (m['ok'] == true) {
+      setState(() => _peeks[p.id] = '${m['teaser']}');
+      await _dawn();
+    } else {
+      _say(m['why'] == 'already'
+          ? 'You have looked through this keyhole today.'
+          : '${m['why']}');
+    }
+  }
+
+  Future<void> _golden(EarlyPost p) async {
+    setState(() => _busy = true);
+    final Map<String, dynamic> m = await EarlyService.instance.dawnGolden(p.id);
+    if (mounted) setState(() => _busy = false);
+    if (m['ok'] != true) {
+      _say('${m['why']}');
+      return;
+    }
+    await _dawn();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext c) => AlertDialog(
+        backgroundColor: const Color(0xFFFFF6E5),
+        title: Text('${m['title']}',
+            style: const TextStyle(color: Color(0xFF4A0E17), fontSize: 17)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Text('${m['body']}',
+                style: const TextStyle(
+                    color: Color(0xFF3A2318), fontSize: 14, height: 1.55)),
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('CLOSE THE DOOR SOFTLY'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _read(EarlyPost p) async {
@@ -106,334 +177,357 @@ class _EarlyDoorSheetState extends State<_EarlyDoorSheet> {
     }
   }
 
-  Widget _chip(String label, String value) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(
-      color: _wash.withValues(alpha: 0.14),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            color: _wash.withValues(alpha: 0.7),
-            fontSize: 9.5,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.4,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          value,
-          style: const TextStyle(
-            color: _wash,
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _heading(String t) => Padding(
-    padding: const EdgeInsets.fromLTRB(2, 22, 2, 10),
-    child: Text(
-      t,
-      style: TextStyle(
-        color: _wash.withValues(alpha: 0.8),
-        fontSize: 11.5,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 2.4,
-      ),
-    ),
-  );
-
-  IconData _icon(String type) {
-    switch (type) {
-      case 'video':
-        return Icons.movie_outlined;
-      case 'audio':
-        return Icons.graphic_eq_rounded;
-      case 'image':
-        return Icons.photo_outlined;
-      case 'poll':
-        return Icons.how_to_vote_outlined;
-      default:
-        return Icons.auto_stories_outlined;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final EarlyState? s = EarlyService.instance.state.value;
-    final double bottom = MediaQuery.of(context).viewPadding.bottom;
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.88,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (BuildContext ctx, ScrollController sc) {
-        return Container(
-          decoration: _sheetBack(),
-          child: s == null
-              ? const Center(
-                  child: CircularProgressIndicator(color: _wash),
-                )
-              : ListView(
-                  controller: sc,
-                  padding: EdgeInsets.fromLTRB(18, 14, 18, 28 + bottom),
-                  children: <Widget>[
-                    Row(
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.92,
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: Stack(
+          children: <Widget>[
+            const DawnSky(seam: 0.24),
+            SafeArea(
+              child: Column(
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 10, 10, 0),
+                    child: Row(
                       children: <Widget>[
+                        const Expanded(
+                          child: Text('THE EARLY DOOR',
+                              style: TextStyle(
+                                  color: Color(0xFFFFE9A8),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2.6)),
+                        ),
                         IconButton(
-                          tooltip: 'Back',
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: Icon(Icons.arrow_back,
-                              color: _wash, size: 22),
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close,
+                              color: Color(0xFFFFD98A)),
                         ),
-                        Expanded(
-                          child: Center(
-                            child: Container(
-                              width: 42,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: _wash.withValues(alpha: 0.4),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 48),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    Center(
-                      child: EarlyDoorView(
-                        openness: earlyOpenness(s.hours),
-                        width: 124,
-                        height: 154,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      s.isOpen ? 'Your door is open' : 'Your door is shut',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _wash,
-                        fontFamily: IvoryTheme.displayFont,
-                        fontStyle: FontStyle.italic,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _story(s),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: _wash.withValues(alpha: 0.9),
-                        fontSize: 13.5,
-                        height: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+                    child: Row(
                       children: <Widget>[
-                        _chip('Your rung', s.rungName.isEmpty ? '-' : s.rungName),
-                        _chip(
-                          'Reads ahead',
-                          s.hours >= 100000
-                              ? 'Always first'
-                              : (s.hours > 0 ? earlyHoursText(s.hours) : 'None yet'),
-                        ),
-                        _chip(
-                          'Golden Heart',
-                          s.warm
-                              ? 'Lit lately'
-                              : 'Quiet for ${s.warmDays}+ days',
-                        ),
-                        _chip('Read early', '${s.reads}'),
-                      ],
-                    ),
-                    if (s.posts.isNotEmpty) ...<Widget>[
-                      _heading('WAITING FOR YOU'),
-                      ...s.posts.map(_postTile),
-                    ],
-                    _heading('WHAT EACH RUNG GIVES YOU'),
-                    ...s.windows.map((EarlyWindow w) => _rungRow(s, w)),
-                    if (s.callExtraDays > 0) ...<Widget>[
-                      _heading('CALLS'),
-                      Text(
-                        'While your door is open you can book a call '
-                        '${s.callExtraDays} days further ahead than everyone else.',
-                        style: TextStyle(
-                          color: _wash.withValues(alpha: 0.9),
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                    _heading('NOTIFICATIONS'),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: _wash.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: SwitchListTile(
-                        activeThumbColor: _wash,
-                        activeTrackColor: IvoryColors.emeraldLight,
-                        title: const Text(
-                          'Tell me when an early story opens',
-                          style: TextStyle(
-                            color: _wash,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
+                        Expanded(
+                          child: Text(
+                            'the door creaked open at 06:07 IST · '
+                            '${_int('foot_today') > 0 ? '${_int('foot_today')} walked in before the world today' : 'the first footsteps are yours'}',
+                            style: const TextStyle(
+                                color: Color(0xCCFFE9A8), fontSize: 11.5),
                           ),
                         ),
-                        value: s.pushOn,
-                        onChanged: _busy ? null : _push,
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'The door is earned by showing up, never bought. Paid '
-                      'members read early stories at once.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: _wash.withValues(alpha: 0.65),
-                        fontSize: 11.5,
-                        height: 1.4,
-                      ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 26),
+                      children: <Widget>[
+                        _keyRow(s),
+                        _noteCard(),
+                        _taskRow(),
+                        if (s != null) ..._posts(s),
+                        _ladder(),
+                        const SizedBox(height: 12),
+                        PremiumDawnBand(
+                          discount: _int('discount'),
+                          cap: _int('cap'),
+                          streak: _int('streak'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _say('The tiers wait on your profile, in the '
+                                'Premium room - your dawns travel with you.');
+                          },
+                        ),
+                        if (_d['plaque'] == true) ...<Widget>[
+                          const SizedBox(height: 10),
+                          const Text(
+                              'Your name is on this season\'s Dawn Plaque. '
+                              'Ten dawns, kept.',
+                              style: TextStyle(
+                                  color: Color(0xFFFFE9A8), fontSize: 12.5)),
+                        ],
+                        const SizedBox(height: 12),
+                        _pushRow(s),
+                      ],
                     ),
-                  ],
-                ),
-        );
-      },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  String _story(EarlyState s) {
-    if (s.paid && s.hours >= 100000) {
-      return 'As a paid member you read every early story the moment it is '
-          'shared. The light in the doorway is yours.';
-    }
-    if (s.isOpen) {
-      return 'New stories reach you ${earlyHoursText(s.hours)} before '
-          'everyone else. Keep your Golden Heart lit every few days and the '
-          'door stays open.';
-    }
-    if (s.rungHours > 0 && !s.warm) {
-      return 'Your heart has been quiet for a while. Light it today and the '
-          'door opens ${earlyHoursText(s.rungHours)} early.';
-    }
-    final EarlyWindow? next = s.nextWindow;
-    if (next != null) {
-      return 'Climb to ${next.name} on the Ivory Ladder and the door opens '
-          '${earlyHoursText(next.hours)} early.';
-    }
-    return 'Keep your Golden Heart lit and climb the Ivory Ladder to open the '
-        'door.';
-  }
-
-  Widget _postTile(EarlyPost p) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Material(
-      color: _wash.withValues(alpha: p.canOpen ? 0.2 : 0.1),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _read(p),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: <Widget>[
-              Icon(_icon(p.type), color: _wash, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      p.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _wash,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      p.canOpen
-                          ? 'Yours now. Everyone has it ${earlyCountdown(p.publicAt)}.'
-                          : 'Opens for you ${earlyCountdown(p.opensAt)}.',
-                      style: TextStyle(
-                        color: _wash.withValues(alpha: 0.82),
-                        fontSize: 11.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                p.canOpen ? Icons.arrow_forward_ios_rounded : Icons.lock_clock,
-                color: _wash.withValues(alpha: 0.8),
-                size: 16,
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-
-  Widget _rungRow(EarlyState s, EarlyWindow w) {
-    final bool reached = w.rung <= s.rung;
-    final bool here = w.rung == s.rung;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: _wash.withValues(alpha: here ? 0.22 : 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: here
-            ? Border.all(color: _wash.withValues(alpha: 0.8))
-            : null,
-      ),
+  Widget _keyRow(EarlyState? s) {
+    final int waiting = s?.waiting ?? 0;
+    final int reads = _int('reads');
+    final int next = _int('next_at');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: <Widget>[
-          Icon(
-            reached ? Icons.check_circle_rounded : Icons.circle_outlined,
-            size: 18,
-            color: _wash.withValues(alpha: reached ? 1 : 0.5),
-          ),
-          const SizedBox(width: 10),
+          BrassKey(rank: _str('rank'), glow: waiting > 0, size: 68),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              here ? '${w.name}  (you are here)' : w.name,
-              style: TextStyle(
-                color: _wash.withValues(alpha: reached ? 1 : 0.75),
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Text(
-            w.hours > 0 ? '${earlyHoursText(w.hours)} early' : 'no early reading',
-            style: TextStyle(
-              color: _wash.withValues(alpha: reached ? 0.95 : 0.65),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                DawnRankChip(rank: _str('rank'), streak: _int('streak')),
+                const SizedBox(height: 7),
+                Text(
+                  'streak ${_int('streak')} · best ${_int('best')} · '
+                  '${reads} early read${reads == 1 ? '' : 's'}',
+                  style: const TextStyle(
+                      color: Color(0xE6FFF6E5), fontSize: 12),
+                ),
+                if (next > 0) ...<Widget>[
+                  const SizedBox(height: 3),
+                  Text(
+                    '${next - reads} more and you are '
+                    '${next == 5 ? 'a Dawn Regular' : next == 12 ? 'a Dawn Keeper' : next == 25 ? 'of the Inner Room' : 'a Dawn Visitor'}',
+                    style: const TextStyle(
+                        color: Color(0xAAFFE9A8), fontSize: 11.5),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _noteCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: const Color(0xF2FFF6E5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFB9822B), width: 1.1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text('THE DAWN NOTE',
+              style: TextStyle(
+                  color: Color(0xFF8A5E1C),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.8)),
+          const SizedBox(height: 6),
+          Text(_str('note'),
+              style: const TextStyle(
+                  color: Color(0xFF3A2318),
+                  fontSize: 13.5,
+                  height: 1.5,
+                  fontStyle: FontStyle.italic)),
+        ],
+      ),
+    );
+  }
+
+  Widget _taskRow() {
+    if (_d['peek_turn'] == true) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x88FFD98A), width: 1.1),
+        ),
+        child: const Row(
+          children: <Widget>[
+            Icon(Icons.key, size: 15, color: Color(0xFFFFD98A)),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text('The keyhole is turned today - one peek is yours.',
+                  style: TextStyle(color: Color(0xFFFFE9A8), fontSize: 12.5)),
+            ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        ElevatedButton(
+          onPressed: _busy ? null : _turn,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFE7B14C),
+            foregroundColor: const Color(0xFF3E1570),
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(26)),
+          ),
+          child: const Text('TURN THE KEYHOLE',
+              style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+        ),
+        const Padding(
+          padding: EdgeInsets.only(top: 5, bottom: 12),
+          child: Text(
+            'light your Golden Heart today, or finish today\'s question - '
+            'then one keyhole turns.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xAAFFE9A8), fontSize: 11),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _posts(EarlyState s) {
+    final List<Widget> out = <Widget>[];
+    if (!s.paid) {
+      out.add(ScreeningTease(
+          seats: _int('seats_today'), superCount: _int('super_today')));
+    }
+    if (s.posts.isEmpty) {
+      out.add(const Padding(
+        padding: EdgeInsets.only(bottom: 12),
+        child: Text('Nothing is held behind the door right now. When a '
+            'story is held, it waits here first - for the dawn people.',
+        style: TextStyle(color: Color(0xCCFFF6E5), fontSize: 12.5),
+      )));
+      return out;
+    }
+    for (final EarlyPost p in s.posts) {
+      out.add(Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: const Color(0x26FFF6E5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x55FFE9A8)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(p.title,
+                style: const TextStyle(
+                    color: Color(0xFFFFF6E5),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800)),
+            const SizedBox(height: 5),
+            Text(
+              p.canOpen
+                  ? 'open for you now · everyone at ${earlyClock(p.publicAt)}'
+                  : 'opens for you ${earlyCountdown(p.opensAt)} · everyone '
+                      '${earlyCountdown(p.publicAt)}',
+              style: const TextStyle(color: Color(0xCCFFE9A8), fontSize: 11.5),
+            ),
+            const SizedBox(height: 9),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                if (p.canOpen)
+                  _btn('READ NOW', () => _read(p), true),
+                if (s.paid)
+                  _btn('FIRST SCREENING', () => _screen(p), false),
+                if (!p.canOpen && _int('golden') > 0)
+                  _btn('USE A GOLDEN KEY', () => _golden(p), true),
+                if (!p.canOpen &&
+                    _d['peek_turn'] == true &&
+                    !_peeks.containsKey(p.id))
+                  _btn('PEEK', () => _peek(p), false),
+              ],
+            ),
+            if (_peeks.containsKey(p.id)) KeyholeTeaser(teaser: _peeks[p.id]!),
+          ],
+        ),
+      ));
+    }
+    return out;
+  }
+
+  void _screen(EarlyPost p) {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => DawnScreening(postId: p.id)));
+  }
+
+  Widget _btn(String label, VoidCallback onTap, bool gold) {
+    return GestureDetector(
+      onTap: _busy ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          gradient: gold
+              ? const LinearGradient(
+                  colors: <Color>[Color(0xFFF0C060), Color(0xFFC98A2E)])
+              : null,
+          color: gold ? null : const Color(0x22FFE9A8),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+              color: gold ? const Color(0xFF8A5E1C) : const Color(0x88FFE9A8)),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                color: gold ? const Color(0xFF3E1570) : const Color(0xFFFFE9A8),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.4)),
+      ),
+    );
+  }
+
+  Widget _ladder() {
+    final int st = _int('streak');
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x44FFE9A8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text('THE DAWN LADDER',
+              style: TextStyle(
+                  color: Color(0xFFFFE9A8),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.8)),
+          const SizedBox(height: 6),
+          Text(
+            '3 dawns in a row: a spare keyhole token${st >= 3 ? ' - earned' : ''}.\n'
+            '7 dawns: a Golden Key - one held story, whole, before its hour'
+            '${st >= 7 ? ' - earned' : ''}.\n'
+            '10 dawns: your name on the season\'s Dawn Plaque'
+            '${_d['plaque'] == true ? ' - it is there' : ''}.',
+            style: const TextStyle(
+                color: Color(0xD9FFF6E5), fontSize: 12, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pushRow(EarlyState? s) {
+    return Row(
+      children: <Widget>[
+        Switch(
+          value: s?.pushOn ?? true,
+          onChanged: _busy ? null : _push,
+          activeColor: const Color(0xFFE7B14C),
+        ),
+        const Expanded(
+          child: Text('whisper to me when the door opens',
+              style: TextStyle(color: Color(0xCCFFF6E5), fontSize: 12)),
+        ),
+      ],
     );
   }
 }
