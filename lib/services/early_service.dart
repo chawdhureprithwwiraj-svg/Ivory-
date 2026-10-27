@@ -309,6 +309,25 @@ class EarlyService {
     );
   }
 
+  Future<Map<String, dynamic>> dawnDesk() async {
+    try {
+      return _map(await _db.rpc('dawn_desk', params: <String, dynamic>{}));
+    } catch (_) {
+      return <String, dynamic>{'ok': false};
+    }
+  }
+
+  Future<Map<String, dynamic>> dawnDeskNotes(int postId) async {
+    try {
+      return _map(await _db.rpc(
+        'dawn_desk_notes',
+        params: <String, dynamic>{'post_in': postId},
+      ));
+    } catch (_) {
+      return <String, dynamic>{'ok': false};
+    }
+  }
+
   Future<void> dawnNoteSet(String note) async {
     await _db.rpc('dawn_note_set', params: <String, dynamic>{'note_in': note});
   }
