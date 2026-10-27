@@ -7,6 +7,7 @@ import '../services/payment_service.dart';
 import '../theme/ivory_theme.dart';
 import '../widgets/gold_tier_plate.dart';
 import '../widgets/golden_credit_ribbon.dart';
+import '../widgets/dawn_house.dart';
 import 'checkout_screen.dart';
 
 /// Membership tiers, drawn entirely from the database (any count, any price).
@@ -97,6 +98,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
               ),
             ),
             const SizedBox(height: 10),
+            PaywallWhisper(paid: (_membership?.tierLevel ?? 0) > 0),
             _invitation(),
             const SizedBox(height: 22),
             const GoldenCreditRibbon(),
