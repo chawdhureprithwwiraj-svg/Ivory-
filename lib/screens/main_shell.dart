@@ -295,9 +295,19 @@ class _MainShellState extends State<MainShell> {
                 // CC.239: one repaint boundary per room, so a ticking
                 // ribbon or a turning wheel never drags the other
                 // rooms into its repaint - calmer compositing on web.
-                children: pages
-                    .map((Widget w) => RepaintBoundary(child: w))
-                    .toList(),
+                // CC.242: only the room in front of the member
+                // breathes. Before this every tab stayed awake behind
+                // the IndexedStack - fifty-odd repeating controllers,
+                // all painting every frame, five of them invisible.
+                // That alone pinned a phone to single-digit frames
+                // and made every transition look stuck through glass.
+                children: <Widget>[
+                  for (int i = 0; i < pages.length; i++)
+                    TickerMode(
+                      enabled: i == _index,
+                      child: RepaintBoundary(child: pages[i]),
+                    ),
+                ],
               ),
             ),
           ],
