@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/ivory_errors.dart';
 import '../core/net_get.dart';
+import '../core/supabase_config.dart';
 
 /// ============================================================
 /// IVORY - THE VAULT (CLOUDFLARE R2)
@@ -173,7 +174,7 @@ class VaultService {
       '/api/r2-vault',
       jsonEncode(<String, dynamic>{'op': op, ...body}),
       <String, String>{
-        'apikey': Supabase.instance.client.supabaseKey,
+        'apikey': SupabaseConfig.anonKey,
         if (token.isNotEmpty) 'Authorization': 'Bearer $token',
       },
     );
