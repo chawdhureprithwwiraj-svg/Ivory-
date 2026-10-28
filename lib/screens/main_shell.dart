@@ -1,3 +1,6 @@
+import '../widgets/premium_assets.dart';
+import '../widgets/heart_sound.dart';
+import '../core/film_prime.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -79,6 +82,39 @@ class _MainShellState extends State<MainShell> {
     // CC.120: a lapsed membership no longer keeps its profile photo.
     unawaited(LapsedPhotoCleanup.instance.runIfLapsed());
     MainShell.onOpenTab = _openTab;
+    // CC.240: while the member settles in, the house warms its
+    // heaviest pleasures in the background - the heart's gif and its
+    // sound - so the Golden Heart opens rich and instant instead of
+    // asking for patience.
+    unawaited(_warmTheHouse());
+  }
+
+  Future<void> _warmTheHouse() async {
+    await Future<void>.delayed(const Duration(seconds: 4));
+    if (!mounted) return;
+    try {
+      await HeartSound.instance.load();
+    // CC.241: the two films warm at idle too. The browser pulls them
+    // into its media cache while the member is still reading the
+    // corridor, so the ladder and the wheel open without a wire wait.
+    filmPrime('assets/wheels/opening_film_wheel_of_fans.mp4');
+    filmPrime(await PremiumAssets.find(
+          'ladder_film',
+          const <String>['ladder', 'film'],
+          const <String>['.mp4'],
+        ) ??
+        '');
+      final String? gif = await PremiumAssets.find(
+        'warm_heart_gif',
+        const <String>[],
+        const <String>['.gif'],
+      );
+      if (gif != null && mounted) {
+        await precacheImage(AssetImage(gif), context);
+      }
+    } catch (_) {
+      // Warmth is a courtesy, never a requirement.
+    }
   }
 
   void _openBusinessEnquiries() {
@@ -253,7 +289,17 @@ class _MainShellState extends State<MainShell> {
                 );
               },
             ),
-            Expanded(child: IndexedStack(index: _index, children: pages)),
+            Expanded(
+              child: IndexedStack(
+                index: _index,
+                // CC.239: one repaint boundary per room, so a ticking
+                // ribbon or a turning wheel never drags the other
+                // rooms into its repaint - calmer compositing on web.
+                children: pages
+                    .map((Widget w) => RepaintBoundary(child: w))
+                    .toList(),
+              ),
+            ),
           ],
         ),
       ),
