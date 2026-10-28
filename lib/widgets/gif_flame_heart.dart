@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show Shader;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
