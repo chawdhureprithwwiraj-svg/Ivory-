@@ -52,8 +52,18 @@ class _LadderScreenState extends State<LadderScreen>
   @override
   void initState() {
     super.initState();
-    LadderService.instance.start();
-    BellSound.instance.load();
+    // CC.241: the ladder's first chime waits for the first painted
+    // frame and one breath more, so the sound never arrives before
+    // the screen it belongs to. On thin phones the old initState call
+    // let the chime land while the corridor was still dark.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Future<void>.delayed(const Duration(milliseconds: 350), () {
+        if (!mounted) return;
+        LadderService.instance.start();
+        BellSound.instance.load();
+      });
+    });
     // CC.215: the back arrow lives in the ribbon lane's street; while
     // the ladder is open the lane waits, so the arrow always answers.
     LaneLaw.topBusy.value = true;
