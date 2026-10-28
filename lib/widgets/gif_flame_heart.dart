@@ -73,6 +73,29 @@ class _GifFlameHeartState extends State<GifFlameHeart>
     duration: const Duration(milliseconds: 2600),
   );
 
+  // CC.242: the soft vignette over the heart used to build a fresh
+  // radial shader on every painted frame - one allocation per frame
+  // for a shape that never changes. It is built once per size now.
+  Size? _maskSize;
+  late Shader _maskShader;
+
+  Shader _mask(Rect r) {
+    if (_maskSize != r.size) {
+      _maskSize = r.size;
+      _maskShader = const RadialGradient(
+        center: Alignment(0, 0.08),
+        radius: 0.58,
+        colors: <Color>[
+          Color(0xFFFFFFFF),
+          Color(0xFFFFFFFF),
+          Color(0x00FFFFFF),
+        ],
+        stops: <double>[0, 0.6, 1],
+      ).createShader(r);
+    }
+    return _maskShader;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -166,16 +189,7 @@ class _GifFlameHeartState extends State<GifFlameHeart>
                     height: side,
                     child: ShaderMask(
                     blendMode: BlendMode.dstIn,
-                    shaderCallback: (Rect r) => const RadialGradient(
-                      center: Alignment(0, 0.08),
-                      radius: 0.58,
-                      colors: <Color>[
-                        Color(0xFFFFFFFF),
-                        Color(0xFFFFFFFF),
-                        Color(0x00FFFFFF),
-                      ],
-                      stops: <double>[0, 0.6, 1],
-                    ).createShader(r),
+                    shaderCallback: _mask,
                     child: ColorFiltered(
                       colorFilter: const ColorFilter.mode(
                         Color(0xFF4A0E17),
